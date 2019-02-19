@@ -1,9 +1,11 @@
-# plot - high level plot package
+# plot - create interactive raster plots
 
-Plot is a plot package for Go that is one level above gonum/plot.
+Plot is a plot package for Go that creates interactive plots on images.
 
 ## Planned features
 
+- plot types
+  - xy, polar, amplitude phase, foto, raster (heatmap)
 - interactive plots
   - zoom, pan, select, lineinfo
   - connected to table as an advanced kind of legend
@@ -19,23 +21,10 @@ Plot is a plot package for Go that is one level above gonum/plot.
     - pptx: export plot with caption table as a slide to an existing presentation
     - html
   - slider: react to a slider widget event (scroll through data) 
-- stream plots (lots of data)   
-  - same interface but do not hold data
-  - plot panel size must be known in advance
-  - axis must be known or some kind of rescale algorithm
-  - plot is done into an image (rasterized) but rescaling still works kind-of
-  - axis ticks and labels are vectorgraphics and can be rescaled
-  - online mode: show plot updates at slow rate while still reading data
 - 3d plots
   - 3d line plots using `fogleman/ln`, interactive
 - animations
   - animated line plots (2d/3d)
   - export to gif
-- additional plotters
-  - polar: complex numbers in a polar diagram
-  - bode: complex numbers amplitude and phase over x
-  - images in a xy plot
-    - colormap images (spectrograms, ...)
-    - photos
 - user interfaces
-  - bindings to duit and walk
+  - bindings to ktye/ui, lxn/walk
