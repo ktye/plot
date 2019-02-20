@@ -16,7 +16,6 @@ type xyer interface {
 
 // xyPolar returns x and y data from a line object for a polar plot.
 // Complex phase starts at the y axis and 90 degree is on the x axis.
-// Like a watch, the Schenck standard.
 type xyPolar struct{}
 
 func (p xyPolar) XY(l Line) (x, y []float64, isEnvelope bool) {

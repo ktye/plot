@@ -53,6 +53,8 @@ func (p Plots) IPlots(width, height int) ([]IPlotter, error) {
 
 // Image creates an Image from a slice of iplotters.
 // If ids is nil, no lines will be highlighted.
+// The image dimensions may be differnt than the in the initial call to IPlots,
+// e.g. after a resize.
 func Image(h []IPlotter, ids []HighlightID, width, height int) image.Image {
 	if len(h) < 1 {
 		return nil

@@ -6,7 +6,7 @@ import (
 )
 
 // xyPlot is a standard rectangular x-y plot.
-// It implements the HiPlotter interface.
+// It implements the IPlotter interface.
 type xyPlot struct {
 	plot *Plot
 	Limits
