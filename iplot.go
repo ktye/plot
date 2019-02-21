@@ -33,6 +33,8 @@ func (p Plots) IPlots(width, height int) ([]IPlotter, error) {
 	for i := 0; i < len(p); i++ {
 		w := width / len(p)
 		switch p[i].Type {
+		case "":
+			plotters[i], err = p[i].NewEmpty(w, height)
 		case XY, Raster:
 			plotters[i], err = p[i].NewXY(w, height)
 		case Polar:
