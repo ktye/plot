@@ -125,10 +125,10 @@ type Text struct {
 
 func (t Text) Draw(p *Painter) {
 	metrics := p.fontDrawer.Face.Metrics()
-	x, y, _, height := t.Extent(p)
-	y += height
+	x, y, _, _ := t.Extent(p)
 	descent := metrics.Descent.Ceil()
-	p.fontDrawer.Dot = fixed.P(x, y-descent)
+	y -= descent
+	p.fontDrawer.Dot = fixed.P(x, y)
 	p.fontDrawer.DrawString(t.S)
 }
 
@@ -136,7 +136,11 @@ func (t Text) Draw(p *Painter) {
 func (t Text) Extent(p *Painter) (x, y, width, height int) {
 	x, y = t.X, t.Y
 	bounds, _ := font.BoundString(p.fontDrawer.Face, t.S)
-	width, height = bounds.Max.X.Ceil(), bounds.Max.Y.Ceil()
+	d := bounds.Max.Sub(bounds.Min)
+	width = d.X.Ceil()
+	metrics := p.fontDrawer.Face.Metrics()
+	height = (metrics.Ascent + metrics.Descent).Ceil()
+
 	if t.Align != 0 {
 		if t.Align == 1 || t.Align == 5 || t.Align == 8 {
 			x -= width / 2
@@ -151,19 +155,9 @@ func (t Text) Extent(p *Painter) (x, y, width, height int) {
 			y += height
 		}
 	}
-	return x, y - height, width, height
-}
 
-/* TODO rm
-func (t Text) StringSize(p *Painter) (width, height int) {
-	p.fontDrawer.Dot = fixed.P(0, 0)
-	if r, _, ok := p.fontDrawer.Face.GlyphBounds('M'); ok {
-		height = int(r.Max.Y-r.Min.Y) / 64
-	}
-	width = int(p.fontDrawer.MeasureString(t.S)) / 64
-	return
+	return x, y, width, height
 }
-*/
 
 // Pixel
 type Pixel struct {
@@ -267,17 +261,21 @@ type LineCoords struct {
 type Line struct {
 	LineCoords
 	LineWidth int
+	Floor     bool
 }
 
 func (l Line) Draw(p *Painter) {
 	x0, y0, x1, y1 := fixed.I(l.X), fixed.I(l.Y), fixed.I(l.X+l.DX), fixed.I(l.Y+l.DY)
 	hp := fixed.Int26_6(32) // half a pixel, this makes sure, a 1px line is not shared between 2 pixels.
+	if l.Floor && l.LineWidth%2 == 0 {
+		hp = 0
+	}
 	path := raster.Path{0, x0 + hp, y0 + hp, 0, 1, x1 + hp, y1 + hp, 1}
 	p.Stroke(path, l.LineWidth)
 }
 
 func NewLine(x, y, dx, dy, lw int) Line {
-	return Line{LineCoords{x, y, dx, dy}, lw}
+	return Line{LineCoords{x, y, dx, dy}, lw, false}
 }
 
 // Ray is a line with length L.
@@ -343,6 +341,15 @@ func (f FloatTics) Draw(p *Painter) {
 		}
 		rect := rect26_6(f.Rect)
 		x, y := transform(X, Y, f.CoordinateSystem, rect)
+		// round to pixel
+		x /= 64
+		x *= 64
+		y /= 64
+		y *= 64
+		if f.LineWidth%2 == 1 {
+			x += 32
+			y += 32
+		}
 		off := fixed.Int26_6(f.L * 64)
 		if f.LeftTop == false {
 			off = -off

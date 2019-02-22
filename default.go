@@ -46,12 +46,12 @@ func (p *Plot) defaultBackgroundColor() color.Color {
 
 // defaultTitleHeight is the vertical space for the plot title.
 func (p *Plot) defaultTitleHeight() int {
-	return font1.Metrics().Height.Ceil() + 4
+	return font1.Metrics().Height.Ceil() * 2
 }
 
 // defaultTicLabelHeight is the vertical space for the tic labels.
 func (p *Plot) defaultTicLabelHeight() int {
-	return font2.Metrics().Height.Ceil() + 5
+	return font2.Metrics().Height.Ceil() * 2
 }
 
 // defaultPolarTicLabelWidth is the horizontal space for polar tic labels.
@@ -81,12 +81,12 @@ func (p *Plot) defaultRightXYWidth(lastXLabel string) int {
 
 // defaultTicLength computes the tic length.
 func (p *Plot) defaultTicLength() int {
-	return font1.Metrics().Height.Ceil() / 5
+	return font2.Metrics().Height.Ceil() / 2
 }
 
 // defaultAxesGridLineWidth returns the grid line width.
 func (p *Plot) defaultAxesGridLineWidth() int {
-	n := font1.Metrics().Height.Ceil() / 10
+	n := font2.Metrics().Height.Ceil() / 10
 	if n == 0 {
 		n = 1
 	}

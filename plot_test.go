@@ -6,7 +6,6 @@ import (
 	"image/color"
 	"image/draw"
 	"image/png"
-	"io/ioutil"
 	"math"
 	"math/cmplx"
 	"testing"
@@ -31,9 +30,9 @@ func TestPlot(t *testing.T) {
 	}
 
 	/*
-	if err := ioutil.WriteFile("out.png", buf.Bytes(), 0644); err != nil {
-		t.Fatal(err)
-	}
+		if err := ioutil.WriteFile("out.png", buf.Bytes(), 0644); err != nil {
+			t.Fatal(err)
+		}
 	*/
 }
 

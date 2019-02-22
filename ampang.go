@@ -127,7 +127,7 @@ func (p ampAngPlot) draw() {
 	p.ang.drawXY(xyAng{})
 	p.amp.drawXYTics(xtics.Pos, ytics.Pos, nil, ytics.Labels)
 	p.ang.drawXYTics(xtics.Pos, atics.Pos, xtics.Labels, atics.Labels)
-	p.amp.drawTitle(5)
+	p.amp.drawTitle(p.plot.defaultTicLength())
 	p.ang.drawXlabel()
 	p.amp.drawYlabel()
 }

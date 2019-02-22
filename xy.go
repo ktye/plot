@@ -109,7 +109,7 @@ func (p xyPlot) draw() {
 		p.ax.drawXY(xyXY{})
 	}
 	p.ax.drawXYTics(p.xtics.Pos, p.ytics.Pos, p.xtics.Labels, p.ytics.Labels)
-	p.ax.drawTitle(5)
+	p.ax.drawTitle(p.plot.defaultTicLength())
 	p.ax.drawXlabel()
 	p.ax.drawYlabel()
 }

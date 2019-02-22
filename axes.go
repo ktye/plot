@@ -107,12 +107,12 @@ func (a axes) drawXYTics(X, Y []float64, xlabels, ylabels []string) {
 	p.SetColor(a.fg)
 
 	// draw axis border lines
-	boxLw := 1
+	boxLw := a.plot.defaultAxesGridLineWidth()
 	aoff := a.plot.defaultTicLength()
-	p.Add(vg.Line{vg.LineCoords{a.x, a.y - aoff, a.width - 1, 0}, boxLw})
-	p.Add(vg.Line{vg.LineCoords{a.x, a.y + a.height + aoff, a.width - 1, 0}, boxLw})
-	p.Add(vg.Line{vg.LineCoords{a.x - aoff, a.y, 0, a.height - 1}, boxLw})
-	p.Add(vg.Line{vg.LineCoords{a.x + a.width + aoff - 1, a.y, 0, a.height - 1}, boxLw})
+	p.Add(vg.Line{vg.LineCoords{a.x, a.y - aoff, a.width - 1, 0}, boxLw, true})
+	p.Add(vg.Line{vg.LineCoords{a.x, a.y + a.height + aoff, a.width - 1, 0}, boxLw, true})
+	p.Add(vg.Line{vg.LineCoords{a.x - aoff, a.y, 0, a.height - 1}, boxLw, true})
+	p.Add(vg.Line{vg.LineCoords{a.x + a.width + aoff - 1, a.y, 0, a.height - 1}, boxLw, true})
 
 	// x and y tics on all 4 borders.
 	L := a.plot.defaultTicLength()
@@ -142,12 +142,14 @@ func (a axes) drawXYTics(X, Y []float64, xlabels, ylabels []string) {
 		}
 		stop, _ = cs.Pixel(X[i], lim.Ymin, rect)
 		stop += textWidth(s) / 2
-		p.Add(vg.FloatText{X: X[i], Y: lim.Ymin, S: s, Yoff: 9, Align: 5, CoordinateSystem: cs, Rect: rect})
+		yoff := font2.Metrics().Height.Ceil()
+		p.Add(vg.FloatText{X: X[i], Y: lim.Ymin, S: s, Yoff: yoff, Align: 5, CoordinateSystem: cs, Rect: rect})
 	}
 
 	// Draw y tic labels if requested
+	xoff := -2 * L
 	for i, s := range ylabels {
-		p.Add(vg.FloatText{X: lim.Xmin, Y: Y[i], S: s, Yoff: 2, Xoff: -4, Align: 3, CoordinateSystem: cs, Rect: rect})
+		p.Add(vg.FloatText{X: lim.Xmin, Y: Y[i], S: s, Yoff: 2, Xoff: xoff, Align: 3, CoordinateSystem: cs, Rect: rect})
 	}
 
 	p.Paint()
@@ -188,8 +190,8 @@ func (a axes) drawPolarCircle() {
 	p.SetColor(a.fg)
 	r := a.width / 2
 	lw := a.plot.defaultAxesGridLineWidth()
-	p.Add(vg.Line{vg.LineCoords{X: a.x + r, Y: a.y, DX: 0, DY: 2*r + 1}, lw})
-	p.Add(vg.Line{vg.LineCoords{X: a.x, Y: a.y + r, DX: 2*r + 1, DY: 0}, lw})
+	p.Add(vg.Line{vg.LineCoords{X: a.x + r, Y: a.y, DX: 0, DY: 2*r + 1}, lw, true})
+	p.Add(vg.Line{vg.LineCoords{X: a.x, Y: a.y + r, DX: 2*r + 1, DY: 0}, lw, true})
 
 	// Draw grid circles
 	as := autoscale{max: a.limits.Ymax}
@@ -227,7 +229,6 @@ func (a axes) drawPolarTics() {
 	}
 	l := a.plot.defaultTicLength()
 	aligns := []int{1, 0, 0, 7, 6, 6, 5, 4, 4, 3, 2, 2}
-	yoffs := []int{0, 0, 0, 2, 1, 2, 3, 2, 1, 2, 0, 0}
 	p.SetFont(font2)
 	phi0 := math.Pi / 2.0
 	for i := 0; i < 360; i += 30 {
@@ -236,18 +237,18 @@ func (a axes) drawPolarTics() {
 		s := strconv.Itoa(i)
 		tx := float64(a.x+r) + float64(r+l/2)*math.Cos(phi-phi0)
 		ty := float64(a.y+r) + float64(r+l/2)*math.Sin(phi-phi0)
-		p.Add(vg.Text{int(tx + 0.5), int(ty+0.5) + yoffs[i/30], s, aligns[i/30]})
+		p.Add(vg.Text{int(tx + 0.5), int(ty + 0.5), s, aligns[i/30]})
 	}
 
 	// Draw scale/unit marker.
 	p.SetFont(font1)
-	phi := 135.0 * math.Pi / 180.0
+	phi := 130.0 * math.Pi / 180.0
 	s := strconv.FormatFloat(a.limits.Ymax, 'g', 4, 64)
-	p.Add(vg.Ray{a.x + r, a.y + r, r, 2 * l, phi - phi0, a.plot.defaultAxesGridLineWidth()})
-	tx := float64(a.x+r) + float64(r+2*l)*math.Cos(phi-phi0)
-	ty := float64(a.y+r) + float64(r+2*l)*math.Sin(phi-phi0)
+	p.Add(vg.Ray{a.x + r, a.y + r, r, 3 * l, phi - phi0, a.plot.defaultAxesGridLineWidth()})
+	tx := float64(a.x+r) + float64(r+3*l)*math.Cos(phi-phi0)
+	ty := float64(a.y+r) + float64(r+3*l)*math.Sin(phi-phi0)
 	p.Add(vg.Text{int(tx + 0.5), int(ty + 0.5), s, 6})
-	ty += 13
+	ty += float64(font2.Metrics().Height.Ceil())
 	p.Add(vg.Text{int(tx + 0.5), int(ty + 0.5), string(a.plot.Yunit), 6})
 
 	p.Paint()
@@ -262,7 +263,7 @@ func (a axes) drawTitle(vSpace int) {
 	p.SetFont(font1)
 	// Center the label
 	x := a.x + a.width/2
-	y := a.y - vSpace
+	y := a.y - vSpace - 1 // vSpace is defaultTicLength and more for polar.
 	p.Add(vg.Text{x, y, a.plot.Title, 1})
 	p.Paint()
 }
@@ -292,8 +293,9 @@ func (a axes) drawYlabel() {
 	}
 
 	bounds, _ := font.BoundString(f, t)
-	width, height := bounds.Max.X.Ceil(), bounds.Max.Y.Ceil()
-	height += 3
+	d := bounds.Max.Sub(bounds.Min)
+	width := d.X.Ceil() + 4
+	height := f.Metrics().Height.Ceil()
 	tmp := image.NewRGBA(image.Rect(0, 0, width, height))
 	draw.Draw(tmp, tmp.Bounds(), image.NewUniform(a.bg), image.ZP, draw.Src)
 	p := vg.NewPainter(tmp)
