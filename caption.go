@@ -480,3 +480,18 @@ func allEmptyComplex(v []complex128) bool {
 	}
 	return true
 }
+
+// SetCaptionColors sets the colors of the caption associated with the plot.
+func (p *Plot) SetCaptionColors() {
+	if p.Caption == nil {
+		return
+	}
+	colors := make([]color.Color, p.Caption.Rows())
+	for i, l := range p.Lines {
+		co := p.Style.Order.Get(l.Style.Line.Color, i+1).Color()
+		if i < len(colors) {
+			colors[i] = co
+		}
+	}
+	p.Caption.colors = colors
+}
