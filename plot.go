@@ -140,3 +140,14 @@ func (p *Plot) nextNegativeLineId() int {
 	}
 	return -1
 }
+
+// MergedCaption returns a single caption from plots.
+func (p *Plots) MergedCaption() (c Caption, err error) {
+	var caps []Caption
+	for _, v := range *p {
+		if v.Caption != nil {
+			caps = append(caps, *v.Caption)
+		}
+	}
+	return MergeCaptions(caps)
+}
