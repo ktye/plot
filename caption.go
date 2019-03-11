@@ -9,6 +9,8 @@ import (
 	"math/cmplx"
 	"strings"
 	"text/tabwriter"
+
+	"github.com/ktye/plot/xmath"
 )
 
 const (
@@ -313,7 +315,7 @@ func (c *Caption) WriteTable(w io.Writer, flags uint) (int, error) {
 				if cmplx.IsNaN(v[row]) {
 					s = ""
 				} else {
-					s = absang(v[row], format)
+					s = xmath.Absang(v[row], format)
 				}
 			case []string:
 				v := column.Data.([]string)
@@ -477,23 +479,4 @@ func allEmptyComplex(v []complex128) bool {
 		}
 	}
 	return true
-}
-
-// absang formats a complex128 number in abs@ang format.
-func absang(x complex128, format string) string {
-	if format == "" {
-		format = "%v@%v"
-	}
-	r, phi := cmplx.Polar(x)
-	phi *= 180.0 / math.Pi
-	if phi < 0 {
-		phi += 360.0
-	}
-	if r == 0.0 {
-		phi = 0.0 // We want predictable angles in this case.
-	}
-	if phi == -0.0 || phi == 360.0 {
-		phi = 0.0
-	}
-	return fmt.Sprintf(format, r, phi)
 }
