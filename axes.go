@@ -248,7 +248,7 @@ func (a axes) drawPolarTics() {
 	tx := float64(a.x+r) + float64(r+3*l)*math.Cos(phi-phi0)
 	ty := float64(a.y+r) + float64(r+3*l)*math.Sin(phi-phi0)
 	p.Add(vg.Text{int(tx + 0.5), int(ty + 0.5), s, 6})
-	ty += float64(3+font2.Metrics().Height.Ceil()) // 3 should be line gap
+	ty += float64(3 + font2.Metrics().Height.Ceil()) // 3 should be line gap
 	p.Add(vg.Text{int(tx + 0.5), int(ty + 0.5), string(a.plot.Yunit), 6})
 
 	p.Paint()
@@ -296,7 +296,7 @@ func (a axes) drawYlabel() {
 	d := bounds.Max.Sub(bounds.Min)
 	width := d.X.Ceil() + 2
 	metrics := f.Metrics()
-	height := (metrics.Ascent+metrics.Descent).Ceil()
+	height := (metrics.Ascent + metrics.Descent).Ceil()
 
 	tmp := image.NewRGBA(image.Rect(0, 0, width, height))
 	draw.Draw(tmp, tmp.Bounds(), image.NewUniform(a.bg), image.ZP, draw.Src)

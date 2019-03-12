@@ -65,25 +65,9 @@ func Image(h []IPlotter, ids []HighlightID, width, height int) image.Image {
 	draw.Draw(m, m.Bounds(), &image.Uniform{h[0].background()}, image.ZP, draw.Src)
 
 	w := width / len(h)
-	res := make(chan imageResult)
-	for i, subplot := range h {
-		// Build sub images in parallel.
-		go func(res chan imageResult, ip IPlotter, index int) {
-			im := ip.image()
-			im = ip.highlight(ids)
-			res <- imageResult{
-				im:    im,
-				index: index,
-			}
-		}(res, subplot, i)
-	}
-	for range h {
-		ir := <-res
-		i := ir.index
-		im := ir.im
-		if im == nil {
-			return nil
-		}
+	for i := range h {
+		im := h[i].image()
+		im = h[i].highlight(ids)
 
 		// center the sub image in it's columns.
 		bounds := im.Bounds()
