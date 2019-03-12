@@ -108,7 +108,7 @@ func NewPainter(im *image.RGBA) Painter {
 		p:            raster.NewRGBAPainter(im),
 		r:            raster.NewRasterizer(im.Bounds().Max.X, im.Bounds().Max.Y),
 		currentColor: color.Black,
-		currentFace:  nil,
+		currentFace:  fd.Face,
 		fontDrawer:   fd,
 	}
 }
