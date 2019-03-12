@@ -46,19 +46,6 @@ type Style struct {
 	Order       color.Order   // Color order for lines and markers.
 }
 
-/* TODO
-// MergedCaption returns a single caption from plots.
-func (p *Plots) MergedCaption() (c Caption, err error) {
-	var caps []Caption
-	for _, v := range *p {
-		if v.Caption != nil {
-			caps = append(caps, *v.Caption)
-		}
-	}
-	return MergeCaptions(caps)
-}
-*/
-
 // WriteFile writes Plots to disk.
 func (p *Plots) WriteFile(filename string) error {
 	// TODO determine file type by extension.

@@ -124,11 +124,6 @@ func (p polarPlot) image() *image.RGBA {
 }
 
 func (p polarPlot) zoom(x, y, dx, dy int) bool {
-	/* TODO remove
-	if !p.axes.isInside(x, y) || !p.axes.isInside(x+dx, y+dy) {
-		return false
-	}
-	*/
 	// Keep it square.
 	if dx > dy {
 		dy = dx
@@ -146,11 +141,6 @@ func (p polarPlot) zoom(x, y, dx, dy int) bool {
 }
 
 func (p polarPlot) pan(x, y, dx, dy int) bool {
-	/* TODO remove
-	if !p.axes.isInside(x, y) {
-		return false
-	}
-	*/
 	X0, Y0 := p.axes.toFloats(x, y+dy)
 	X1, Y1 := p.axes.toFloats(x+dx, y)
 	DX := X1 - X0

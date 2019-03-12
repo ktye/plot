@@ -77,6 +77,7 @@ func (p *Painter) GetColor() color.Color {
 }
 
 func (p *Painter) SetFont(f font.Face) {
+	p.fontDrawer.Face = f // to calculate extent, before Paint.
 	p.currentFace = f
 }
 
@@ -97,13 +98,13 @@ func (p *Painter) Image() image.Image {
 	return p.im
 }
 
-func NewPainter(im *image.RGBA) Painter {
+func NewPainter(im *image.RGBA) *Painter {
 	fd := font.Drawer{
 		Dst:  im,
 		Src:  image.Black,
 		Face: basicfont.Face7x13,
 	}
-	return Painter{
+	return &Painter{
 		im:           im,
 		p:            raster.NewRGBAPainter(im),
 		r:            raster.NewRasterizer(im.Bounds().Max.X, im.Bounds().Max.Y),
@@ -124,15 +125,18 @@ type Text struct {
 }
 
 func (t Text) Draw(p *Painter) {
+	bounds, _ := font.BoundString(p.fontDrawer.Face, t.S)
 	metrics := p.fontDrawer.Face.Metrics()
 	x, y, _, _ := t.Extent(p)
-	descent := metrics.Descent.Ceil()
-	y -= descent
+	ascent := metrics.Ascent.Ceil()
+	y += ascent
+	x -= bounds.Min.X.Ceil()
 	p.fontDrawer.Dot = fixed.P(x, y)
 	p.fontDrawer.DrawString(t.S)
 }
 
-// Extent returns the Rectangle values which covers the text
+// Extent returns the Rectangle values which covers the text.
+// x, y is the top left corner.
 func (t Text) Extent(p *Painter) (x, y, width, height int) {
 	x, y = t.X, t.Y
 	bounds, _ := font.BoundString(p.fontDrawer.Face, t.S)
@@ -141,19 +145,17 @@ func (t Text) Extent(p *Painter) (x, y, width, height int) {
 	metrics := p.fontDrawer.Face.Metrics()
 	height = (metrics.Ascent + metrics.Descent).Ceil()
 
-	if t.Align != 0 {
-		if t.Align == 1 || t.Align == 5 || t.Align == 8 {
-			x -= width / 2
-		}
-		if t.Align == 2 || t.Align == 3 || t.Align == 4 {
-			x -= width
-		}
-		if t.Align == 7 || t.Align == 8 || t.Align == 3 {
-			y += height / 2
-		}
-		if t.Align == 6 || t.Align == 5 || t.Align == 4 {
-			y += height
-		}
+	if t.Align == 1 || t.Align == 5 || t.Align == 8 {
+		x -= width / 2
+	}
+	if t.Align == 2 || t.Align == 3 || t.Align == 4 {
+		x -= width
+	}
+	if t.Align == 7 || t.Align == 8 || t.Align == 3 {
+		y -= height / 2
+	}
+	if t.Align == 0 || t.Align == 1 || t.Align == 2 {
+		y -= height
 	}
 
 	return x, y, width, height
@@ -435,7 +437,8 @@ func (f FloatText) toText() Text {
 	x, y := transform(f.X, f.Y, f.CoordinateSystem, rect26_6(f.Rect))
 	x += fixed.Int26_6(f.Xoff * 64)
 	y += fixed.Int26_6(f.Yoff * 64)
-	return Text{X: int(x / 64), Y: int(y / 64), S: f.S, Align: f.Align}
+	t := Text{X: int(x / 64), Y: int(y / 64), S: f.S, Align: f.Align}
+	return t
 }
 
 func (f FloatText) Draw(p *Painter) {

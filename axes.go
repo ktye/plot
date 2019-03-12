@@ -52,7 +52,7 @@ func (a axes) drawXY(xy xyer) {
 
 	// Draw data.
 	p := vg.NewPainter(a.inside)
-	a.drawLines(&p, xy)
+	a.drawLines(p, xy)
 	p.Paint()
 
 	// Put the inside image to the parent, but keep it for highlighting.
@@ -160,7 +160,7 @@ func (a axes) drawXYTics(X, Y []float64, xlabels, ylabels []string) {
 func (a axes) drawPolarDataOnly() {
 	draw.Draw(a.inside, a.inside.Bounds(), image.NewUniform(a.bg), image.ZP, draw.Src)
 	p := vg.NewPainter(a.inside)
-	a.drawLines(&p, xyPolar{})
+	a.drawLines(p, xyPolar{})
 	p.Paint()
 	draw.Draw(a.parent, image.Rect(a.x, a.y, a.x+a.width, a.y+a.height), a.inside, image.Point{0, 0}, draw.Src)
 }
@@ -175,7 +175,7 @@ func (a axes) drawPolar() {
 	// Draw data
 	p := vg.NewPainter(a.inside)
 	p.SetColor(a.fg)
-	a.drawLines(&p, xyPolar{})
+	a.drawLines(p, xyPolar{})
 
 	p.Paint()
 
@@ -248,7 +248,7 @@ func (a axes) drawPolarTics() {
 	tx := float64(a.x+r) + float64(r+3*l)*math.Cos(phi-phi0)
 	ty := float64(a.y+r) + float64(r+3*l)*math.Sin(phi-phi0)
 	p.Add(vg.Text{int(tx + 0.5), int(ty + 0.5), s, 6})
-	ty += float64(font2.Metrics().Height.Ceil())
+	ty += float64(3+font2.Metrics().Height.Ceil()) // 3 should be line gap
 	p.Add(vg.Text{int(tx + 0.5), int(ty + 0.5), string(a.plot.Yunit), 6})
 
 	p.Paint()
@@ -294,14 +294,16 @@ func (a axes) drawYlabel() {
 
 	bounds, _ := font.BoundString(f, t)
 	d := bounds.Max.Sub(bounds.Min)
-	width := d.X.Ceil() + 4
-	height := f.Metrics().Height.Ceil()
+	width := d.X.Ceil() + 2
+	metrics := f.Metrics()
+	height := (metrics.Ascent+metrics.Descent).Ceil()
+
 	tmp := image.NewRGBA(image.Rect(0, 0, width, height))
 	draw.Draw(tmp, tmp.Bounds(), image.NewUniform(a.bg), image.ZP, draw.Src)
 	p := vg.NewPainter(tmp)
 	p.SetColor(a.fg)
 	p.SetFont(f)
-	p.Add(vg.Text{0, height, t, 0})
+	p.Add(vg.Text{1, height, t, 0})
 	p.Paint()
 
 	tmp = rotate(tmp)
@@ -344,11 +346,11 @@ func (a axes) drawLine(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, i
 		if isHighlight {
 			size *= 3
 		}
-		(*p).SetColor(c)
+		p.SetColor(c)
 		if l.Style.Marker.Marker == Bar {
-			(*p).Add(vg.FloatBars{X: x, Y: y, CoordinateSystem: cs})
+			p.Add(vg.FloatBars{X: x, Y: y, CoordinateSystem: cs})
 		} else {
-			(*p).Add(vg.FloatCircles{X: x, Y: y, CoordinateSystem: cs, Radius: size, Fill: true})
+			p.Add(vg.FloatCircles{X: x, Y: y, CoordinateSystem: cs, Radius: size, Fill: true})
 		}
 	}
 	if width := l.Style.Line.Width; width > 0.0 {
@@ -357,8 +359,8 @@ func (a axes) drawLine(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, i
 			width *= 3
 		}
 		if isEnvelope {
-			(*p).SetColor(c)
-			(*p).Add(vg.FloatEnvelope{X: x, Y: y, CoordinateSystem: cs, LineWidth: width})
+			p.SetColor(c)
+			p.Add(vg.FloatEnvelope{X: x, Y: y, CoordinateSystem: cs, LineWidth: width})
 		} else {
 			if len(x) > 1000 {
 				// Use a fast (non-antialiased) version if
@@ -369,8 +371,8 @@ func (a axes) drawLine(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, i
 				}
 				raster.FloatLines(im, x, y, raster.CoordinateSystem(cs))
 			} else {
-				(*p).SetColor(c)
-				(*p).Add(vg.FloatPath{X: x, Y: y, CoordinateSystem: cs, LineWidth: width})
+				p.SetColor(c)
+				p.Add(vg.FloatPath{X: x, Y: y, CoordinateSystem: cs, LineWidth: width})
 			}
 		}
 	}
@@ -431,7 +433,7 @@ func (a axes) drawDirectLine(l Line, xy xyer, cs vg.CoordinateSystem) {
 		raster.FloatLines(m, x, y, raster.CoordinateSystem(cs))
 	*/
 	p := vg.NewPainter(im.(*image.RGBA))
-	a.drawLine(&p, xy, cs, l, false)
+	a.drawLine(p, xy, cs, l, false)
 	p.Paint()
 }
 
@@ -462,6 +464,7 @@ func (a axes) drawPoint(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, 
 	if len(x) <= pointNumber || len(y) <= pointNumber || pointNumber < 0 {
 		return
 	}
+	p.SetFont(font1)
 	labels := make([]vg.FloatText, 2)
 	if isEnvelope {
 		if n := len(x); n != len(y) || pointNumber+2 > n {
@@ -502,8 +505,8 @@ func (a axes) drawPoint(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, 
 		size *= 3
 	}
 	c := a.plot.Style.Order.Get(l.Style.Marker.Color, l.Id+1).Color()
-	(*p).SetColor(c)
-	(*p).Add(vg.FloatCircles{X: x, Y: y, CoordinateSystem: cs, Radius: size, Fill: true})
+	p.SetColor(c)
+	p.Add(vg.FloatCircles{X: x, Y: y, CoordinateSystem: cs, Radius: size, Fill: true})
 	rect := a.inside.Bounds()
 	for _, l := range labels {
 		l.CoordinateSystem = cs
@@ -539,11 +542,11 @@ func (a axes) drawPoint(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, 
 
 		// Fill background rectangle of the label.
 		x, y, w, h := l.Extent(p)
-		saveColor := (*p).GetColor()
-		(*p).SetColor(a.bg)
-		(*p).Add(vg.Rectangle{X: x, Y: y, W: w, H: h, Fill: true})
-		(*p).SetColor(saveColor)
-		(*p).Add(l)
+		saveColor := p.GetColor()
+		p.SetColor(a.bg)
+		p.Add(vg.Rectangle{X: x, Y: y, W: w, H: h, Fill: true})
+		p.SetColor(saveColor)
+		p.Add(l)
 	}
 }
 
@@ -697,7 +700,7 @@ func (a *axes) highlight(ids []HighlightID, xy xyer) {
 	cs := vg.CoordinateSystem{lim.Xmin, lim.Ymax, lim.Xmax, lim.Ymin} // upper left, lower right corner.
 
 	if a.plot.Type == Raster {
-		a.highlightImage(ids, xy, &p)
+		a.highlightImage(ids, xy, p)
 	} else {
 		// Drawing segments need to clear the background.
 		// TODO: It would be nice to preserve the axis.
@@ -719,11 +722,11 @@ func (a *axes) highlight(ids []HighlightID, xy xyer) {
 			for _, id := range ids {
 				if l.Id == -1 || l.Id == id.Line {
 					if id.Point == -1 {
-						a.drawLine(&p, xy, cs, l, true)
+						a.drawLine(p, xy, cs, l, true)
 					} else if l.Segments == true {
-						a.drawSegment(&p, xy, cs, l, id.Point)
+						a.drawSegment(p, xy, cs, l, id.Point)
 					} else {
-						a.drawPoint(&p, xy, cs, l, id.Point)
+						a.drawPoint(p, xy, cs, l, id.Point)
 					}
 				}
 			}
