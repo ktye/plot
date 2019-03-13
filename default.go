@@ -16,6 +16,10 @@ func SetFonts(labels, tics font.Face) {
 	font1, font2 = labels, tics
 }
 
+func Fonts() (font.Face, font.Face) {
+	return font1, font2
+}
+
 // StringWidth return the space needed to draw a string in the font f.
 func stringWidth(f font.Face, s string) int {
 	d := font.Drawer{Face: f}
