@@ -13,16 +13,17 @@ import (
 // See github.com/ktye/ui/examples/plot.
 
 type UI struct {
-	UnitDialog func(int) int
-	AxisDialog func(int, Limits) int
-	LogMeasure func(complex128)
-	p          Plots
-	hi         []HighlightID
-	iplots     []IPlotter
-	rect       image.Rectangle
-	save       *image.RGBA
-	mouse      mouseState
-	invalid    bool
+	UnitDialog       func(int) int
+	AxisDialog       func(int, Limits) int
+	LogMeasure       func(complex128)
+	HighlightCaption func(int)
+	p                Plots
+	hi               []HighlightID
+	iplots           []IPlotter
+	rect             image.Rectangle
+	save             *image.RGBA
+	mouse            mouseState
+	invalid          bool
 }
 
 func NewUI(p Plots) *UI {
@@ -39,6 +40,7 @@ func (u *UI) SetPlots(p Plots) {
 func (u *UI) Highlight(hi []HighlightID) {
 	u.hi = hi
 	u.save = nil
+	u.invalidate()
 }
 func (u *UI) Draw(dst *image.RGBA, force bool) {
 	// possible states:
@@ -201,8 +203,10 @@ func (u *UI) mouseUp(pos image.Point, but int, mod uint32) int {
 					XImage: pointInfo.X,
 					YImage: pointInfo.Y,
 				}}
-				println("LineID", hi[0].Line, "Point", hi[0].Point)
 				u.hi = hi
+				if u.HighlightCaption != nil {
+					u.HighlightCaption(pointInfo.LineID)
+				}
 				// TODO u.highlightCaption([]int{pointInfo.LineID})
 				// TODO u.slidePoints = pointInfo.NumPoints
 				// TODO u.SetSlider(pointInfo.PointNumber + 1)
