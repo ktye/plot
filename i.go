@@ -11,6 +11,11 @@ var StringSize struct {
 	Width, Height int
 }
 
+// String prevents the implementation of a Stringer from the embedded Limits.
+// This is for i to show a plot as a dict and not use a stringer.
+func (p Plot) String() {}
+
+/*
 // String url-encodes a plot as a png.
 // It uses StringSize as size.
 func (p Plot) String() string {
@@ -37,6 +42,7 @@ func (p Plots) String() string {
 	}
 	return s
 }
+*/
 
 // ConvertTo returns a single line plot from []complex128.
 // or multiple lines from []interface{[]complex128{}}.
