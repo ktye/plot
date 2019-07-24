@@ -4,6 +4,7 @@ package plot
 type LineStyle struct {
 	Width int // line width
 	Color int // line color index.
+	Arrow int // arrow head if != 0
 }
 
 // Marker may be Point | Circle | Cross | Vertical.

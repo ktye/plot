@@ -373,6 +373,9 @@ func (a axes) drawLine(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, i
 			} else {
 				p.SetColor(c)
 				p.Add(vg.FloatPath{X: x, Y: y, CoordinateSystem: cs, LineWidth: width})
+				if l.Style.Line.Arrow != 0 {
+					p.Add(vg.ArrowHead{X: x, Y: y, CoordinateSystem: cs, LineWidth: width, Arrow: l.Style.Line.Arrow})
+				}
 			}
 		}
 	}

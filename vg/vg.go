@@ -372,6 +372,32 @@ func (f FloatTics) Draw(p *Painter) {
 	p.Stroke(path, f.LineWidth)
 }
 
+// ArrowHead adds an arrow to a line. The coordinates of a FloatPath can be re-used.
+// Only the last two values are used to calculate the direction.
+type ArrowHead struct {
+	X, Y []float64
+	CoordinateSystem
+	LineWidth int // scales arrow head size
+	Arrow     int // currently ignored, may be used for two side arrows or styles
+}
+
+func (a ArrowHead) Draw(p *Painter) {
+	if len(a.X) < 2 || len(a.Y) < 2 {
+		return
+	}
+	x, y := transform(a.X[len(a.X)-1], a.Y[len(a.Y)-1], a.CoordinateSystem, rect26_6(p.im.Bounds()))
+	dx, dy := a.X[len(a.X)-1]-a.X[len(a.X)-2], a.Y[len(a.Y)-1]-a.Y[len(a.Y)-2]
+	dx, dy = transformDirection(dx, dy, a.CoordinateSystem, rect26_6(p.im.Bounds())) // unit vector in pixels (float64)
+	A := float64(a.LineWidth * 12)                                                   // arrow head length (pixels)
+	B := A / 5.0                                                                     // short cathetus length
+	xa, ya := float64(x)/64.0-A*dx, float64(y)/64.0-A*dy                             // arrow base point on the line
+	xb, yb := xa-B*dy, ya+B*dx                                                       // corner points
+	xc, yc := xa+B*dy, ya-B*dx                                                       //
+	f := func(p float64) fixed.Int26_6 { return fixed.Int26_6(int(64.0 * p)) }
+	path := raster.Path{0, x, y, 0, 1, f(xb), f(yb), 1, 1, f(xa), f(ya), 1, 1, f(xc), f(yc), 1, 1, x, y, 1}
+	p.Fill(path)
+}
+
 // FloatPath is a connected line with many points.
 // It is given in floating point coordinates with a transformation system.
 // For every NaN in the path, a new line is started.
@@ -461,7 +487,6 @@ type FloatCircles struct {
 func (f FloatCircles) Draw(p *Painter) {
 	for i := range f.X {
 		x, y := transform(f.X[i], f.Y[i], f.CoordinateSystem, rect26_6(p.im.Bounds()))
-		// path = append(path, circle{x, y, fixed.Int26_6(f.Radius * 64)}.getPath()...)
 		path := circle{x, y, fixed.Int26_6(f.Radius * 64)}.getPath()
 		if f.Fill {
 			p.Fill(path)
@@ -507,6 +532,15 @@ func transform(x, y float64, cs CoordinateSystem, bounds fixed.Rectangle26_6) (X
 	x0, x1 := float64(bounds.Min.X+hp)/64.0, float64(bounds.Max.X-hp)/64.0
 	y0, y1 := float64(bounds.Min.Y+hp)/64.0, float64(bounds.Max.Y-hp)/64.0
 	return fixedFloat(clip(xmath.Scale(x, cs.X0, cs.X1, x0, x1))), fixedFloat(clip(xmath.Scale(y, cs.Y0, cs.Y1, y0, y1)))
+}
+func transformDirection(dx, dy float64, cs CoordinateSystem, bounds fixed.Rectangle26_6) (float64, float64) {
+	hp := fixed.Int26_6(32)
+	x0, x1 := float64(bounds.Min.X+hp)/64.0, float64(bounds.Max.X-hp)/64.0
+	y0, y1 := float64(bounds.Min.Y+hp)/64.0, float64(bounds.Max.Y-hp)/64.0
+	dx *= (x1 - x0) / (cs.X1 - cs.X0)
+	dy *= (y1 - y0) / (cs.Y1 - cs.Y0)
+	l := math.Hypot(dx, dy)
+	return dx / l, dy / l // pixel units as float64
 }
 
 // rect26_6 transforms an image.Rectangle to a fixed.Rectangle26_6
