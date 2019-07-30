@@ -22,6 +22,7 @@ const (
 	XY     PlotType = "xy"
 	Foto   PlotType = "foto"
 	Polar  PlotType = "polar"
+	Ring   PlotType = "ring"
 	AmpAng PlotType = "ampang"
 	Raster PlotType = "raster"
 )

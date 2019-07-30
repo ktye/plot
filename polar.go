@@ -11,6 +11,7 @@ import (
 type polarPlot struct {
 	plot   *Plot // underlying plot structure
 	Limits       // computed axis limits
+	ring   bool
 	polarDimension
 	im   *image.RGBA
 	axes *axes
@@ -46,9 +47,10 @@ type polarDimension struct {
 
 // Create a new polar coordinate system in the subimage.
 // Width and height are available areas on input, the image (p.im) will be smaller.
-func (plt *Plot) NewPolar(width, height int) (p polarPlot, err error) {
+func (plt *Plot) NewPolar(width, height int, isRing bool) (p polarPlot, err error) {
 	p.plot = plt
-	p.Limits = plt.getPolarLimits()
+	p.ring = isRing
+	p.Limits = plt.getPolarLimits(p.ring)
 	if p.Limits.Ymax == 0 || math.IsNaN(p.Limits.Ymax) {
 		return p, fmt.Errorf("cannot calculate polar limits (no data?)")
 	}
@@ -108,9 +110,9 @@ func (plt *Plot) NewPolar(width, height int) (p polarPlot, err error) {
 
 func (p polarPlot) draw(noTics bool) {
 	p.axes.fillParentBackground()
-	p.axes.drawPolar()
+	p.axes.drawPolar(p.ring)
 	if noTics == false {
-		p.axes.drawPolarTics()
+		p.axes.drawPolarTics(p.ring)
 	}
 	p.axes.drawTitle(p.ticLabelHeight + 3) // The title needs extra spacing because of the angule label.
 }
@@ -183,11 +185,17 @@ func (p polarPlot) click(x, y int, snapToPoint bool) (Callback, bool) {
 			Limits: Limits{Xmax: p.axes.limits.Xmax, Ymax: p.axes.limits.Ymax},
 		}, true
 	}
-	pi, ok := p.axes.click(x, y, xyPolar{}, snapToPoint)
+	pi, ok := p.axes.click(x, y, p.axes.xyRing(), snapToPoint)
 	if ok && snapToPoint == false {
-		pi.C = complex(pi.Y, pi.X)
-		pi.X = 0
-		pi.Y = 0
+		if p.ring {
+			pi.C = complex(0, 0)
+			pi.X = pi.X
+			pi.Y = pi.Y
+		} else {
+			pi.C = complex(pi.Y, pi.X)
+			pi.X = 0
+			pi.Y = 0
+		}
 		p.plot.Lines = append(p.plot.Lines, Line{
 			Id: p.plot.nextNegativeLineId(),
 			C:  []complex128{pi.C},
@@ -212,10 +220,10 @@ func (p polarPlot) click(x, y int, snapToPoint bool) (Callback, bool) {
 func (p polarPlot) highlight(id []HighlightID) *image.RGBA {
 	if id != nil {
 		a := p.axes
-		a.highlight(id, xyPolar{})
+		a.highlight(id, a.xyRing())
 		if a.limits.isPolarLimits() {
-			a.drawPolarTics()
-			a.drawPolarCircle()
+			a.drawPolarTics(p.ring)
+			a.drawPolarCircle(p.ring)
 		}
 	}
 	return p.im

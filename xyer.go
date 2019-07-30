@@ -16,14 +16,42 @@ type xyer interface {
 
 // xyPolar returns x and y data from a line object for a polar plot.
 // Complex phase starts at the y axis and 90 degree is on the x axis.
-type xyPolar struct{}
+// It is used for polar and ring plots. Polar plots ignore rmin and rmax.
+type xyPolar struct {
+	rmin, rmax float64
+}
+
+const innerRing = 0.5 // inner ring display ratio to outer ring
 
 func (p xyPolar) XY(l Line) (x, y []float64, isEnvelope bool) {
-	y = xmath.RealVector(l.C)
-	for i, v := range y {
-		y[i] = v
+	if p.rmin == 0 { // polar coordinates use l.C
+		x = xmath.ImagVector(l.C)
+		y = xmath.RealVector(l.C)
+		return x, y, false
+	} else { // ring coordinates r, phi are stored in l.X and l.Y
+		// As l.X may be negative, this cannot be stored as a complex number.
+		r := make([]float64, len(l.X))
+		copy(r, l.X)
+		θ := make([]float64, len(l.Y))
+		copy(θ, l.Y)
+		for i := range r {
+			if r[i] < p.rmin {
+				r[i] = p.rmin
+			} else if r[i] > p.rmax {
+				r[i] = p.rmax
+			} else {
+				r[i] = xmath.Scale(r[i], p.rmin, p.rmax, innerRing*p.rmax, p.rmax)
+			}
+		}
+		x = make([]float64, len(r))
+		y = make([]float64, len(r))
+		for i := range r { // len(l.X) must be len(l.Y)
+			x[i], y[i] = math.Sincos(θ[i])
+			x[i] *= r[i]
+			y[i] *= r[i]
+		}
+		return x, y, false
 	}
-	return xmath.ImagVector(l.C), y, false
 }
 
 // xyXY return x and y data for an XY plot.

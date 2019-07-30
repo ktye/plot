@@ -38,7 +38,9 @@ func (p Plots) IPlots(width, height int) ([]IPlotter, error) {
 		case XY, Raster:
 			plotters[i], err = p[i].NewXY(w, height)
 		case Polar:
-			plotters[i], err = p[i].NewPolar(w, height)
+			plotters[i], err = p[i].NewPolar(w, height, false)
+		case Ring:
+			plotters[i], err = p[i].NewPolar(w, height, true)
 		case AmpAng:
 			plotters[i], err = p[i].NewAmpAng(w, height)
 		case Foto:

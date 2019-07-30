@@ -48,7 +48,9 @@ func (plts Plots) EqualLimits() (Limits, error) {
 	for _, p := range plts {
 		switch p.Type {
 		case Polar:
-			l = p.getPolarLimits()
+			l = p.getPolarLimits(false)
+		case Ring:
+			l = p.getPolarLimits(true)
 		case AmpAng:
 			l = p.getAmpAngLimits()
 		case XY, Raster:
@@ -93,21 +95,35 @@ func (p *Plot) getXYLimits() Limits {
 	return limits
 }
 
-// getPolarLimits returns the limits for polar plots.
-func (p *Plot) getPolarLimits() Limits {
-	limits := Limits{false, p.Xmin, p.Xmax, p.Ymin, p.Ymax, 0, 0}
+// getPolarLimits returns the limits for polar or ring plots.
+func (p *Plot) getPolarLimits(ring bool) Limits {
+	limits := Limits{false, p.Xmin, p.Xmax, p.Ymin, p.Ymax, p.Zmin, p.Zmax}
+	if ring {
+		// user defines rmin for a ring plot as ymin, but it is store in Zmin internally.
+		limits.Zmin = p.Ymin
+	}
 	limits.Ymin = 0
+	rmin := 0.0
 	if p.Ymax == 0 {
 		a := autoscale{}
-		for _, l := range p.Lines {
-			a.addComplex(l.C)
+		if ring {
+			for _, l := range p.Lines {
+				a.add(l.X) // radial value for a ring plot
+			}
+			rmin, limits.Ymax, _ = a.niceLimits()
+		} else {
+			for _, l := range p.Lines {
+				a.addComplex(l.C)
+			}
+			_, limits.Ymax, _ = a.niceLimits()
 		}
-		_, limits.Ymax, _ = a.niceLimits()
 	}
 	r := limits.Ymax
 	limits.Xmin = -r
 	limits.Xmax = r
 	limits.Ymin = -r
+	limits.Zmin = rmin // we store rmin as zmin for a ring plot
+	limits.Zmax = r
 	return limits
 }
 

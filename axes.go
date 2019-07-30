@@ -160,14 +160,14 @@ func (a axes) drawXYTics(X, Y []float64, xlabels, ylabels []string) {
 func (a axes) drawPolarDataOnly() {
 	draw.Draw(a.inside, a.inside.Bounds(), image.NewUniform(a.bg), image.ZP, draw.Src)
 	p := vg.NewPainter(a.inside)
-	a.drawLines(p, xyPolar{})
+	a.drawLines(p, a.xyRing())
 	p.Paint()
 	draw.Draw(a.parent, image.Rect(a.x, a.y, a.x+a.width, a.y+a.height), a.inside, image.Point{0, 0}, draw.Src)
 }
 
 // DrawPolar draws the polar diagram background (x/y-lines), the data and the circle around.
 // It draws everything what is within the axes and puts the axes in the parent figure.
-func (a axes) drawPolar() {
+func (a axes) drawPolar(ring bool) {
 	// Draw to inside image.
 	// Fill transparent background.
 	draw.Draw(a.inside, a.inside.Bounds(), image.NewUniform(a.bg), image.ZP, draw.Src)
@@ -175,36 +175,49 @@ func (a axes) drawPolar() {
 	// Draw data
 	p := vg.NewPainter(a.inside)
 	p.SetColor(a.fg)
-	a.drawLines(p, xyPolar{})
+	a.drawLines(p, a.xyRing())
 
 	p.Paint()
 
 	// Put the inside image to the parent, but keep it for highlighting.
 	draw.Draw(a.parent, image.Rect(a.x, a.y, a.x+a.width, a.y+a.height), a.inside, image.Point{0, 0}, draw.Src)
-	a.drawPolarCircle()
+	a.drawPolarCircle(ring)
 }
 
-func (a axes) drawPolarCircle() {
+func (a axes) xyRing() xyPolar { return xyPolar{rmin: a.limits.Zmin, rmax: a.limits.Zmax} }
+
+func (a axes) drawPolarCircle(ring bool) {
 	// Draw x/y axis.
 	p := vg.NewPainter(a.parent)
 	p.SetColor(a.fg)
 	r := a.width / 2
 	lw := a.plot.defaultAxesGridLineWidth()
-	p.Add(vg.Line{vg.LineCoords{X: a.x + r, Y: a.y, DX: 0, DY: 2*r + 1}, lw, true})
-	p.Add(vg.Line{vg.LineCoords{X: a.x, Y: a.y + r, DX: 2*r + 1, DY: 0}, lw, true})
+	if ring == false { // grid lines
+		p.Add(vg.Line{vg.LineCoords{X: a.x + r, Y: a.y, DX: 0, DY: 2*r + 1}, lw, true})
+		p.Add(vg.Line{vg.LineCoords{X: a.x, Y: a.y + r, DX: 2*r + 1, DY: 0}, lw, true})
+	}
 
 	// Draw grid circles
-	as := autoscale{max: a.limits.Ymax}
+	asmin := 0.0
+	if ring {
+		asmin = a.limits.Zmin
+	}
+	as := autoscale{min: asmin, max: a.limits.Ymax}
 	min, _, spacing := as.niceLimits()
 	p.SetColor(color.Gray{128})
 	rr := min
-	if rr == 0 { // rr may be NaN which results in an endless loop.
+	if math.IsNaN(rr) == false { // rr may be NaN which results in an endless loop.
 		for {
 			if rr >= a.limits.Ymax {
 				break
 			}
-			if rr > 0 {
+			if rr > 0 && ring == false {
 				w := int(float64(a.width) * rr / a.limits.Ymax)
+				off := (a.width - w) / 2
+				p.Add(vg.Circle{a.x + off, a.y + off, w, lw, false})
+			} else if ring && rr > a.limits.Zmin {
+				rrr := xmath.Scale(rr, a.limits.Zmin, a.limits.Zmax, innerRing, 1.0)
+				w := int(float64(a.width) * rrr)
 				off := (a.width - w) / 2
 				p.Add(vg.Circle{a.x + off, a.y + off, w, lw, false})
 			}
@@ -215,11 +228,15 @@ func (a axes) drawPolarCircle() {
 	p.SetColor(a.fg)
 	lw = 2
 	p.Add(vg.Circle{a.x, a.y, a.width, lw, false})
+	if ring {
+		off := int((float64(a.width) * innerRing) / 2.0)
+		p.Add(vg.Circle{a.x + off, a.y + off, int(float64(a.width) * innerRing), lw, false})
+	}
 	p.Paint()
 }
 
 // DrawPolarTics draws tics, tic labels and the polar scale and unit.
-func (a axes) drawPolarTics() {
+func (a axes) drawPolarTics(ring bool) {
 	// Draw Tics.
 	p := vg.NewPainter(a.parent)
 	p.SetColor(a.fg)
@@ -250,7 +267,14 @@ func (a axes) drawPolarTics() {
 	p.Add(vg.Text{int(tx + 0.5), int(ty + 0.5), s, 6})
 	ty += float64(3 + font2.Metrics().Height.Ceil()) // 3 should be line gap
 	p.Add(vg.Text{int(tx + 0.5), int(ty + 0.5), string(a.plot.Yunit), 6})
-
+	if ring {
+		s = strconv.FormatFloat(a.limits.Zmin, 'g', 4, 64)
+		rmin := int(innerRing*float64(r)) - 3*l - 1
+		p.Add(vg.Ray{a.x + r, a.y + r, rmin, 3 * l, phi - phi0, a.plot.defaultAxesGridLineWidth()})
+		tx := float64(a.x+r) + float64(rmin)*math.Cos(phi-phi0)
+		ty := float64(a.y+r) + float64(rmin)*math.Sin(phi-phi0)
+		p.Add(vg.Text{int(tx - 0.5), int(ty - 0.5), s, 2})
+	}
 	p.Paint()
 }
 
@@ -485,12 +509,16 @@ func (a axes) drawPoint(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, 
 		x = []float64{xp}
 		y = []float64{yp}
 		var s string
-		if _, ok := xy.(xyPolar); ok {
+		if xyp, ok := xy.(xyPolar); ok {
 			xstr := ""
-			if len(l.X) > pointNumber && pointNumber >= 0 {
-				xstr = fmt.Sprintf("%.4g, ", l.X[pointNumber])
+			if xyp.rmin == 0 { // polar
+				if len(l.X) > pointNumber && pointNumber >= 0 {
+					xstr = fmt.Sprintf("%.4g, ", l.X[pointNumber])
+				}
+				s = xstr + xmath.Absang(complex(yp, xp), "%.4g@%.0f")
+			} else { // ring
+				s = fmt.Sprintf("%.4g@%.1f", l.X[pointNumber], 180.0*l.Y[pointNumber]/math.Pi)
 			}
-			s = xstr + xmath.Absang(complex(yp, xp), "%.4g@%.0f")
 		} else {
 			s = fmt.Sprintf("(%.4g, %.4g)", xp, yp)
 		}
