@@ -511,7 +511,7 @@ func (a axes) drawPoint(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, 
 		var s string
 		if xyp, ok := xy.(xyPolar); ok {
 			xstr := ""
-			if xyp.rmin == 0 { // polar
+			if xyp.rmin == 0 && xyp.rmax == 0 { // polar
 				if len(l.X) > pointNumber && pointNumber >= 0 {
 					xstr = fmt.Sprintf("%.4g, ", l.X[pointNumber])
 				}

@@ -51,6 +51,7 @@ func (plts Plots) EqualLimits() (Limits, error) {
 			l = p.getPolarLimits(false)
 		case Ring:
 			l = p.getPolarLimits(true)
+			l.Ymin = l.Zmin // convert to user facing value
 		case AmpAng:
 			l = p.getAmpAngLimits()
 		case XY, Raster:
@@ -58,7 +59,6 @@ func (plts Plots) EqualLimits() (Limits, error) {
 		default:
 			return Limits{}, fmt.Errorf("cannot get equal limits: plot type '%s' is not implemented", p.Type)
 		}
-
 		el.Xmin, el.Xmax = setLimits(el.Xmin, el.Xmax, l.Xmin, l.Xmax)
 		el.Ymin, el.Ymax = setLimits(el.Ymin, el.Ymax, l.Ymin, l.Ymax)
 		el.Zmin, el.Zmax = setLimits(el.Zmin, el.Zmax, l.Zmin, l.Zmax)
@@ -97,33 +97,36 @@ func (p *Plot) getXYLimits() Limits {
 
 // getPolarLimits returns the limits for polar or ring plots.
 func (p *Plot) getPolarLimits(ring bool) Limits {
-	limits := Limits{false, p.Xmin, p.Xmax, p.Ymin, p.Ymax, p.Zmin, p.Zmax}
+	limits := Limits{false, p.Xmin, p.Xmax, p.Ymin, p.Ymax, 0, 0}
+	rmin := 0.0
 	if ring {
-		// user defines rmin for a ring plot as ymin, but it is store in Zmin internally.
+		// user defines rmin for a ring plot as Ymin, but it is store in Zmin internally.
 		limits.Zmin = p.Ymin
+		rmin = p.Ymin
 	}
 	limits.Ymin = 0
-	rmin := 0.0
 	if p.Ymax == 0 {
 		a := autoscale{}
-		if ring {
-			for _, l := range p.Lines {
-				a.add(l.X) // radial value for a ring plot
-			}
-			rmin, limits.Ymax, _ = a.niceLimits()
-		} else {
+		if ring == false {
 			for _, l := range p.Lines {
 				a.addComplex(l.C)
 			}
 			_, limits.Ymax, _ = a.niceLimits()
+		} else if p.Ymin == 0 { // ring with both Ymin and Ymax unset
+			for _, l := range p.Lines {
+				a.add(l.X) // radial value for a ring plot
+			}
+			rmin, limits.Ymax, _ = a.niceLimits()
 		}
 	}
 	r := limits.Ymax
 	limits.Xmin = -r
 	limits.Xmax = r
 	limits.Ymin = -r
-	limits.Zmin = rmin // we store rmin as zmin for a ring plot
-	limits.Zmax = r
+	if ring { // in a polar plot, both Zmin and Zmax must be 0
+		limits.Zmin = rmin // we store rmin as zmin for a ring plot
+		limits.Zmax = r
+	}
 	return limits
 }
 
@@ -162,6 +165,9 @@ type autoscale struct {
 
 func (a *autoscale) add(x []float64) {
 	for _, v := range x {
+		if math.IsNaN(v) {
+			continue
+		}
 		if a.isInit == false {
 			a.min = v
 			a.max = v

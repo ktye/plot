@@ -24,7 +24,7 @@ type xyPolar struct {
 const innerRing = 0.5 // inner ring display ratio to outer ring
 
 func (p xyPolar) XY(l Line) (x, y []float64, isEnvelope bool) {
-	if p.rmin == 0 { // polar coordinates use l.C
+	if p.rmin == 0 && p.rmax == 0 { // polar coordinates use l.C
 		x = xmath.ImagVector(l.C)
 		y = xmath.RealVector(l.C)
 		return x, y, false
@@ -39,9 +39,8 @@ func (p xyPolar) XY(l Line) (x, y []float64, isEnvelope bool) {
 				r[i] = p.rmin
 			} else if r[i] > p.rmax {
 				r[i] = p.rmax
-			} else {
-				r[i] = xmath.Scale(r[i], p.rmin, p.rmax, innerRing*p.rmax, p.rmax)
 			}
+			r[i] = xmath.Scale(r[i], p.rmin, p.rmax, innerRing*p.rmax, p.rmax)
 		}
 		x = make([]float64, len(r))
 		y = make([]float64, len(r))
