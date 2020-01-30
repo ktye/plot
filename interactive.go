@@ -1,104 +1,66 @@
 package plot
 
+import "image"
+
+// clickCoords transforms from a click on the original (multi-row/column) image to the single image coordinates.
+func clickCoords(p []IPlotter, x, y, width, height, columns int) (xn, yn, n int) {
+	g := newGrid(len(p), width, height, columns)
+	pt := image.Point{x, y}
+	rect, n := g.rect(0), 0
+	for i := range p {
+		if r := g.rect(i); pt.In(r) {
+			rect = r
+			n = i
+			break
+		}
+	}
+	im := p[n].image()
+	rect = g.center(rect, im)
+	pt = pt.Sub(rect.Min)
+	return pt.X, pt.Y, n
+}
+
 // LineIPlotters is the callback routine for drawing a line with the mouse
 // on the image of multiple plots.
-func LineIPlotters(p []IPlotter, x, y, x1, y1, width, height int) (complex128, bool) {
+func LineIPlotters(p []IPlotter, x, y, x1, y1, width, height, columns int) (complex128, bool) {
 	if len(p) == 0 {
 		return complex(0, 0), false
 	}
-	w := width / len(p)
-	n := x / w // n is single plot index.
-	if n < 0 || n >= len(p) {
-		return complex(0, 0), false
-	}
-	x %= w // x is now the offset within a single plot frame.
-	im := p[n].image()
-	bounds := im.Bounds()
-	imwidth := bounds.Max.X - bounds.Min.X
-	imheight := bounds.Max.Y - bounds.Min.Y
-	yoff := (height - imheight) / 2
-	xoff := (w - imwidth) / 2
-	x -= xoff
-	y -= yoff
-	x1 %= w
-	x1 -= xoff
-	y1 -= yoff
-	// x and y are now offsets within the single plot image.
-	return p[n].line(x, y, x1, y1)
+	dx, dy, n := x1-x, y1-y, 0
+	x, y, n = clickCoords(p, x, y, width, height, columns)
+	return p[n].line(x, y, x+dx, y+dy)
 }
 
 // ZoomIPlotters is the callback routine for dragging a rectange with a mouse
 // on the image of multiple plots.
-func ZoomIPlotters(p []IPlotter, x, y, dx, dy, width, height int) (bool, int) {
+func ZoomIPlotters(p []IPlotter, x, y, dx, dy, width, height, columns int) (bool, int) {
 	if len(p) == 0 {
 		return false, 0
 	}
-	w := width / len(p)
-	n := x / w // n is single plot index.
-	if n < 0 || n >= len(p) {
-		return false, 0
-	}
-	if (x+dx)/w != n {
-		return false, 0
-	}
-	x %= w // x is now the offset within a single plot frame.
-	im := p[n].image()
-	bounds := im.Bounds()
-	imwidth := bounds.Max.X - bounds.Min.X
-	imheight := bounds.Max.Y - bounds.Min.Y
-	yoff := (height - imheight) / 2
-	xoff := (w - imwidth) / 2
-	x -= xoff
-	y -= yoff
-	// x and y are now offsets within the single plot image.
+	var n int
+	x, y, n = clickCoords(p, x, y, width, height, columns)
 	return p[n].zoom(x, y, dx, dy), n
 }
 
 // PanIPlotters is the callback routine for dragging a rectange with a mouse
 // on the image of multiple plots.
-func PanIPlotters(p []IPlotter, x, y, dx, dy, width, height int) (bool, int) {
+func PanIPlotters(p []IPlotter, x, y, dx, dy, width, height, columns int) (bool, int) {
 	if len(p) == 0 {
 		return false, 0
 	}
-	w := width / len(p)
-	n := x / w // n is single plot index.
-	if n < 0 || n >= len(p) {
-		return false, 0
-	}
-	x %= w // x is now the offset within a single plot frame.
-	im := p[n].image()
-	bounds := im.Bounds()
-	imwidth := bounds.Max.X - bounds.Min.X
-	imheight := bounds.Max.Y - bounds.Min.Y
-	yoff := (height - imheight) / 2
-	xoff := (w - imwidth) / 2
-	x -= xoff
-	y -= yoff
-	// x and y are now offsets within the single plot image.
+	var n int
+	x, y, n = clickCoords(p, x, y, width, height, columns)
 	return p[n].pan(x, y, dx, dy), n
 }
 
 // ClickIPlotters is the callback routine for clicking on a line or point
 // on the image of multiple plots.
-func ClickIPlotters(p []IPlotter, x, y, width, height int, snapToPoint bool) (Callback, bool) {
+func ClickIPlotters(p []IPlotter, x, y, width, height, columns int, snapToPoint bool) (Callback, bool) {
 	if len(p) == 0 {
 		return Callback{}, false
 	}
-	w := width / len(p)
-	n := x / w // n is single plot index.
-	if n < 0 || n >= len(p) {
-		return Callback{}, false
-	}
-	x %= w // x is now the offset within a single plot frame.
-	im := p[n].image()
-	bounds := im.Bounds()
-	imwidth := bounds.Max.X - bounds.Min.X
-	imheight := bounds.Max.Y - bounds.Min.Y
-	yoff := (height - imheight) / 2
-	xoff := (w - imwidth) / 2
-	x -= xoff
-	y -= yoff
-	// x and y are now offsets within the single plot image.
+	var n int
+	x, y, n = clickCoords(p, x, y, width, height, columns)
 	callback, ok := p[n].click(x, y, snapToPoint)
 	callback.PlotIndex = n
 	return callback, ok

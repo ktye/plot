@@ -67,13 +67,13 @@ func (u *UI) Draw(dst *image.RGBA, force bool) {
 		size := dst.Rect.Size()
 		if u.rect != dst.Rect {
 			u.rect = dst.Rect
-			h, err := u.p.IPlots(size.X, size.Y)
+			h, err := u.p.IPlots(size.X, size.Y, 0)
 			if err != nil {
 				return
 			}
 			u.iplots = h
 		}
-		u.save = Image(u.iplots, u.hi, size.X, size.Y).(*image.RGBA)
+		u.save = Image(u.iplots, u.hi, size.X, size.Y, 0).(*image.RGBA)
 		if u.save == nil {
 			u.save = image.NewRGBA(dst.Rect)
 		} else {
@@ -144,7 +144,7 @@ func (u *UI) mouseUp(pos image.Point, but int, mod uint32) int {
 			if u.mouse.mod == 4 { // alt → draw line (aligned)
 				pos = u.toHorOrVer(pos)
 			}
-			if vec, ok := LineIPlotters(u.iplots, u.mouse.pos.X, u.mouse.pos.Y, pos.X, pos.Y, bounds.Dx(), bounds.Dy()); ok {
+			if vec, ok := LineIPlotters(u.iplots, u.mouse.pos.X, u.mouse.pos.Y, pos.X, pos.Y, bounds.Dx(), bounds.Dy(), 0); ok {
 				if u.LogMeasure != nil {
 					u.LogMeasure(vec)
 				}
@@ -165,7 +165,7 @@ func (u *UI) mouseUp(pos image.Point, but int, mod uint32) int {
 					Y = pos.Y
 					dy = -dy
 				}
-				if ok, n := ZoomIPlotters(u.iplots, X, Y, dx, dy, bounds.Dx(), bounds.Dy()); ok {
+				if ok, n := ZoomIPlotters(u.iplots, X, Y, dx, dy, bounds.Dx(), bounds.Dy(), 0); ok {
 					_ = n
 					/* TODO envelope
 					if ui.ReplotEnvelope != nil {
@@ -176,7 +176,7 @@ func (u *UI) mouseUp(pos image.Point, but int, mod uint32) int {
 				}
 			} else if but == 3 {
 				// Right Click and move: pan
-				if ok, n := PanIPlotters(u.iplots, X, Y, dx, dy, bounds.Dx(), bounds.Dy()); ok {
+				if ok, n := PanIPlotters(u.iplots, X, Y, dx, dy, bounds.Dx(), bounds.Dy(), 0); ok {
 					_ = n
 					/* TODO envelope
 					if ui.ReplotEnvelope != nil {
@@ -194,7 +194,7 @@ func (u *UI) mouseUp(pos image.Point, but int, mod uint32) int {
 		if mod == 1 {
 			snapToPoint = false
 		}
-		if cb, ok := ClickIPlotters(u.iplots, pos.X, pos.Y, bounds.Dx(), bounds.Dy(), snapToPoint); ok {
+		if cb, ok := ClickIPlotters(u.iplots, pos.X, pos.Y, bounds.Dx(), bounds.Dy(), 0, snapToPoint); ok {
 			if cb.Type == PointInfoCallback {
 				pointInfo := cb.PointInfo
 				hi := []HighlightID{HighlightID{
