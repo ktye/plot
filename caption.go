@@ -465,7 +465,7 @@ func allEmptyStrings(v []string) bool {
 
 func allEmptyFloats(v []float64) bool {
 	for _, f := range v {
-		if !math.IsNaN(f) {
+		if !(math.IsNaN(f) || f == 0) {
 			return false
 		}
 	}
