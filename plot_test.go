@@ -14,15 +14,13 @@ import (
 )
 
 func TestPlot(t *testing.T) {
-	p := Plots{
-		xy, polar, ampang, heatmap,
-	}
+	p := Plots{xy, polar, ampang, heatmap}
 	w, h := 800, 400
-	ip, err := p.IPlots(w, h)
+	ip, err := p.IPlots(w, h, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
-	im := Image(ip, nil, w, h)
+	im := Image(ip, nil, w, h, 0)
 
 	var buf bytes.Buffer
 	if err := png.Encode(&buf, im); err != nil {
@@ -34,6 +32,14 @@ func TestPlot(t *testing.T) {
 			t.Fatal(err)
 		}
 	*/
+}
+func TestJson(t *testing.T) {
+	var buf bytes.Buffer
+	p := Plots{xy, polar, ampang}
+	if e := p.Encode(&buf); e != nil {
+		t.Fatal(e)
+	}
+	// fmt.Println(string(buf.Bytes()))
 }
 
 var x = linspace(0, 10, 100)
