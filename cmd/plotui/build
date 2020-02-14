@@ -1,0 +1,9 @@
+#!/bin/sh
+#
+# This builds plot.exe to run without a console window.
+#
+# The manifest has been built with:
+# 	rsrc -manifest plot.manifest -ico plot-256.ico
+
+ldflags="-H windowsgui"
+go install -v -ldflags "${ldflags}"
