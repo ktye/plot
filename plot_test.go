@@ -8,6 +8,7 @@ import (
 	"image/png"
 	"math"
 	"math/cmplx"
+	"strings"
 	"testing"
 
 	"github.com/ktye/plot/xmath"
@@ -33,13 +34,31 @@ func TestPlot(t *testing.T) {
 		}
 	*/
 }
-func TestJson(t *testing.T) {
+func TestEncDec(t *testing.T) {
 	var buf bytes.Buffer
 	p := Plots{xy, polar, ampang}
 	if e := p.Encode(&buf); e != nil {
 		t.Fatal(e)
 	}
-	// fmt.Println(string(buf.Bytes()))
+	s1 := string(buf.Bytes())
+
+	pp, e := DecodePlots(strings.NewReader(s1))
+	if e != nil {
+		t.Fatal(e)
+	}
+	if len(pp) != len(p) {
+		t.Fatalf("expected %d, got %d", len(p), len(pp))
+	}
+
+	buf.Reset()
+	if e := pp.Encode(&buf); e != nil {
+		t.Fatal(e)
+	}
+	s2 := string(buf.Bytes())
+	if s1 != s2 {
+		//t.Fatal("plots differ")
+		t.Fatalf("first:\n%s\nnow:\n%s", s1, s2)
+	}
 }
 
 var x = linspace(0, 10, 100)
