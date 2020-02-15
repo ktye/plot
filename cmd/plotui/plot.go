@@ -110,7 +110,6 @@ func fatalw(err error) {
 			declarative.Label{Text: err.Error()},
 		},
 	}.Run()
-
 }
 
 func Menu(ui *plotui.Plot) []declarative.MenuItem {

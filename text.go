@@ -107,12 +107,12 @@ func decodePlot(r LineReader) (p Plot, e error) {
 			return p, e // maybe io.EOF
 		}
 	}
-	if c, e := decodeCaption(r); e != nil {
-		return p, e
-	} else {
+	var c Caption
+	c, e = decodeCaption(r)
+	if e == nil || e == io.EOF {
 		p.Caption = &c
-		return p, nil
 	}
+	return p, e
 }
 func (l Line) encode(w io.Writer) error {
 	fmt.Fprintf(w, " Line\n")
