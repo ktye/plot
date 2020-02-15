@@ -5,7 +5,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"log"
@@ -17,11 +16,11 @@ import (
 	"github.com/lxn/walk/declarative"
 )
 
-func main() {
+var mw *walk.MainWindow
 
-	// Read plots from file or stdin.
+func main() {
 	var r io.Reader
-	if len(os.Args) == 1 {
+	if len(os.Args) == 1 { // Read plots from file or stdin.
 		r = os.Stdin
 	} else if len(os.Args) == 2 {
 		if f, err := os.Open(os.Args[1]); err != nil {
@@ -30,19 +29,10 @@ func main() {
 			defer f.Close()
 			r = f
 		}
-	}
-
-	br := bufio.NewReader(r)
-	c, err := br.Peek(1)
-	if err != nil {
-		fatalw(err)
-	}
-	var plots plot.Plots
-	if c[0] == 'P' {
-		plots, err = plot.DecodePlots(br)
 	} else {
-		plots, err = plot.TextDataPlot(br)
+		fatalw(fmt.Errorf("wrong number of arguments"))
 	}
+	plots, err := plot.DecodeAny(r)
 	if err != nil {
 		fatalw(err)
 	}
@@ -54,11 +44,10 @@ func main() {
 			break
 		}
 	}
+	//panic(withCaption)
 
 	var ui plotui.Plot
-	var mw *walk.MainWindow
 	var children []declarative.Widget
-	var status Status
 	if withCaption {
 		children = append(children, declarative.VSplitter{
 			Children: []declarative.Widget{
@@ -73,7 +62,13 @@ func main() {
 			},
 		})
 	} else {
-		children = append(children, ui.BuildPlot(Menu(&ui)))
+		children = append(children, declarative.Composite{
+			Layout: declarative.VBox{MarginsZero: true, SpacingZero: true},
+			Children: []declarative.Widget{
+				ui.BuildPlot(Menu(&ui)),
+				ui.BuildSlider(),
+			},
+		})
 	}
 
 	err = declarative.MainWindow{
@@ -81,14 +76,8 @@ func main() {
 		Title:     "Plot",
 		Size:      declarative.Size{800, 800},
 		OnKeyDown: keyHandler,
-		StatusBarItems: []declarative.StatusBarItem{
-			declarative.StatusBarItem{
-				AssignTo: &status.sb,
-			},
-		},
-		// TODO ContextMenuItems
-		Layout:   declarative.VBox{MarginsZero: true},
-		Children: children,
+		Layout:    declarative.VBox{MarginsZero: true},
+		Children:  children,
 	}.Create()
 	if err != nil {
 		fatalw(err)
@@ -101,21 +90,8 @@ func main() {
 		mw.SetIcon(ico)
 	}
 
-	log.SetOutput(status)
 	ui.SetPlot(plots, nil)
 	mw.Run()
-}
-
-type Status struct {
-	sb *walk.StatusBarItem
-}
-
-// Write implements the io.Writer interface, such that Status can be used as a logger.
-func (s Status) Write(b []byte) (int, error) {
-	str := string(b)
-	s.sb.SetText(str)
-	s.sb.SetToolTipText(str)
-	return len(b), nil
 }
 
 func keyHandler(key walk.Key) {
@@ -146,6 +122,38 @@ func Menu(ui *plotui.Plot) []declarative.MenuItem {
 		declarative.Action{
 			Text:        "Screenshot (to clipboard)",
 			OnTriggered: ui.Screenshot,
+		},
+		declarative.Action{
+			Text: "Save plt file",
+			OnTriggered: func() {
+				plots := ui.GetPlots()
+				if plots == nil {
+					return
+				}
+				d := walk.FileDialog{
+					Title:    "Save plt file",
+					FilePath: "plot.plt",
+					Filter:   "Plot files (*.plt)|*.plt||",
+				}
+				if ok, err := d.ShowSave(mw); ok && err == nil {
+					if f, err := os.Create(d.FilePath); err != nil {
+						log.Print(err)
+					} else {
+						defer f.Close()
+						if err := plots.Encode(f); err != nil {
+							log.Print(err)
+						}
+					}
+				}
+			},
+		},
+		declarative.Action{
+			Text: "Copy line data",
+			OnTriggered: func() {
+				if err := ui.CopyLineData(); err != nil {
+					log.Print(err)
+				}
+			},
 		},
 	}
 }

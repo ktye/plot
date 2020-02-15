@@ -1,9 +1,9 @@
-﻿package main
+package main
 
 import (
-	"encoding/gob"
+	"bytes"
+	"io/ioutil"
 	"math"
-	"os"
 	"testing"
 
 	"github.com/ktye/plot"
@@ -44,20 +44,23 @@ func TestQuarters(t *testing.T) {
 	}
 	p.Lines[0].Style.Marker.Size = 3
 	p.Lines[0].Style.Line.Width = 2
+	plts := plot.Plots{p}
+
+	var b bytes.Buffer
+	if err := plts.Encode(&b); err != nil {
+		t.Fatal(err)
+	}
 
 	if false {
-		writeplot(t, p)
-	}
-}
-
-func writeplot(t *testing.T, p plot.Plot) {
-	f, err := os.Create("quarters.plt")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer f.Close()
-	if err := gob.NewEncoder(f).Encode(plot.Plots{p}); err != nil {
-		t.Fatal(err)
+		if err := ioutil.WriteFile("quarters.plt", b.Bytes(), 0744); err != nil {
+			t.Fatal(err)
+		}
+	} else {
+		if _, err := plot.DecodeAny(&b); err != nil {
+			t.Fatal(err)
+		} else if false {
+			ioutil.WriteFile("quarters.plt", b.Bytes(), 0744)
+		}
 	}
 }
 

@@ -1,0 +1,7 @@
+win32-only.
+
+this blits an image on the screen over everything else on the primary monitor.
+it uses the root handle, which has no borders, buttons nor focus.
+it will fade partially when other windows draw.
+
+some syscalls and unsafe pointers are just enough for windows applications.

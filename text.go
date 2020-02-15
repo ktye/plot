@@ -1,12 +1,15 @@
 package plot
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
+	"strconv"
 
 	"github.com/ktye/plot/xmath"
 )
@@ -37,6 +40,18 @@ func DecodePlots(r io.Reader) (Plots, error) {
 		} else {
 			return nil, e
 		}
+	}
+}
+func DecodeAny(r io.Reader) (Plots, error) {
+	br := bufio.NewReader(r)
+	c, err := br.Peek(1)
+	if err != nil {
+		return nil, err
+	}
+	if c[0] == 'P' {
+		return DecodePlots(br)
+	} else {
+		return TextDataPlot(br)
 	}
 }
 func (p Plot) encode(w io.Writer) error {
@@ -101,11 +116,11 @@ func decodePlot(r LineReader) (p Plot, e error) {
 }
 func (l Line) encode(w io.Writer) error {
 	fmt.Fprintf(w, " Line\n")
-	e := js(w, "  X", l.X, nil)
-	e = js(w, "  Y", l.Y, e)
-	e = js(w, "  R", xmath.RealVector(l.C), e)
-	e = js(w, "  I", xmath.ImagVector(l.C), e)
-	e = js(w, "  V", l.V, e)
+	e := fs(w, "  X", l.X, nil)
+	e = fs(w, "  Y", l.Y, e)
+	e = fs(w, "  R", xmath.RealVector(l.C), e)
+	e = fs(w, "  I", xmath.ImagVector(l.C), e)
+	e = fs(w, "  V", l.V, e)
 	e = js(w, "  Segments", l.Segments, e)
 	e = js(w, "  Style", l.Style, e)
 	e = js(w, "  Id", l.Id, e)
@@ -123,11 +138,11 @@ func decodeLine(r LineReader) (l Line, e error) {
 	}
 	var re, im []float64
 	e = expect(r, " Line", e)
-	e = sj(r, "  X", &l.X, e)
-	e = sj(r, "  Y", &l.Y, e)
-	e = sj(r, "  R", &re, e)
-	e = sj(r, "  I", &im, e)
-	e = sj(r, "  V", &l.V, e)
+	e = sf(r, "  X", &l.X, e)
+	e = sf(r, "  Y", &l.Y, e)
+	e = sf(r, "  R", &re, e)
+	e = sf(r, "  I", &im, e)
+	e = sf(r, "  V", &l.V, e)
 	e = sj(r, "  Segments", &l.Segments, e)
 	e = sj(r, "  Style", &l.Style, e)
 	e = sj(r, "  Id", &l.Id, e)
@@ -154,7 +169,7 @@ func (c Caption) encode(w io.Writer) error {
 	return nil
 }
 func decodeCaption(r LineReader) (c Caption, e error) {
-	e = expect(r, "Caption", e)
+	e = expect(r, " Caption", e)
 	e = sj(r, "  Title", &c.Title, e)
 	e = sj(r, "  LeadText", &c.LeadText, e)
 	if e != nil {
@@ -185,10 +200,10 @@ func (c CaptionColumn) encode(w io.Writer) error {
 	case []int:
 		e = js(w, "   IntData", d, e)
 	case []float64:
-		e = js(w, "   FloatData", d, e)
+		e = fs(w, "   FloatData", d, e)
 	case []complex128:
-		e = js(w, "   ReData", xmath.RealVector(d), e)
-		e = js(w, "   ImData", xmath.ImagVector(d), e)
+		e = fs(w, "   ReData", xmath.RealVector(d), e)
+		e = fs(w, "   ImData", xmath.ImagVector(d), e)
 	default:
 		return fmt.Errorf("illegal caption column type: %T", c.Data)
 	}
@@ -221,13 +236,13 @@ func decodeCaptionColumn(r LineReader) (c CaptionColumn, e error) {
 		sj(r, "   StringData", &d, e)
 		c.Data = d
 	} else if bytes.HasPrefix(b, []byte("   FloatData")) {
-		var d []int
-		sj(r, "   FloatData", &d, e)
+		var d []float64
+		sf(r, "   FloatData", &d, e)
 		c.Data = d
 	} else if bytes.HasPrefix(b, []byte("   ReData")) {
 		var re, im []float64
-		sj(r, "   ReData", &re, e)
-		sj(r, "   ImData", &im, e)
+		sf(r, "   ReData", &re, e)
+		sf(r, "   ImData", &im, e)
 		c.Data = xmath.ComplexVector(re, im)
 	} else {
 		return c, fmt.Errorf("%d: caption column without data", r.LineNumber())
@@ -247,6 +262,17 @@ func js(w io.Writer, name string, v interface{}, e error) error {
 	fmt.Fprintf(w, "%s %s\n", name, string(b))
 	return nil
 }
+func fs(w io.Writer, name string, v []float64, e error) error { // js cannot handle nan
+	if e != nil {
+		return e
+	}
+	w.Write([]byte(name))
+	for _, f := range v {
+		fmt.Fprintf(w, " %v", f)
+	}
+	w.Write([]byte{'\n'})
+	return nil
+}
 func sj(r LineReader, name string, v interface{}, e error) error {
 	if e != nil {
 		return e
@@ -264,6 +290,34 @@ func sj(r LineReader, name string, v interface{}, e error) error {
 	if e != nil {
 		return fmt.Errorf("line %d: %s", r.LineNumber(), e)
 	}
+	return nil
+}
+func sf(r LineReader, name string, v *[]float64, e error) error {
+	if e != nil {
+		return e
+	}
+	b, e := r.ReadLine()
+	if e != nil {
+		return e
+	}
+	if bytes.HasPrefix(b, []byte(name)) == false {
+		return fmt.Errorf("line %d: expected %q", r.LineNumber(), name)
+	} else {
+		b = b[len(name):]
+	}
+	f := bytes.Fields(b)
+	z := make([]float64, len(f))
+	for i, b := range f {
+		if len(b) == 2 && b[0] == '0' && b[1] == 'n' {
+			z[i] = math.NaN()
+		} else {
+			z[i], e = strconv.ParseFloat(string(b), 64)
+			if e != nil {
+				return fmt.Errorf("line %d: %s", r.LineNumber(), e)
+			}
+		}
+	}
+	*v = z
 	return nil
 }
 func expect(r LineReader, s string, e error) error {

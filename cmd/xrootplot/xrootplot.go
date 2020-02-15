@@ -16,7 +16,7 @@ type f = float64
 
 func main() { do(os.Stdin) }
 func do(r io.Reader) {
-	plts, e := plot.TextDataPlot(r)
+	plts, e := plot.DecodeAny(r)
 	if e != nil {
 		panic(e)
 	}
