@@ -1,0 +1,89 @@
+#!/bin/sh
+#
+# pm - push matrix 
+#
+# pushes square matrix ($*) on stdin line vector
+#
+#
+# SYNOPSIS
+#
+# pm 1 2 3 4
+# 	matrix=[1, 2; 3, 4]
+#	args must be square
+#
+# pm -1 4
+#	4*Identity matrix
+#	matrix=[4, 0...0; 0, 4, 0...0; ...; 0...0, 4]	
+#
+# pm -rot 0.3
+#	2x2 rotation matrix with rotation angle=0.3
+#
+# pm -rot 1 2 3
+#	3x3 rotation matrix with rotation vector=[1, 2, 3]
+
+case $* in
+	-I*|-1*) mat=identity; shift; fac=1; if [ ! -z "$1" ]; then fac="$1"; fi ;;
+	-rot*) shift; mat="rotate"; fac="$*";;
+	-3d*) mat="1 0 0 -0.5 1 0 -0.5 0 1"; fac=1 ;;
+	-h|help|-help) sed -n '1,/^$/p' $0; exit ;;
+	*) mat="$*"; fac=1 ;;
+esac
+
+awk -v matrix="$mat" -v factor="$fac" '
+BEGIN {
+	if (matrix == "identity") {
+	} else if (matrix == "rotate") {
+		N = split(factor, A)
+		if (N==1) { 
+			matrix=sprintf("%f %f %f %f",cos(factor), 
+			-sin(factor), sin(factor), cos(factor))	
+			n = 2
+		} else if (N==3) {
+			print "3d rotation not jet implemented"
+			exit 
+			n = 3
+		} else {
+			print "Wrong number rotation arguments"
+			exit 
+		}
+	} else {
+		nn = split (matrix, A)
+		n = sqrt (nn)
+		nint = int(n)
+		if (n == nint) {
+		} else {
+			print "ERROR: nonsquare matrix"
+			exit 1
+		}
+	}
+}
+function mult (mat, x, n) {
+	nline = split ($0, x)
+	nn=split (mat, A)
+	if (nline!=n) {
+		print
+		return
+		#print "Wrong number of elements in line ",NR /dev/stderr
+	}
+	for (i=1; i<=n; i++) {
+		b[i] = 0.0
+		for (j=1; j<=n; j++) {
+		#	print A[(i-1)*n+j]
+		#	print (i-1)*n+j
+			b[i] += A[(i-1)*n+j]*x[j]
+		}
+		printf ("%f ",b[i]);
+	}
+	printf("\n")
+}
+{ 
+	if (matrix=="identity") {
+		n = split($0,vec)
+		for (i=1; i<=n; i++) {
+			printf ("%f ",vec[i]*factor)
+		}
+		printf("\n")
+	} else {
+		mult(matrix, $0, n)
+	}
+}' 

@@ -1,0 +1,22 @@
+plot - new xrootplot with more features
+	o time frames (simulations)
+	o multiple columns in input stream
+#	o multiple screens
+	o command line arguments
+
+ARGUMENTS
+	-f		fastplot
+	-b		black background
+	-d delay 	delay (in usecs)
+	-X x0:xN:Nx	x grid
+	-Y y0:yN:Ny	y grid
+	-X Nx		x grid
+	-Y Ny		y grid
+	-s AxB		AxB screens
+	-x xmin,xmax,ymin,ymax
+
+FILE SYNTAX (stdin)
+	:1:2:green :1:2:red ...
+	x y1 y2 ...
+	:frame
+#	:2

@@ -1,0 +1,3 @@
+<$SRC/mkhdr
+TARG=xt
+<$SRC/mkone

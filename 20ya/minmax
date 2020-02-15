@@ -1,0 +1,43 @@
+#!/usr/bin/awk -f
+# $Id: minmax,v 1.1 2004/10/22 15:45:48 elmar Exp $
+
+BEGIN {
+	first=1
+}
+/[0-9]/{
+	if (first) {
+		for (i=1; i<=NF; i++) {
+			if (match($i,/[0-9][0-9]*/)) {
+				y[i] = $i
+				z[i] = $i
+				first = 0
+			}
+		}
+	} else {
+		for (i=1; i<=NF; i++) {
+			if($i<y[i])	y[i]=$i
+			if($i>z[i])	z[i]=$i
+		}
+	}
+}
+END {
+	for (i=1; i<length(y); i++) {
+		printf("%f ",y[i])
+	}
+	print y[length(y)]
+	for (i=1; i<length(z); i++) {
+		printf("%f ",z[i])
+	}
+	print z[length(z)]
+}
+
+#awk 'BEGIN{first=1}
+#{
+#	if (first) {
+#		y = $1
+#		first = 0
+#	} else
+#		if($1<y) y=$1
+#}END{print y}'
+#
+#

@@ -1,0 +1,40 @@
+#!/bin/sh
+# $Id: newton,v 1.1 2004/04/21 13:53:02 elmar Exp $
+# find zeros
+
+# example
+#
+#  xmin=-10 xmax=10
+#  (./newton 'j0(x)' '-j1(x)' 0.3; echo "\n:1:2:red"; x | y 'j0($1)') |\
+#  plot -10 10 -3 3
+
+f="$1"
+df="$2"
+x="$3"
+
+if which awkt >/dev/null; then
+	awk=awkt
+else
+	awk=awk
+fi
+
+
+$awk -v x=$x '
+function f(x) {
+	return '$f'
+}
+function df(x) {
+	return '$df'
+}
+BEGIN{
+	OFMT = "%.12g"
+	error = 1.1
+	while (error*error>0) {
+		error = x
+		print x, 0
+		print x, f(x)
+		x = x-f(x)/df(x);	
+		error = error-x
+	}
+	print x > "/dev/stderr"
+}' < /dev/null

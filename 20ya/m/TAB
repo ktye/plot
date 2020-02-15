@@ -1,0 +1,148 @@
+# function_name  number_of_input  number_of_output  code
+#
+#	double x[]: input
+#	double y[]: output
+#
+# stack operators
+STD	del	1	0	 	"delete"
+STD	cpy	1	2	y[0]=x[0];y[1]=x[0];	"copy"
+STD	neg	1	1	y[0]=-x[0];	"negate"
+STD	abs	1	1	y[0]=fabs(x[0]);	"absolute value (real)"
+STD	add	2	1	y[0]=x[0]+x[1];	"addition (real)"
+STD	sub	2	1	y[0]=x[0]-x[1];	"substraction (real)"
+STD	mul	2	1	y[0]=x[0]*x[1];	"multiplication (real)"
+STD	div	2	1	y[0]=x[0]/x[1];	"division (real)"
+STD	ge	2	1	if(x[0]>=x[1])y[0]=1.0;else{y[0]=0.0;}	"is greater or equal"
+STD	le	2	1	if(x[0]<=x[1])y[0]=1.0;else{y[0]=0.0;}	"is less or equal"
+STD	gt	2	1	if(x[0]>x[1])y[0]=1.0;else{y[0]=0.0;}	"is greater than"
+STD	lt	2	1	if(x[0]<x[1])y[0]=1.0;else{y[0]=0.0;}	"is less than"
+STD	eq	2	1	if(x[0]==x[1])y[0]=1.0;else{y[0]=0.0;}	"is equal"
+STD	swap	2	2	y[0]=x[1];y[1]=x[0];	"swap 2 top elements"
+STD	rad	1	1	y[0]=x[0]*M_PI/180.0;	"degree to radian conversion"
+STD	deg	1	1	y[0]=x[0]*180/M_PI;	"radian to degree conversion"
+STD	scale	5	1	y[0]=(x[0]*(x[4]-x[3])+(x[2]*x[3]-x[1]*x[4]))/(x[2]-x[1]);	"linear scale x in [x1,x2] to [x3,x4]"
+# complex operators
+COMPLEX	cabs	2	1	y[0]=hypot(x[0],x[1]);	"absolute value (complex)"
+COMPLEX	carg	2	1	y[0]=atan2(x[1],x[0]);	"argument of complex value"
+COMPLEX	cpol	2	2	y[0]=hypot(x[0],x[1]);y[1]=atan2(x[1],x[0]);	"cartesian (x,y) to polar (r,p)"
+COMPLEX	cart	2	2	y[0]=x[0]*cos(x[1]); y[1]=x[0]*sin(x[1]);	"polar (r,p) to cartesian (x,y)"
+COMPLEX	ccpy	2	4	y[0]=x[0];y[1]=x[1];y[2]=x[0];y[3]=x[1];	"copy complex value (2 cols)"
+COMPLEX	cneg	2	2	y[0]=-x[0];y[1]=-x[1];	"negate (complex)"
+COMPLEX	cadd	4	2	y[0]=x[0]+x[2];y[1]=x[1]+x[3];	"addition (complex)"
+COMPLEX	csub	4	2	y[0]=x[0]-x[2];y[1]=x[1]-x[3];	"substraction (complex)"
+COMPLEX	cmul	4	2	y[0]=x[0]*x[2]-x[1]*x[3];y[1]=x[0]*x[3]+x[1]*x[2];	"multiplication (complex)"
+COMPLEX	cdiv	4	2	double a;a=x[3]*x[3]+x[2]*x[2];y[0]=(x[1]*x[3]+x[0]*x[2])/a;y[1]=(x[1]*x[2]-x[0]*x[3])/a;	"division (complex)"
+COMPLEX	ceq	4	1	if((x[0]==x[2])&&(x[1]==x[2]))y[0]=1.0;else{y[0]=0.0;}
+COMPLEX	re	2	1	y[0]=x[0];	"realpart"
+COMPLEX	im	2	1	y[0]=x[1];	"imagpart"
+COMPLEX	csqrt	2	2	y[0]=0.5*M_SQRT2*(sqrt(hypot(x[0],y[0])+x[0]));if(x[1]>0){y[1]=0.5*M_SQRT2*sqrt(hypot(x[0],x[1])-x[0]);}else if(x[1]<0){y[1]=-0.5*M_SQRT2*sqrt(hypot(x[0],x[1])-x[0]);}else{y[1]=0.0;}	"complex sqrt"
+#
+# double -> double
+LIBM	acos	1	1	y[0]=acos(x[0]);
+LIBM	asin	1	1	y[0]=asin(x[0]);
+LIBM	atan	1	1	y[0]=atan(x[0]);
+LIBM	cos	1	1	y[0]=cos(x[0]);
+LIBM	sin	1	1	y[0]=sin(x[0]);
+LIBM	tan	1	1	y[0]=tan(x[0]);
+LIBM	cosh	1	1	y[0]=cosh(x[0]);
+LIBM	sinh	1	1	y[0]=sinh(x[0]);
+LIBM	tanh	1	1	y[0]=tanh(x[0]);
+LIBM	log	1	1	y[0]=log(x[0]);
+LIBM	log10	1	1	y[0]=log10(x[0]);
+LIBM	exp	1	1	y[0]=exp(x[0]);
+LIBM	sqrt	1	1	y[0]=sqrt(x[0]);
+LIBM	ceil	1	1	y[0]=ceil(x[0]);
+LIBM	fabs	1	1	y[0]=fabs(x[0]);
+LIBM	floor	1	1	y[0]=floor(x[0]);
+LIBM	erf	1	1	y[0]=erf(x[0]);
+LIBM	erfc	1	1	y[0]=erfc(x[0]);
+LIBM	gamma	1	1	y[0]=gamma(x[0]);
+LIBM	acosh	1	1	y[0]=acosh(x[0]);
+LIBM	asinh	1	1	y[0]=asinh(x[0]);
+LIBM	atanh	1	1	y[0]=atanh(x[0]);
+LIBM	cbrt	1	1	y[0]=cbrt(x[0]);
+LIBM	logb	1	1	y[0]=logb(x[0]);
+LIBM	expm1	1	1	y[0]=expm1(x[0]);
+LIBM	log1p	1	1	y[0]=log1p(x[0]);
+LIBM	j0	1	1	y[0]=j0(x[0]);
+LIBM	j1	1	1	y[0]=j1(x[0]);
+LIBM	y0	1	1	y[0]=y0(x[0]);
+LIBM	y1	1	1	y[0]=y1(x[0]);
+LIBM	lgamma	1	1	y[0]=lgamma(x[0]);
+LIBM	rint	1	1	y[0]=rint(x[0]);
+LIBM	significand	1	1	y[0]=significand(x[0]);
+# double,double -> double
+LIBM	atan2	2	1	y[0]=atan2(x[0],x[1]);
+LIBM	pow	2	1	y[0]=pow(x[0],x[1]);
+LIBM	fmod	2	1	y[0]=fmod(x[0],x[1]);
+LIBM	nextafter	2	1	y[0]=nextafter(x[0],x[1]);
+LIBM	remainder	2	1	y[0]=remainder(x[0],x[1]);
+LIBM	scalb	2	1	y[0]=scalb(x[0],x[1]);
+LIBM	hypot	2	1	y[0]=hypot(x[0],x[1]);
+LIBM	copysign	2	1	y[0]=copysign(x[0],x[1]);
+LIBM	drem	2	1	y[0]=drem(x[0],x[1]);
+# int,doubld -> double
+LIBM	jn	2	1	y[0]=jn((int)x[0],x[1]);
+LIBM	yn	2	1	y[0]=yn((int)x[0],x[1]);
+# double,int -> double
+LIBM	ldexp	2	1	y[0]=ldexp(x[0],(int)x[1]);
+LIBM	scalbn	2	1	y[0]=scalbn(x[0],(int)x[1]);
+#
+#
+STD	sech	1	1	y[0]=2.0/(exp(x[0])+exp(-x[0]));	"hyperbolic sectant"
+#
+#
+# complex functions
+COMPLEX	cexp	2	2	y[0]=exp(x[0])*cos(x[1]);y[1]=exp(x[0])*sin(x[1]);	"exponential function (complex)"
+COMPLEX	csin	2	2	y[0]=sin(x[0])*cosh(x[1]);y[1]=cos(x[0])*sinh(x[1]);	"sin (complex)"
+COMPLEX	ccos	2	2	y[0]=cos(x[0])*cosh(x[1]);y[1]=-sin(x[0])*sinh(x[1]);	"cos (complex)"
+COMPLEX	csinh	2	2	y[0]=sinh(x[0])*cos(x[1]);y[1]=cosh(x[0])*sin(x[1]);	"sinh (complex)"
+COMPLEX	ccosh	2	2	y[0]=cosh(x[0])*cos(x[1]);y[1]=sinh(x[0])*sin(x[1]);	"cosh (complex)"
+COMPLEX tanh	2	2	y[0]=sinh(2.0*x[0])/(cos(2.0*x[1])+cosh(2.0*x[0]));y[1]=sin(2.0*x[1])/(cos(2.0*x[1])+cosh(2.0*x[0]));	"tanh (complex)"
+#
+#
+# cephes special functions
+INCLUDE	CEPHES	#include <cephes.h>
+CEPHES	airy	1	4	airy(x[0],&y[0],&y[1],&y[2],&y[3]);	"Airy functions Ai, Bi and their first derivatives"
+#bdtr
+CEPHES	beta	2	1	y[0]=beta(x[0],x[1]);	"beta function"
+#
+#ei	1	1	y[0]=ei(x[0]);	"exponential integral"
+CEPHES	expn	2	1	y[0]=expn(x[1],x[0]);	"exponential integral En(x) x=$1 n=$2"
+#
+CEPHES	zeta	2	1	y[0]=zeta(x[0],x[1]);	"Riemann zeta function of 2 arguments"
+CEPHES	zetac	1	1	y[0]=zetac(x[0]);	"Riemann zeta function"
+CEPHES	i0	1	1	y[0]=i0(x[0]);	"modified Bessel function order zero I0(x)"
+CEPHES	i1	1	1	y[0]=i1(x[0]);	"modified Bessel function order one I1(x)"
+CEPHES	iv	2	1	y[0]=iv(x[1],x[0]);	"modified Bessel function of noninteger order Iv(x), x=$1 v=$2"
+CEPHES	jv	2	1	y[0]=jv(x[1],x[0]);	"Bessel function of noninteger order Jv(x), x=$1 v=$2"
+CEPHES	k0	1	1	y[0]=k0(x[0]);	"modified Bessel function third kind, order zero K0(x)"
+CEPHES	k1	1	1	y[0]=k1(x[0]);	"modified Bessel function third kind, order one K1(x)"
+CEPHES	kn	2	1	y[0]=kn((int)x[1],x[0]);	"modified Bessel function third kind of integer order Kn(x), x=$1 n=$2"
+#
+# AMOS library (complex bessel functions)
+INCLUDE	AMOS	#include <amoswrap.h>
+AMOS	Jn	3	2	Jn(x[2],x[0],x[1],&y[0],&y[1]);	"complex Bessel function of first kind"
+AMOS	Jnexp	3	2	Jn_exp(x[2],x[0],x[1],&y[0],&y[1]);	"complex Bessel function of first kind (scaled)"
+AMOS	J0	2	2	J0(x[0],x[1],&y[0],&y[1]);	"complex Bessel function of first kind index 0"
+AMOS	J1	2	2	J1(x[0],x[1],&y[0],&y[1]);	"complex Bessel function of first kind index 1"
+AMOS	Yn	3	2	Yn(x[2],x[0],x[1],&y[0],&y[1]);	"complex Bessel function of second kind (Weber/Neumann)"
+AMOS	Ynexp	3	2	Yn_exp(x[2],x[0],x[1],&y[0],&y[1]);	"complex Bessel function of second kind (Weber/Neumann) (scaled)"
+AMOS	Hn1	3	2	Hn1(x[2],x[0],x[1],&y[0],&y[1]);	"complex Besel functions of third kind (Hankel) first type"
+AMOS	Hn2	3	2	Hn2(x[2],x[0],x[1],&y[0],&y[1]);	"complex Besel functions of third kind (Hankel) second type"
+AMOS	Hn1exp	3	2	Hn1_exp(x[2],x[0],x[1],&y[0],&y[1]);	"complex Besel functions of third kind (Hankel) first type (scaled)"
+AMOS	Hn2exp	3	2	Hn2_exp(x[2],x[0],x[1],&y[0],&y[1]);	"complex Besel functions of third kind (Hankel) second type (scaled)"
+AMOS	In	3	2	In(x[2],x[0],x[1],&y[0],&y[1]);	"complex modified Bessel function In"
+AMOS	Inexp	3	2	In_exp(x[2],x[0],x[1],&y[0],&y[1]);	"complex modified Bessel function In (scaled)"
+AMOS	Kn	3	2	Kn(x[2],x[0],x[1],&y[0],&y[1]);	"complex modified Bessel function Kn"
+AMOS	Knexp	3	2	Kn_exp(x[2],x[0],x[1],&y[0],&y[1]);	"complex modified Bessel function Kn (scaled)"
+AMOS	Log	2	2	Log(x[0],x[1],&y[0],&y[1]);	"complex logarithm"
+#
+#
+# GSL (gnu scientific library)
+INCLUDE	GSL	#include <gsl/gsl_sf_debye.h>	
+GSL	debye	1	1	y[0]=gsl_sf_debye_1(x[0]);	"Debye function"
+INCLUDE	GSL	#include <gsl/gsl_sf_bessel.h>
+GSL	zeroJ0	1	1	y[0]=gsl_sf_bessel_zero_J0((unsigned int)x[0]);	"nth zero of Bessel function J0"
+GSL	zeroJ1	1	1	y[0]=gsl_sf_bessel_zero_J1((unsigned int)x[0]);	"nth zero of Bessel function J1"
+GSL	zeroJv	2	1	y[0]=gsl_sf_bessel_zero_Jnu(x[0],(unsigned int)x[1]);	"nth zero of Bessel function Jv, (x0=v, x1=n)"

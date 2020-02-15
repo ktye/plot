@@ -1,0 +1,8 @@
+#!/bin/sh
+./mathlib $* |\
+awk -F\t 'BEGIN{
+	x=0
+}
+!/^#/{
+	print "m_"$1","
+}'

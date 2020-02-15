@@ -1,0 +1,36 @@
+#!/bin/sh
+# $Id: plot,v 1.2 2003/10/01 14:55:40 elmar Exp $
+
+# recursive xrootplot frontend
+
+if  [ -z "$*" ] || echo $* | egrep "^(-{0,1}[0-9]*.{0,1}[0-9]*[ \t]*){4}$" >/dev/null ; then
+	exec xrootplot $*	
+fi
+if [ -z "$width" ]; then
+	export width=800
+fi
+if [ -z "$height" ]; then
+	export height=500
+fi
+
+if [ -z "$xmin" ]; then
+	export xmin=0
+fi
+if [ -z "$xmax" ]; then
+	export xmax=1
+fi
+if [ -z "$ymin" ]; then
+	export ymin=-1
+fi
+if [ -z "$ymax" ]; then
+	export ymax=1
+fi
+echo $*
+while true; do
+	xy=$( /bin/sh -c "$*" | xrootplot )
+	xmin=$( echo $xy | awk '{ print $1 }' )
+	xmax=$( echo $xy | awk '{ print $2 }' )
+	ymin=$( echo $xy | awk '{ print $3 }' )
+	ymax=$( echo $xy | awk '{ print $4 }' )
+	#echo $xmin $xmax $ymin $ymax
+done

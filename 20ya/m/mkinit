@@ -1,0 +1,8 @@
+#!/bin/sh
+./mathlib $* |\
+awk -F\t 'BEGIN{
+	x=0
+}
+!/^#/{
+	print "else if(!strcmp(\"" $1 "\",cmd)){fstack[nfs++]=m_" $1 ";}"
+}'

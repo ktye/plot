@@ -1,0 +1,13 @@
+#!/bin/sh
+
+#LDFLAGS="$LDFLAGS $LIBCEPHES $LIBAMOS -lg2c -lgslcblas -lm"
+#MATHLIBS="STD COMPLEX LIBM AMOS CEPHES GSL"
+LDFLAGS="-lm"
+MATHLIBS="STD COMPLEX LIBM"
+
+for i in include enum init cases; do
+	./mk${i} $MATHLIBS > $i
+done
+
+cc -c m.c
+cc -o m m.o $LDFLAGS

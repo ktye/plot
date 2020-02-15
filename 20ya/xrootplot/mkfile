@@ -1,0 +1,5 @@
+<$SRC/mkhdr
+CFLAGS=$CFLAGS -I/usr/X11R6/include `imlib-config --cflags`
+LDFLAGS=$LDFLAGS -L/usr/X11R6/lib -lX11 `imlib-config --libs`
+TARG=xrootplot
+<$SRC/mkone

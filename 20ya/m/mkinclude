@@ -1,0 +1,4 @@
+#!/bin/sh
+for LIB in $*; do
+	awk -F\t '/^INCLUDE\t'$LIB'\t/{ OFS="	"; print $3 }' < TAB
+done

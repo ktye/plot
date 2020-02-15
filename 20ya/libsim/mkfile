@@ -1,0 +1,4 @@
+<$SRC/mkhdr
+LIB=libsim.a
+CFLAGS=-I/usr/X11R6/include
+<$SRC/mklib

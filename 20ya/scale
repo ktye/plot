@@ -1,0 +1,19 @@
+#!/bin/sh
+
+# scale x in [a,b] to y in [c,d]:
+# y = (x*(d-c) + (b*c-a*d))/(b-a)
+
+
+if [ ${#*} -lt 4 ]; then
+	echo "usage $0 xmin xmax ymin ymax x" >/dev/stderr
+	exit 1
+fi
+if [ ${#*} == 5 ]; then
+	echo $* | awk '{
+		print $5*($3-$4)/($1-$2)+($1*$4-$2*$3)/($1-$2)	
+	}'
+else
+	cat | awk '{
+		print $1*('$3'-'$4')/('$1'-'$2')+('$1'*'$4'-'$2'*'$3')/('$1'-'$2')	
+	}'
+fi

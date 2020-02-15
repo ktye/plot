@@ -1,0 +1,22 @@
+<$SRC/mkhdr
+LDFLAGS=$LDFLAGS $LIBCEPHES $LIBAMOS -lg2c -lgsl -lgslcblas -lm
+TARG=m
+<$SRC/mkone
+
+MATHLIBS=STD COMPLEX LIBM AMOS CEPHES GSL
+
+pre:V:	include enum init cases list
+
+include:	TAB
+	./mk$target $MATHLIBS > $target
+enum:	TAB
+	./mk$target $MATHLIBS > $target
+init:	TAB
+	./mk$target $MATHLIBS > $target
+cases:	TAB
+	./mk$target $MATHLIBS > $target
+list:	TAB
+	./mk$target $MATHLIBS > $target
+
+recompile:V:
+	touch TAB m.c; mk pre; mk

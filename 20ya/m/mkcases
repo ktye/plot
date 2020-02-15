@@ -1,0 +1,13 @@
+#!/bin/sh
+./mathlib $* |\
+awk -F\t 'BEGIN{
+	x=0
+	ignore=0
+}
+!/^#/{
+	print "case m_" $1 ":"
+	print "\tin = " $2 "; out = " $3 "; ckstacksize(N,in,out); x = &X[N-in];"
+	print "\t" $4
+	print "\tfor (j=0; j<out; j++) X[N-in+j] = y[j]; N += out-in;"
+	print "\tbreak;"
+}'

@@ -1,0 +1,11 @@
+#!/bin/sh
+./mathlib $* |\
+awk -F\t 'BEGIN{
+	x=0
+	ignore=0
+}
+!/^#/{
+	if (length($5)==0)
+		$5="\"\""
+	print "printf(\"" $1 " ("$2","$3") \\t%s\\n\","$5");"
+}'

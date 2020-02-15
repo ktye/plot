@@ -1,0 +1,24 @@
+#!/usr/bin/awk -f
+# $Id: max,v 1.2 2004/09/30 15:26:13 elmar Exp $
+
+BEGIN {
+	first=1
+}
+/[0-9]/{
+	if (first) {
+		for (i=1; i<=NF; i++) {
+			y[i] = $i
+		}
+		first = 0
+	} else {
+		for (i=1; i<=NF; i++) {
+			if($i>y[i])	y[i]=$i
+		}
+	}
+}
+END {
+	for (i=1; i<length(y); i++) {
+		printf("%f ",y[i])
+	}
+	print y[length(y)]
+}
