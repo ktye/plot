@@ -1,0 +1,10 @@
+Plot data from files or stdin.
+
+Input data from a file (argv) or stdin may be in the format written by (plot.Plots).Encode
+or in the simpler data-only plot.TextDataFormat
+
+The widget is interactive (double click, zoom, pan)
+A slider is connected to slide through a dataset after highlight.
+A table can be associated with the data, which shows in a list box below (called "Caption").
+
+Win32-only (using lxn/walk)

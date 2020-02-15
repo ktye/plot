@@ -1,7 +1,3 @@
-// Plot data from files or stdin.
-//
-// Input data from a file (argv) or stdin may be in the format written by (plot.Plots).Encode
-// or in the simpler data-only plot.TextDataFormat
 package main
 
 import (
