@@ -3,6 +3,7 @@ package plot
 import (
 	"bufio"
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -55,9 +56,6 @@ func DecodeAny(r io.Reader) (Plots, error) {
 	}
 }
 func (p Plot) encode(w io.Writer) error {
-	if p.Type == Foto || p.Type == Raster {
-		return fmt.Errorf("exporting a raster image is not supported")
-	}
 	fmt.Fprintf(w, "Plot\n")
 	e := js(w, " Type", p.Type, nil)
 	e = js(w, " Style", p.Style, e)
@@ -67,6 +65,7 @@ func (p Plot) encode(w io.Writer) error {
 	e = js(w, " Xunit", p.Xunit, e)
 	e = js(w, " Yunit", p.Yunit, e)
 	e = js(w, " Zunit", p.Zunit, e)
+	e = js(w, " Foto", p.Foto, e)
 	if e != nil {
 		return e
 	}
@@ -85,14 +84,15 @@ func (p Plot) encode(w io.Writer) error {
 }
 func decodePlot(r LineReader) (p Plot, e error) {
 	e = expect(r, "Plot", e)
-	e = sj(r, " Type", &p.Type, e)
-	e = sj(r, " Style", &p.Style, e)
-	e = sj(r, " Limits", &p.Limits, e)
-	e = sj(r, " Xlabel", &p.Xlabel, e)
-	e = sj(r, " Ylabel", &p.Ylabel, e)
-	e = sj(r, " Xunit", &p.Xunit, e)
-	e = sj(r, " Yunit", &p.Yunit, e)
-	e = sj(r, " Zunit", &p.Zunit, e)
+	e = sj(r, "Type", &p.Type, e)
+	e = sj(r, "Style", &p.Style, e)
+	e = sj(r, "Limits", &p.Limits, e)
+	e = sj(r, "Xlabel", &p.Xlabel, e)
+	e = sj(r, "Ylabel", &p.Ylabel, e)
+	e = sj(r, "Xunit", &p.Xunit, e)
+	e = sj(r, "Yunit", &p.Yunit, e)
+	e = sj(r, "Zunit", &p.Zunit, e)
+	e = sj(r, "Foto", &p.Foto, e)
 	if e != nil {
 		return p, e
 	}
@@ -121,6 +121,7 @@ func (l Line) encode(w io.Writer) error {
 	e = fs(w, "  R", xmath.RealVector(l.C), e)
 	e = fs(w, "  I", xmath.ImagVector(l.C), e)
 	e = fs(w, "  V", l.V, e)
+	e = l.encodeImage(w, e)
 	e = js(w, "  Segments", l.Segments, e)
 	e = js(w, "  Style", l.Style, e)
 	e = js(w, "  Id", l.Id, e)
@@ -129,27 +130,82 @@ func (l Line) encode(w io.Writer) error {
 func decodeLine(r LineReader) (l Line, e error) {
 	if b, e := r.Peek(); e != nil {
 		return l, e
-	} else if bytes.HasPrefix(b, []byte(" Caption")) {
+	} else if bytes.HasPrefix(b, []byte("Caption")) {
 		return l, errors.New(errNextCaption)
 	} else if bytes.HasPrefix(b, []byte("Plot")) {
 		return l, errors.New(errNextPlot)
-	} else if bytes.HasPrefix(b, []byte(" Line")) == false {
+	} else if bytes.HasPrefix(b, []byte("Line")) == false {
 		return l, fmt.Errorf("line %d: decode Line", r.LineNumber())
 	}
 	var re, im []float64
-	e = expect(r, " Line", e)
-	e = sf(r, "  X", &l.X, e)
-	e = sf(r, "  Y", &l.Y, e)
-	e = sf(r, "  R", &re, e)
-	e = sf(r, "  I", &im, e)
-	e = sf(r, "  V", &l.V, e)
-	e = sj(r, "  Segments", &l.Segments, e)
-	e = sj(r, "  Style", &l.Style, e)
-	e = sj(r, "  Id", &l.Id, e)
+	var m [][]uint8
+	var min, max float64
+	e = expect(r, "Line", e)
+	e = sf(r, "X", &l.X, e)
+	e = sf(r, "Y", &l.Y, e)
+	e = sf(r, "R", &re, e)
+	e = sf(r, "I", &im, e)
+	e = sf(r, "V", &l.V, e)
+	m, min, max, e = decodeImage(r, e)
+	if m != nil {
+		l.Image, l.ImageMin, l.ImageMax = m, min, max
+	}
+	e = sj(r, "Segments", &l.Segments, e)
+	e = sj(r, "Style", &l.Style, e)
+	e = sj(r, "Id", &l.Id, e)
 	if e == nil {
 		l.C = xmath.ComplexVector(re, im)
 	}
 	return l, e
+}
+func (l Line) encodeImage(w io.Writer, e error) error {
+	if e != nil {
+		return e
+	}
+	w.Write([]byte("  Image"))
+	for _, b := range l.Image {
+		w.Write([]byte{' '})
+		enc := base64.NewEncoder(base64.StdEncoding, w)
+		enc.Write(b)
+		enc.Close()
+	}
+	w.Write([]byte{'\n'})
+	e = js(w, "  ImageMin", l.ImageMin, e)
+	e = js(w, "  ImageMax", l.ImageMax, e)
+	return e
+}
+func decodeImage(r LineReader, e error) (m [][]uint8, min float64, max float64, err error) {
+	if e != nil {
+		err = e
+		return
+	}
+	var b []byte
+	b, e = r.ReadLine()
+	if e != nil {
+		err = e
+		return
+	}
+	name := "Image"
+	if bytes.HasPrefix(b, []byte(name)) == false {
+		err = fmt.Errorf("line %d: expected %q", r.LineNumber(), name)
+		return
+	} else {
+		b = b[len(name):]
+	}
+	rows, n := bytes.Fields(b), 0
+	m = make([][]uint8, len(rows))
+	for i, row := range m {
+		m[i] = make([]uint8, len(row))
+		n, e = base64.StdEncoding.Decode(m[i], row)
+		if e != nil {
+			err = e
+			return
+		}
+		m[i] = m[i][:n]
+	}
+	e = sj(r, "ImageMin", &min, e)
+	e = sj(r, "ImageMax", &max, e)
+	return m, min, max, e
 }
 func (c Caption) encode(w io.Writer) error {
 	fmt.Fprintf(w, " Caption\n")
@@ -169,9 +225,9 @@ func (c Caption) encode(w io.Writer) error {
 	return nil
 }
 func decodeCaption(r LineReader) (c Caption, e error) {
-	e = expect(r, " Caption", e)
-	e = sj(r, "  Title", &c.Title, e)
-	e = sj(r, "  LeadText", &c.LeadText, e)
+	e = expect(r, "Caption", e)
+	e = sj(r, "Title", &c.Title, e)
+	e = sj(r, "LeadText", &c.LeadText, e)
 	if e != nil {
 		return c, e
 	}
@@ -217,32 +273,32 @@ func decodeCaptionColumn(r LineReader) (c CaptionColumn, e error) {
 	} else if bytes.HasPrefix(b, []byte(" CaptionColumn")) == false {
 		return c, fmt.Errorf("line %d: decode CaptionColumn", r.LineNumber())
 	}
-	e = expect(r, "  CaptionColumn", e)
-	e = sj(r, "  Class", &c.Class, e)
-	e = sj(r, "  Name", &c.Name, e)
-	e = sj(r, "  Unit", &c.Unit, e)
-	e = sj(r, "  Format", &c.Format, e)
+	e = expect(r, "CaptionColumn", e)
+	e = sj(r, "Class", &c.Class, e)
+	e = sj(r, "Name", &c.Name, e)
+	e = sj(r, "Unit", &c.Unit, e)
+	e = sj(r, "Format", &c.Format, e)
 	if e != nil {
 		return c, e
 	}
 	if b, e := r.Peek(); e != nil {
 		return c, e
-	} else if bytes.HasPrefix(b, []byte("   StringData")) {
+	} else if bytes.HasPrefix(b, []byte("StringData")) {
 		var d []string
-		sj(r, "   StringData", &d, e)
+		sj(r, "StringData", &d, e)
 		c.Data = d
-	} else if bytes.HasPrefix(b, []byte("   IntData")) {
+	} else if bytes.HasPrefix(b, []byte("IntData")) {
 		var d []int
-		sj(r, "   StringData", &d, e)
+		sj(r, "StringData", &d, e)
 		c.Data = d
-	} else if bytes.HasPrefix(b, []byte("   FloatData")) {
+	} else if bytes.HasPrefix(b, []byte("FloatData")) {
 		var d []float64
-		sf(r, "   FloatData", &d, e)
+		sf(r, "FloatData", &d, e)
 		c.Data = d
-	} else if bytes.HasPrefix(b, []byte("   ReData")) {
+	} else if bytes.HasPrefix(b, []byte("ReData")) {
 		var re, im []float64
-		sf(r, "   ReData", &re, e)
-		sf(r, "   ImData", &im, e)
+		sf(r, "ReData", &re, e)
+		sf(r, "ImData", &im, e)
 		c.Data = xmath.ComplexVector(re, im)
 	} else {
 		return c, fmt.Errorf("%d: caption column without data", r.LineNumber())
@@ -356,7 +412,7 @@ func (l *lineReader) ReadLine() (c []byte, e error) {
 	} else if e != nil {
 		return c, fmt.Errorf("line %d: %s", l.lino, e)
 	}
-	return bytes.Trim(c, "\r\n"), e
+	return bytes.Trim(c, "\r\n\t "), e
 }
 func (l *lineReader) Peek() (c []byte, e error) {
 	c, e = l.ReadLine()
