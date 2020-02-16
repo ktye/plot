@@ -31,9 +31,12 @@ func DecodePlots(r io.Reader) (Plots, error) {
 		return nil, e
 	}
 	lr := &lineReader{Buffer: bytes.NewBuffer(b)}
+	return DecodePlotsInline(lr)
+}
+func DecodePlotsInline(r LineReader) (Plots, error) {
 	var plts Plots
 	for {
-		p, e := decodePlot(lr)
+		p, e := decodePlot(r)
 		if e == nil {
 			plts = append(plts, p)
 		} else if e == io.EOF {
