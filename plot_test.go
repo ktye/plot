@@ -59,6 +59,7 @@ func TestEncDec(t *testing.T) {
 		//t.Fatal("plots differ")
 		t.Fatalf("first:\n%s\nnow:\n%s", s1, s2)
 	}
+	//fmt.Println(s2)
 }
 
 var x = linspace(0, 10, 100)
