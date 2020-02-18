@@ -188,16 +188,17 @@ func decodeImage(r LineReader, e error) (m [][]uint8, min float64, max float64, 
 		err = e
 		return
 	}
-	name := "Image"
+	name := "Image "
 	if bytes.HasPrefix(b, []byte(name)) == false {
 		err = fmt.Errorf("line %d: expected %q", r.LineNumber(), name)
 		return
 	} else {
 		b = b[len(name):]
 	}
+
 	rows, n := bytes.Fields(b), 0
 	m = make([][]uint8, len(rows))
-	for i, row := range m {
+	for i, row := range rows {
 		m[i] = make([]uint8, len(row))
 		n, e = base64.StdEncoding.Decode(m[i], row)
 		if e != nil {
@@ -273,7 +274,7 @@ func decodeCaptionColumn(r LineReader) (c CaptionColumn, e error) {
 		return c, e
 	} else if bytes.HasPrefix(b, []byte("Plot")) {
 		return c, errors.New(errNextPlot)
-	} else if bytes.HasPrefix(b, []byte(" CaptionColumn")) == false {
+	} else if bytes.HasPrefix(b, []byte("CaptionColumn")) == false {
 		return c, fmt.Errorf("line %d: decode CaptionColumn", r.LineNumber())
 	}
 	e = expect(r, "CaptionColumn", e)
