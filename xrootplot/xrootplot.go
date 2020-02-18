@@ -20,7 +20,7 @@ func do(r io.Reader) {
 	if e != nil {
 		panic(e)
 	}
-	pp(plts)
+	pp(plot.AxisFromEnv(plts))
 }
 func pp(p plot.Plots) {
 	w, h := screensize()

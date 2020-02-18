@@ -13,6 +13,7 @@ type PptPlot struct {
 	Plots           // plot data, resolution independend
 	image.Point     // rasterization size (not slide position)
 	Columns     int // number of columns (for multi-row plot)
+	Highlight   []HighlightID
 }
 
 func (p PptPlot) Raster() (image.Image, error) {
@@ -20,7 +21,7 @@ func (p PptPlot) Raster() (image.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Image(ip, nil, p.X, p.Y, p.Columns), nil
+	return Image(ip, p.Highlight, p.X, p.Y, p.Columns), nil
 }
 func (p PptPlot) Magic() string { return "Plot" }
 func (p PptPlot) Decode(r pptxt.LineReader) (pptxt.Raster, error) {

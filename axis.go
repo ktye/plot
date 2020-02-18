@@ -2,6 +2,7 @@ package plot
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -78,4 +79,22 @@ func AxisFromStrings(v []string) (ax []Limits, err error) {
 		}
 	}
 	return ax, nil
+}
+func AxisFromEnv(plts Plots) Plots {
+	flt := func(s string) float64 { f, _ := strconv.ParseFloat(s, 64); return f }
+	xmin, xmax := flt(os.Getenv("xmin")), flt(os.Getenv("xmax"))
+	ymin, ymax := flt(os.Getenv("ymin")), flt(os.Getenv("ymax"))
+	zmin, zmax := flt(os.Getenv("zmin")), flt(os.Getenv("zmax"))
+	for i, p := range plts {
+		if p.Limits.Xmin == 0 && p.Limits.Xmax == 0 {
+			plts[i].Limits.Xmin, plts[i].Limits.Xmax = xmin, xmax
+		}
+		if p.Limits.Ymin == 0 && p.Limits.Ymax == 0 {
+			plts[i].Limits.Ymin, plts[i].Limits.Ymax = ymin, ymax
+		}
+		if p.Limits.Zmin == 0 && p.Limits.Zmax == 0 {
+			plts[i].Limits.Zmin, plts[i].Limits.Zmax = zmin, zmax
+		}
+	}
+	return plts
 }
