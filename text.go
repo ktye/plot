@@ -67,6 +67,7 @@ func (p Plot) encode(w io.Writer) error {
 	e = js(w, " Ylabel", p.Ylabel, e)
 	e = js(w, " Xunit", p.Xunit, e)
 	e = js(w, " Yunit", p.Yunit, e)
+	e = js(w, " Title", p.Title, e)
 	e = js(w, " Zunit", p.Zunit, e)
 	e = js(w, " Foto", p.Foto, e)
 	if e != nil {
@@ -94,6 +95,7 @@ func decodePlot(r LineReader) (p Plot, e error) {
 	e = sj(r, "Ylabel", &p.Ylabel, e)
 	e = sj(r, "Xunit", &p.Xunit, e)
 	e = sj(r, "Yunit", &p.Yunit, e)
+	e = sj(r, "Title", &p.Title, e)
 	e = sj(r, "Zunit", &p.Zunit, e)
 	e = sj(r, "Foto", &p.Foto, e)
 	if e != nil {
@@ -188,7 +190,7 @@ func decodeImage(r LineReader, e error) (m [][]uint8, min float64, max float64, 
 		err = e
 		return
 	}
-	name := "Image "
+	name := "Image"
 	if bytes.HasPrefix(b, []byte(name)) == false {
 		err = fmt.Errorf("line %d: expected %q", r.LineNumber(), name)
 		return

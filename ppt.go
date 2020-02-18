@@ -1,7 +1,9 @@
 package plot
 
 import (
+	"fmt"
 	"image"
+	"io"
 
 	"github.com/ktye/pptx/pptxt"
 )
@@ -24,12 +26,22 @@ func (p PptPlot) Raster() (image.Image, error) {
 	return Image(ip, p.Highlight, p.X, p.Y, p.Columns), nil
 }
 func (p PptPlot) Magic() string { return "Plot" }
-func (p PptPlot) Decode(r pptxt.LineReader) (pptxt.Raster, error) {
+func (p PptPlot) Encode(w io.Writer) error {
+	_, e := fmt.Fprintf(w, "PlotSize [%d, %d]\nPlotColumns %d\n", p.Point.X, p.Point.Y, p.Columns)
+	if e != nil {
+		return e
+	}
+	return p.Plots.Encode(w)
+}
+func (p PptPlot) Decode(r pptxt.LineReader) (ra pptxt.Raster, e error) {
+	var xy [2]int
+	e = sj(r, "PlotSize", &xy, e)
+	p.Point.X, p.Point.Y = xy[0], xy[1]
+	e = sj(r, "PlotColumns", &p.Columns, e)
+	if e != nil {
+		return nil, e
+	}
 	plts, err := DecodePlotsInline(r)
 	p.Plots = plts
-	p.Point = image.Point{600, 300} // todo
-	// p.Columns
 	return p, err
 }
-
-// Encode is already satisfied as both pptx and plot use the same interface definition.
