@@ -257,3 +257,15 @@ func (ui *Plot) update(hiIDs []plot.HighlightID) {
 		}
 	}
 }
+
+// ResetZoom removes custom axis settings (even initial ones) from all plots and redraws.
+func (ui *Plot) ResetZoom() {
+	plts := *ui.plots
+	if len(plts) == 0 {
+		return
+	}
+	for i, p := range plts {
+		plts[i].Limits = plot.Limits{p.Equal, 0, 0, 0, 0, 0, 0}
+	}
+	ui.setImage()
+}
