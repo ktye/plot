@@ -14,6 +14,13 @@ type k = uint32
 type c = byte
 type f = float64
 
+const (
+	CONSOLE = 0
+	SCREEN  = 1
+)
+
+var dst = CONSOLE
+
 func main() { do(os.Stdin) }
 func do(r io.Reader) {
 	plts, e := plot.DecodeAny(r)

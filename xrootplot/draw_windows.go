@@ -6,7 +6,10 @@ import (
 )
 
 func draw(w, h int, c []c) {
-	H := winGetConsoleWindow()
+	hwnd := uintptr(0)
+	if dst == CONSOLE {
+		hwnd = winGetConsoleWindow()
+	}
 	hbm := toBM(k(w), k(h), c)
 	d := winCreateCompatibleDC(0)
 	xif(d == 0, "create compatible dc")
@@ -14,12 +17,20 @@ func draw(w, h int, c []c) {
 	o := winSelectObject(d, hbm)
 	xif(o == 0, "select object")
 	defer winSelectObject(d, o)
-	xif(!winBitBlt(winGetDC(H), 0, 0, int32(w), int32(h), d, 0, 0, 0x00CC0020), "bitblt")
+	xif(!winBitBlt(winGetDC(hwnd), 0, 0, int32(w), int32(h), d, 0, 0, 0x00CC0020), "bitblt")
 	winDeleteObject(hbm) // ?
 }
-func screensize() (w, h int) { return 400, 300 }
 
-//func screensize() (w, h int) { return winGetSystemMetrics(0), winGetSystemMetrics(1) } // SM_CXSCREEN, SM_CYSCREEN
+func screensize() (w, h int) {
+	if dst == CONSOLE {
+		var r = rectangle{0, 0, 400, 300}
+		h := winGetConsoleWindow()
+		winGetClientRect(h, &r)
+		return int(r.r), int(r.b - 50)
+	} else {
+		return winGetSystemMetrics(0), winGetSystemMetrics(1) // SM_CXSCREEN, SM_CYSCREEN
+	}
+}
 
 type wBM struct { // bitmap
 	a, b, c, d i
@@ -70,6 +81,8 @@ func xif(c bool, e string) {
 	}
 }
 
+type rectangle struct{ l, t, r, b int32 }
+
 var (
 	libuser32          = syscall.NewLazyDLL("user32.dll")
 	libgdi32           = syscall.NewLazyDLL("gdi32.dll")
@@ -78,6 +91,7 @@ var (
 	getDC              = libuser32.NewProc("GetDC")
 	releaseDC          = libuser32.NewProc("ReleaseDC")
 	getSystemMetrics   = libuser32.NewProc("GetSystemMetrics")
+	getClientRect      = libuser32.NewProc("GetClientRect")
 	deleteDC           = libgdi32.NewProc("DeleteDC")
 	createCompatibleDC = libgdi32.NewProc("CreateCompatibleDC")
 	createDIBSection   = libgdi32.NewProc("CreateDIBSection")
@@ -109,6 +123,10 @@ func winCreateCompatibleDC(h uintptr) (r uintptr) {
 func winGetSystemMetrics(nIndex int32) int {
 	r, _, _ := syscall.Syscall(getSystemMetrics.Addr(), 1, uintptr(nIndex), 0, 0)
 	return int(r)
+}
+func winGetClientRect(hWnd uintptr, rect *rectangle) bool {
+	ret, _, _ := syscall.Syscall(getClientRect.Addr(), 2, hWnd, uintptr(unsafe.Pointer(rect)), 0)
+	return ret != 0
 }
 func winCreateDIBSection(h uintptr, p *wBI, u uint32, b *unsafe.Pointer, s uintptr, o uint32) (r uintptr) {
 	r, _, _ = syscall.Syscall6(createDIBSection.Addr(), 6, h, uintptr(unsafe.Pointer(p)), uintptr(u), uintptr(unsafe.Pointer(b)), s, uintptr(o))
