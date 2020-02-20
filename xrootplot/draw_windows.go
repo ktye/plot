@@ -6,6 +6,7 @@ import (
 )
 
 func draw(w, h int, c []c) {
+	H := winGetConsoleWindow()
 	hbm := toBM(k(w), k(h), c)
 	d := winCreateCompatibleDC(0)
 	xif(d == 0, "create compatible dc")
@@ -13,10 +14,12 @@ func draw(w, h int, c []c) {
 	o := winSelectObject(d, hbm)
 	xif(o == 0, "select object")
 	defer winSelectObject(d, o)
-	xif(!winBitBlt(winGetDC(0), 0, 0, int32(w), int32(h), d, 0, 0, 0x00CC0020), "bitblt")
+	xif(!winBitBlt(winGetDC(H), 0, 0, int32(w), int32(h), d, 0, 0, 0x00CC0020), "bitblt")
 	winDeleteObject(hbm) // ?
 }
-func screensize() (w, h int) { return winGetSystemMetrics(0), winGetSystemMetrics(1) } // SM_CXSCREEN, SM_CYSCREEN
+func screensize() (w, h int) { return 400, 300 }
+
+//func screensize() (w, h int) { return winGetSystemMetrics(0), winGetSystemMetrics(1) } // SM_CXSCREEN, SM_CYSCREEN
 
 type wBM struct { // bitmap
 	a, b, c, d i
@@ -71,6 +74,7 @@ var (
 	libuser32          = syscall.NewLazyDLL("user32.dll")
 	libgdi32           = syscall.NewLazyDLL("gdi32.dll")
 	libkernel32        = syscall.NewLazyDLL("kernel32.dll")
+	getConsoleWindow   = libkernel32.NewProc("GetConsoleWindow")
 	getDC              = libuser32.NewProc("GetDC")
 	releaseDC          = libuser32.NewProc("ReleaseDC")
 	getSystemMetrics   = libuser32.NewProc("GetSystemMetrics")
@@ -82,6 +86,10 @@ var (
 	bitBlt             = libgdi32.NewProc("BitBlt")
 )
 
+func winGetConsoleWindow() (r uintptr) {
+	r, _, _ = syscall.Syscall(getConsoleWindow.Addr(), 0, 0, 0, 0)
+	return
+}
 func winGetDC(h uintptr) (r uintptr) {
 	r, _, _ = syscall.Syscall(getDC.Addr(), 1, h, 0, 0)
 	return
