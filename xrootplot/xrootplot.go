@@ -105,6 +105,20 @@ func parseRate(s string) int {
 		return n
 	}
 }
+func data(r io.Reader) {
+	plts, e := plot.DecodeAny(r)
+	fatal(e)
+	plts = at(plts)
+	if len(plts) == 0 {
+		return
+	} else if tab {
+		if c := plts[0].Caption; c != nil {
+			c.WriteTable(os.Stdout, 0)
+		}
+		return
+	}
+	fatal(plts.WriteCsv(os.Stdout, csv))
+}
 func fatal(e error) {
 	if e != nil {
 		fmt.Fprintln(os.Stderr, e)

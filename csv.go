@@ -1,48 +1,41 @@
-package main
+package plot
 
 import (
 	"bufio"
 	"fmt"
 	"io"
 	"math"
-	"os"
 
-	"github.com/ktye/plot"
 	"github.com/ktye/plot/xmath"
 )
 
-func data(r io.Reader) {
-	plts, e := plot.DecodeAny(r)
-	fatal(e)
-	plts = at(plts)
+func (plts Plots) WriteCsv(w io.Writer, comma bool) error {
 	if len(plts) == 0 {
-		return
-	} else if tab {
-		if c := plts[0].Caption; c != nil {
-			c.WriteTable(os.Stdout, 0)
-		}
-		return
+		return fmt.Errorf("csv: plot is empty")
 	}
-	t := plot.PlotType(plts[0].Type)
-	if t != plot.XY && t != plot.Polar && t != plot.Ring && t != plot.AmpAng {
-		fatal(fmt.Errorf("unsupported plot type: %s", t))
+	t := PlotType(plts[0].Type)
+	if t != XY && t != Polar && t != Ring && t != AmpAng {
+		return fmt.Errorf("csv: unsupported plot type: %s", t)
 	}
 	n := len(plts[0].Lines)
 	for _, p := range plts[1:] {
 		if p.Type != t {
-			fatal(fmt.Errorf("different plot types"))
+			return fmt.Errorf("different plot types")
 		} else if len(p.Lines) != n {
-			fatal(fmt.Errorf("different number of lines"))
+			return fmt.Errorf("different number of lines")
 		}
 	}
 	for i := 0; i < n; i++ {
 		if i > 0 {
-			fmt.Println()
+			fmt.Fprintln(w)
 		}
-		line(plts, i)
+		if e := csvLine(w, plts, i, comma); e != nil {
+			return e
+		}
 	}
+	return nil
 }
-func line(plts plot.Plots, n int) {
+func csvLine(w io.Writer, plts Plots, n int, comma bool) error {
 	var tab [][]float64
 	var cpx = false
 	for i, p := range plts {
@@ -51,9 +44,9 @@ func line(plts plot.Plots, n int) {
 			tab = append(tab, l.X)
 		}
 		switch p.Type {
-		case plot.XY, plot.Ring:
+		case XY, Ring:
 			tab = append(tab, l.Y)
-		case plot.Polar, plot.AmpAng:
+		case Polar, AmpAng:
 			tab = append(tab, xmath.AbsVector(l.C))
 			z := xmath.PhaseVector(l.C)
 			for k := range z {
@@ -65,23 +58,23 @@ func line(plts plot.Plots, n int) {
 			tab = append(tab, z)
 			cpx = true
 		default:
-			fatal(fmt.Errorf("unknown plot type: %s", p.Type))
+			return fmt.Errorf("unknown plot type: %s", p.Type)
 		}
 	}
 	if len(tab) == 0 {
-		return
+		return fmt.Errorf("csv: empty plot")
 	}
 	n = len(tab[0])
-	f := bufio.NewWriter(os.Stdout)
+	f := bufio.NewWriter(w)
 	for i := 0; i < n; i++ {
 		var s string
 		for k, c := range tab {
 			if len(c) != n {
-				fatal(fmt.Errorf("data is not uniform"))
+				return fmt.Errorf("data is not uniform")
 			}
 			if k == 0 {
 				s = ""
-			} else if csv {
+			} else if comma {
 				s = ","
 			} else if cpx && k%2 == n%2 {
 				s = "a"
@@ -95,4 +88,5 @@ func line(plts plot.Plots, n int) {
 		}
 	}
 	f.Flush()
+	return nil
 }

@@ -9,9 +9,10 @@ import (
 	"github.com/lxn/walk/declarative"
 )
 
+var mw *walk.MainWindow
+
 // MainWindow returns the plotui widgets within a main window.
 func MainWindow(plots plot.Plots) (*walk.MainWindow, *Plot, error) {
-	var mw *walk.MainWindow
 	withCaption := false
 	for _, p := range plots {
 		if p.Caption != nil {
@@ -25,7 +26,7 @@ func MainWindow(plots plot.Plots) (*walk.MainWindow, *Plot, error) {
 	if withCaption {
 		children = append(children, declarative.VSplitter{
 			Children: []declarative.Widget{
-				ui.BuildPlot(mainMenu(mw, &ui)),
+				ui.BuildPlot(mainMenu(&ui)),
 				declarative.Composite{
 					Layout: declarative.VBox{MarginsZero: true, SpacingZero: true},
 					Children: []declarative.Widget{
@@ -39,7 +40,7 @@ func MainWindow(plots plot.Plots) (*walk.MainWindow, *Plot, error) {
 		children = append(children, declarative.Composite{
 			Layout: declarative.VBox{MarginsZero: true, SpacingZero: true},
 			Children: []declarative.Widget{
-				ui.BuildPlot(mainMenu(mw, &ui)),
+				ui.BuildPlot(mainMenu(&ui)),
 				ui.BuildSlider(),
 			},
 		})
@@ -60,7 +61,7 @@ func MainWindow(plots plot.Plots) (*walk.MainWindow, *Plot, error) {
 	return mw, &ui, err
 }
 
-func mainMenu(mw *walk.MainWindow, ui *Plot) []declarative.MenuItem {
+func mainMenu(ui *Plot) []declarative.MenuItem {
 	return []declarative.MenuItem{
 		declarative.Action{
 			Text:        "Reset zoom",
@@ -78,9 +79,9 @@ func mainMenu(mw *walk.MainWindow, ui *Plot) []declarative.MenuItem {
 					return
 				}
 				d := walk.FileDialog{
-					Title:    "Save plt file",
-					FilePath: "plot.plt",
-					Filter:   "Plot files (*.plt)|*.plt||",
+					Title:          "Save plt file",
+					InitialDirPath: ".",
+					Filter:         "Plot files (*.plt)|*.plt||",
 				}
 				if ok, err := d.ShowSave(mw); ok && err == nil {
 					if f, err := os.Create(d.FilePath); err != nil {
@@ -95,10 +96,26 @@ func mainMenu(mw *walk.MainWindow, ui *Plot) []declarative.MenuItem {
 			},
 		},
 		declarative.Action{
-			Text: "Copy line data",
+			Text: "Save plot data (csv)",
 			OnTriggered: func() {
-				if err := ui.CopyLineData(); err != nil {
-					warnDialog(mw, err)
+				plots := ui.GetPlots()
+				if plots == nil {
+					return
+				}
+				d := walk.FileDialog{
+					Title:          "Save plot data (csv)",
+					InitialDirPath: ".",
+					Filter:         "csv files (*.csv)|*.csv||",
+				}
+				if ok, err := d.ShowSave(mw); ok && err == nil {
+					if f, err := os.Create(d.FilePath); err != nil {
+						warnDialog(mw, err)
+					} else {
+						defer f.Close()
+						if err := plots.WriteCsv(f, true); err != nil {
+							warnDialog(mw, err)
+						}
+					}
 				}
 			},
 		},
