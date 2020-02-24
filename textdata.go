@@ -129,7 +129,7 @@ func (c *col) push(s []byte) (e error) {
 		var r, p float64
 		r, e = parse(s[:i], e)
 		p, e = parse(s[i+1:], e)
-		im, re := math.Sincos(p * 180.0 / math.Pi)
+		im, re := math.Sincos(math.Pi * p / 180.0)
 		c.c = append(c.c, complex(r*re, r*im))
 		c.cmplx = true
 	}

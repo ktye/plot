@@ -21,14 +21,17 @@ const (
 	CONSOLE = 0
 	SCREEN  = 1
 )
-const use = `|plot [-dts] [-csv] [0 2 ..]
+const use = `|plot [-dts] [-csv] [-plt] [-a(p|l)(sleep)] [0 2 ..]
  -d   print (uniform) plot data [csv]
  -t   print table(caption) data [csv]
  -s   plot over screen (def. console)
+ -al  animate(over lines) sleep 100ms
+ -ap  animate(over plots/columns)
+ -p   convert to plt format
   0.. plot number
 `
 
-var dst, dat, tab, csv = CONSOLE, false, false, false
+var dst, dat, tab, csv, plt, ani, fps = CONSOLE, false, false, false, false, 0, 100
 var idx []int
 
 func main() {
@@ -42,15 +45,21 @@ func main() {
 			dat, tab = true, true
 		} else if pre(s, "-c") {
 			dat, csv = true, true
+		} else if pre(s, "-p") {
+			plt = true
+		} else if pre(s, "-al") {
+			ani, fps = 1, parseRate(s[3:])
+		} else if pre(s, "-ap") {
+			ani, fps = 2, parseRate(s[3:])
 		} else {
 			fmt.Println(use)
 			return
 		}
 	}
 	if dat {
-		do(os.Stdin)
-	} else {
 		data(os.Stdin)
+	} else {
+		do(os.Stdin)
 	}
 }
 func do(r io.Reader) {
@@ -60,11 +69,15 @@ func do(r io.Reader) {
 	pp(plot.AxisFromEnv(plts))
 }
 func pp(p plot.Plots) {
+	if ani > 0 {
+		animate(p)
+	} else if plt {
+		fatal(p.Encode(os.Stdout))
+		return
+	}
 	w, h := screensize()
 	ip, e := p.IPlots(w, h, 0)
-	if e != nil {
-		panic(e)
-	}
+	fatal(e)
 	m := plot.Image(ip, nil, w, h, 0).(*image.RGBA)
 	draw(w, h, m.Pix)
 }
@@ -85,6 +98,13 @@ func at(p plot.Plots) plot.Plots {
 }
 func pre(s, p string) bool { return strings.HasPrefix(s, p) }
 func suf(s, x string) bool { return strings.HasSuffix(s, x) }
+func parseRate(s string) int {
+	if n, e := strconv.Atoi(s); e != nil || n < 0 {
+		return 100
+	} else {
+		return n
+	}
+}
 func fatal(e error) {
 	if e != nil {
 		fmt.Fprintln(os.Stderr, e)

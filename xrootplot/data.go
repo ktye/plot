@@ -32,7 +32,7 @@ func data(r io.Reader) {
 		if p.Type != t {
 			fatal(fmt.Errorf("different plot types"))
 		} else if len(p.Lines) != n {
-			fatal(fmt.Errorf("differnt number of lines"))
+			fatal(fmt.Errorf("different number of lines"))
 		}
 	}
 	for i := 0; i < n; i++ {
@@ -89,7 +89,7 @@ func line(plts plot.Plots, n int) {
 				s = " "
 			}
 			fmt.Fprintf(f, s+"%v", c[i])
-			if i == len(tab)-1 {
+			if k == len(tab)-1 {
 				fmt.Fprintf(f, "\n")
 			}
 		}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"syscall"
 	"unsafe"
 )
@@ -69,7 +70,7 @@ func toBM(w, h k, c []c) (r uintptr) {
 	r = winCreateDIBSection(d, &bi.wBI, 0, &lpBits, 0, 0)
 	switch r {
 	case 0, 87:
-		panic("CreateDIBSection failed")
+		fatal(fmt.Errorf("CreateDIBSection failed"))
 	}
 	a := (*[1 << 30]byte)(unsafe.Pointer(lpBits))
 	copy(a[:], c)
@@ -77,7 +78,7 @@ func toBM(w, h k, c []c) (r uintptr) {
 }
 func xif(c bool, e string) {
 	if c {
-		panic(e)
+		fatal(fmt.Errorf("%s", e))
 	}
 }
 
