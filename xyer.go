@@ -58,7 +58,7 @@ type xyXY struct{}
 
 func (p xyXY) XY(l Line) (x, y []float64, isEnvelope bool) {
 	// Return envelope data.
-	if l.Y == nil && len(l.C) > 0 {
+	if len(l.Y) == 0 && len(l.C) > 0 {
 		n := len(l.C)
 		x = make([]float64, 2*n+1)
 		y = make([]float64, 2*n+1)

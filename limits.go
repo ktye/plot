@@ -80,7 +80,7 @@ func (p *Plot) getXYLimits() Limits {
 	if p.Ymin == p.Ymax {
 		a := autoscale{}
 		for _, l := range p.Lines {
-			if l.Y == nil {
+			if len(l.Y) == 0 {
 				a.addEnvelope(l.C)
 			} else {
 				a.add(l.Y)
