@@ -1,4 +1,5 @@
 #include<stdio.h>
+#include<io.h>
 #include<stdlib.h>
 #include<stddef.h>
 #include<string.h>
@@ -11,7 +12,15 @@ V help() {   // echo "disable r" >> ~/.zshrc
 	printf("x [N]  $xmin $xmax\n");
 	exit(1);
 }
+I ispipe() { return !isatty(fileno(stdin)); }
+I line() {
+	I n = 1024;
+	char b[n];
+	if(!fgets(b, n, stdin))             return 0;
+	b[strlen(b)-1] = 0; printf("%s ", b); return 1;
+}
 I main(int args, char **argv) {
+	I i    = 0;
 	I n    = atoi(getenv("N"));
 	F xmin = atof(getenv("xmin"));
 	F xmax = atof(getenv("xmax"));
@@ -23,5 +32,6 @@ I main(int args, char **argv) {
 	}
 	if(n<=0) exit(1);
 	if(xmax==xmin){xmin=0.0;xmax=1.0;}
-	for(I i=0; i<n; i++) printf("%g\n", xmin+(F)i*(xmax-xmin)/(F)(n-1));
+	if(ispipe()) while(line()) printf("%g\n", xmin+(F)i++*(xmax-xmin)/(F)(n-1));
+	else for(i=0; i<n; i++)    printf("%g\n", xmin+(F)i*(xmax-xmin)/(F)(n-1));
 }
