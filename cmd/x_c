@@ -12,7 +12,6 @@ V help() {   // echo "disable r" >> ~/.zshrc
 	printf("x [N]  $xmin $xmax\n");
 	exit(1);
 }
-I ispipe() { return !isatty(fileno(stdin)); }
 I line() {
 	I n = 1024;
 	char b[n];
@@ -26,12 +25,14 @@ I main(int args, char **argv) {
 	F xmax = atof(getenv("xmax"));
 	F ymin = atof(getenv("xmin"));
 	F ymax = atof(getenv("ymax"));
+	I ispipe = 0;
+	if((args>1) && strcmp(argv[args-1], "-") == 0) { ispipe = 1; args--; }
 	if(args>1) {
 		if(argv[1][0] == '-') help();
 		n=atoi(argv[1]);
 	}
 	if(n<=0) exit(1);
 	if(xmax==xmin){xmin=0.0;xmax=1.0;}
-	if(ispipe()) while(line()) printf("%g\n", xmin+(F)i++*(xmax-xmin)/(F)(n-1));
+	if(ispipe)   while(line()) printf("%g\n", xmin+(F)i++*(xmax-xmin)/(F)(n-1));
 	else for(i=0; i<n; i++)    printf("%g\n", xmin+(F)i*(xmax-xmin)/(F)(n-1));
 }
