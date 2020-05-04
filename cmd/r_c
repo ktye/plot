@@ -9,13 +9,13 @@ typedef double F;
 typedef int32_t I;
 typedef int64_t J;
 V help() {   // echo "disable r" >> ~/.zshrc
-	printf("random numbers                          \n");
-	printf("r       N(env) float [0,1]              \n");
-	printf("r 3     N=3                             \n");
-	printf("r n            float normal distribution\n");
-	printf("r 3n                                    \n");
-	printf("r 100z         complex binormal         \n");
-	printf("r -            (last) cat col to stdin  \n");
+	fprintf(stderr,"random numbers                          \n");
+	fprintf(stderr,"r       N(env) float [0,1]              \n");
+	fprintf(stderr,"r 3     N=3                             \n");
+	fprintf(stderr,"r n            float normal distribution\n");
+	fprintf(stderr,"r 3n                                    \n");
+	fprintf(stderr,"r 100z         complex binormal         \n");
+	fprintf(stderr,"r -            (last) cat col to stdin  \n");
 	exit(1);
 }
 uint32_t r = 314159265;

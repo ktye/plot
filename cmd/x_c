@@ -8,8 +8,8 @@ typedef void V;
 typedef double F;
 typedef int I;
 V help() {   // echo "disable r" >> ~/.zshrc
-	printf("x axis generator\n");
-	printf("x [N] [-] $xmin $xmax\n");
+	fprintf(stderr,"x axis generator\n");
+	fprintf(stderr,"x [N] [-] $xmin $xmax\n");
 	exit(1);
 }
 I line() {
