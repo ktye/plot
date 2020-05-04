@@ -62,8 +62,8 @@ int main(int args, char **argv) {
 	if(args>1) {
 		if(argv[1][0] == '-') help();
 		l = &(argv[1][strlen(argv[1])-1]);
-		if(*l == 'n'){u=0; *l=0;}
-		if((*l == 'a')||(*l == 'z')){z=1; *l=0;}
+		if(*l == 'n'){u=0;*l=0;}
+		if((*l == 'a')||(*l == 'z')){z=1;u=0;*l=0;}
 		if(strlen(argv[1])) n = atoi(argv[1]);
 	}
 	if(n<=0) exit(1);
