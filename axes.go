@@ -653,7 +653,7 @@ func (a axes) click(x, y int, xy xyer, snapToPoint bool) (PointInfo, bool) {
 			}
 		}
 	}
-	if lIdx < 0 {
+	if lIdx < 0 || pIdx < 0 {
 		return PointInfo{}, false
 	}
 	var px, py float64
