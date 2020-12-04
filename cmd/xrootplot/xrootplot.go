@@ -84,7 +84,7 @@ func parseFile(s string) string {
 func do(r io.Reader) {
 	plts, e := plot.DecodeAny(r)
 	fatal(e)
-	plts = at(plts)
+	plts = dark(at(plts))
 	pp(plot.AxisFromEnv(plts))
 }
 func pp(p plot.Plots) {
@@ -139,6 +139,15 @@ func at(p plot.Plots) plot.Plots {
 		}
 		return r
 	}
+}
+func dark(p plot.Plots) plot.Plots {
+	if dst != FILE {
+		for i := range p {
+			p[i].Style.Dark = true
+			p[i].Style.Order = "#00ff00"
+		}
+	}
+	return p
 }
 func pre(s, p string) bool { return strings.HasPrefix(s, p) }
 func suf(s, x string) bool { return strings.HasSuffix(s, x) }
