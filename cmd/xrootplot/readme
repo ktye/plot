@@ -1,7 +1,9 @@
-win32-only.
+plot to the terminal or to a file
 
-this blits an image on the screen over everything else on the primary monitor.
-it uses the root handle, which has no borders, buttons nor focus.
-it will fade partially when other windows draw.
+data is plot text format (starting with Plot..)
+or uniform text data
+see ../text.go  DecodeAny  ../textdata.go
 
-some syscalls and unsafe pointers are just enough for windows applications.
+it supports windows console (draws over console window handle)
+or iterm2 image protocol: https://iterm2.com/documentation-images.html
+e.g. mintty

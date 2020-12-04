@@ -6,7 +6,8 @@ import (
 	"unsafe"
 )
 
-func draw(w, h int, c []c) {
+// draw over console window. only for windows console (e.g. cmd.exe).
+func drawConsole(w, h int, c []c) {
 	hwnd := uintptr(0)
 	if dst == CONSOLE {
 		hwnd = winGetConsoleWindow()
@@ -22,15 +23,11 @@ func draw(w, h int, c []c) {
 	winDeleteObject(hbm) // ?
 }
 
-func screensize() (w, h int) {
-	if dst == CONSOLE {
-		var r = rectangle{0, 0, 400, 300}
-		h := winGetConsoleWindow()
-		winGetClientRect(h, &r)
-		return int(r.r), int(r.b - 50)
-	} else {
-		return winGetSystemMetrics(0), winGetSystemMetrics(1) // SM_CXSCREEN, SM_CYSCREEN
-	}
+func consoleSize() (w, h int) {
+	var r = rectangle{0, 0, 400, 300}
+	hnf := winGetConsoleWindow()
+	winGetClientRect(hnf, &r)
+	return int(r.r), int(r.b - 50)
 }
 
 type wBM struct { // bitmap

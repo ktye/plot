@@ -2,9 +2,12 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"image"
+	"image/png"
 	"io"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -18,20 +21,21 @@ type c = byte
 type f = float64
 
 const (
-	CONSOLE = 0
-	SCREEN  = 1
+	TERM    = 0
+	CONSOLE = 1
+	FILE    = 2
 )
-const use = `|plot [-dts] [-csv] [-plt] [-a(p|l)(sleep)] [0 2 ..]
+const use = `|plot [-dtcw:h:o:] [-plt] [0 2 ..]
  -d   print (uniform) plot data [csv]
  -t   print table(caption) data [csv]
- -s   plot over screen (def. console)
- -al  animate(over lines) sleep 100ms
- -ap  animate(over plots/columns)
+ -c   console output (default iterm2 image)
+ -wWIDTH -hHEIGHT
+ -o   file.png
  -p   convert to plt format
   0.. plot number
 `
 
-var dst, dat, tab, csv, plt, ani, fps = CONSOLE, false, false, false, false, 0, 100
+var dst, dat, tab, plt, wid, hei, out = TERM, false, false, false, 0, 0, ""
 var idx []int
 
 func main() {
@@ -44,13 +48,16 @@ func main() {
 		} else if pre(s, "-t") {
 			dat, tab = true, true
 		} else if pre(s, "-c") {
-			dat, csv = true, true
+			dst = CONSOLE
+		} else if pre(s, "-w") {
+			wid = atoi(s[2:])
+		} else if pre(s, "-h") {
+			hei = atoi(s[2:])
+		} else if pre(s, "-o") {
+			dst = FILE
+			out = parseFile(s[2:])
 		} else if pre(s, "-p") {
 			plt = true
-		} else if pre(s, "-al") {
-			ani, fps = 1, parseRate(s[3:])
-		} else if pre(s, "-ap") {
-			ani, fps = 2, parseRate(s[3:])
 		} else {
 			fmt.Println(use)
 			return
@@ -62,6 +69,18 @@ func main() {
 		do(os.Stdin)
 	}
 }
+func atoi(s string) int {
+	n, e := strconv.Atoi(s)
+	fatal(e)
+	return n
+}
+func parseFile(s string) string {
+	if strings.HasSuffix(s, ".png") == false {
+		fatal(fmt.Errorf("-oFILE.png only png is supported"))
+	}
+	return s
+}
+
 func do(r io.Reader) {
 	plts, e := plot.DecodeAny(r)
 	fatal(e)
@@ -69,9 +88,7 @@ func do(r io.Reader) {
 	pp(plot.AxisFromEnv(plts))
 }
 func pp(p plot.Plots) {
-	if ani > 0 {
-		animate(p)
-	} else if plt {
+	if plt {
 		fatal(p.Encode(os.Stdout))
 		return
 	}
@@ -79,7 +96,34 @@ func pp(p plot.Plots) {
 	ip, e := p.IPlots(w, h, 0)
 	fatal(e)
 	m := plot.Image(ip, nil, w, h, 0).(*image.RGBA)
-	draw(w, h, m.Pix)
+	switch dst {
+	case TERM:
+		draw(pngData(m))
+	case CONSOLE:
+		drawConsole(w, h, m.Pix)
+	case FILE:
+		fatal(ioutil.WriteFile(out, pngData(m), 0644))
+	default:
+		fatal(fmt.Errorf("unknown dst: %d", dst))
+	}
+}
+func screensize() (w, h int) {
+	if dst == CONSOLE {
+		w, h = consoleSize()
+	}
+	if wid != 0 {
+		w = wid
+	}
+	if hei != 0 {
+		h = hei
+	}
+	if w == 0 {
+		w = 800
+	}
+	if h == 0 {
+		h = 600
+	}
+	return w, h
 }
 func at(p plot.Plots) plot.Plots {
 	if idx == nil {
@@ -98,13 +142,6 @@ func at(p plot.Plots) plot.Plots {
 }
 func pre(s, p string) bool { return strings.HasPrefix(s, p) }
 func suf(s, x string) bool { return strings.HasSuffix(s, x) }
-func parseRate(s string) int {
-	if n, e := strconv.Atoi(s); e != nil || n < 0 {
-		return 100
-	} else {
-		return n
-	}
-}
 func data(r io.Reader) {
 	plts, e := plot.DecodeAny(r)
 	fatal(e)
@@ -117,7 +154,12 @@ func data(r io.Reader) {
 		}
 		return
 	}
-	fatal(plts.WriteCsv(os.Stdout, csv))
+	fatal(plts.WriteCsv(os.Stdout, false))
+}
+func pngData(m image.Image) []byte {
+	var buf bytes.Buffer
+	fatal(png.Encode(&buf, m))
+	return buf.Bytes()
 }
 func fatal(e error) {
 	if e != nil {
