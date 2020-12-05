@@ -90,18 +90,6 @@ func newline(plts Plots, data []col) (Plots, error) {
 	return plts, nil
 }
 
-/*
-func pp(p plot.Plots) {
-	w, h := screensize()
-	ip, e := p.IPlots(w, h, 0)
-	if e != nil {
-		xx(e.Error())
-	}
-	m := plot.Image(ip, nil, w, h, 0).(*image.RGBA)
-	draw(w, h, m.Pix)
-}
-*/
-
 type col struct {
 	r     []float64
 	c     []complex128

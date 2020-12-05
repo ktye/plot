@@ -75,6 +75,7 @@ type DataStyle struct {
 	Marker MarkerStyle
 }
 
+/* are they used?
 // FillLineStyle returns a DataStyle with default values for a line
 // and ignored values for a marker.
 func (d DataStyle) FillLineStyle() DataStyle {
@@ -99,6 +100,7 @@ func (d DataStyle) FillMarkerStyle() DataStyle {
 	}
 	return s
 }
+*/
 
 // Combined style includes the plot style and the data style.
 // It is used by plot objects which do not style for every line manually.
