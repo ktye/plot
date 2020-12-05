@@ -361,7 +361,7 @@ func (a axes) drawLine(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, i
 		case xyPolar:
 			l.Style.Marker.Size = 3
 		default:
-			l.Style.Line.Width = 1
+			l.Style.Line.Width = 2
 		}
 	}
 	var c color.Color = color.Black
