@@ -33,7 +33,7 @@ ktye/plot/cmd/xrootplot/xrootplot.go
  FILE.png (to file as png instead of stdout)
  -c   console output (default iterm2 image)
  -p   convert to plt format
- -wWIDTH -hHEIGHT
+ -wWIDTH -hHEIGHT (also from env)
   0.. plot number
 `
 
@@ -41,6 +41,7 @@ var dst, dat, tab, sgl, plt, wid, hei, out = TERM, false, false, false, false, 0
 var idx []int
 
 func main() {
+	wid, hei = atoi0(os.Getenv("WIDTH")), atoi0(os.Getenv("HEIGHT"))
 	args := os.Args[1:]
 	for _, s := range args {
 		if n, e := strconv.Atoi(s); e == nil && n >= 0 {
@@ -78,7 +79,13 @@ func atoi(s string) int {
 	fatal(e)
 	return n
 }
-
+func atoi0(s string) int {
+	if n, e := strconv.Atoi(s); e != nil {
+		return 0
+	} else {
+		return n
+	}
+}
 func do(r io.Reader) {
 	plts, e := plot.DecodeAny(r)
 	fatal(e)
