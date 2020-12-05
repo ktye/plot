@@ -9,13 +9,14 @@ typedef double F;
 typedef int32_t I;
 typedef int64_t J;
 V help() {   // echo "disable r" >> ~/.zshrc
-	fprintf(stderr,"random numbers                          \n");
+	fprintf(stderr,"random numbers /c/k/plot/cmd/r_c        \n");
 	fprintf(stderr,"r       N(env) float [0,1]              \n");
 	fprintf(stderr,"r 3     N=3                             \n");
 	fprintf(stderr,"r n            float normal distribution\n");
 	fprintf(stderr,"r 3n                                    \n");
 	fprintf(stderr,"r 100z         complex binormal         \n");
 	fprintf(stderr,"r -            (last) cat col to stdin  \n");
+	fprintf(stderr,"");
 	exit(1);
 }
 uint32_t r = 314159265;
@@ -66,7 +67,7 @@ int main(int args, char **argv) {
 		if((*l == 'a')||(*l == 'z')){z=1;u=0;*l=0;}
 		if(strlen(argv[1])) n = atoi(argv[1]);
 	}
-	if(n<=0) exit(1);
+	if(n<=0&&!ispipe) exit(1);
 	if(ispipe)  while(line())      out(u, z);
 	else        for(i=0; i<n; i++) out(u, z);
 }
