@@ -73,6 +73,8 @@ func abbrevated(s string) string {
 		return "#001C7F,#017517,#8C0900,#7600A1,#B8860B,#006374"
 	case "blind":
 		return "#0072B2,#009E73,#D55E00,#CC79A7,#F0E442,#56B4E9"
+	case "green":
+		return "#00ff00,#ffff00,#ff2600,#00e8ff"
 	}
 	return s
 }
