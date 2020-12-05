@@ -1,4 +1,6 @@
-package main // +build ignore
+// +build ignore
+package main
+
 import (
 	"bufio"
 	"fmt"
@@ -7,26 +9,28 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
-const help = `random numbers /c/k/plot/cmd/r.go
+const help = `random numbers ktye/plot/cmd/r.go
 r       N(env) float [-1,1]
 r 3     N=3
-r n            float normal distribution
-r 3n
-r 100z         complex binormal
-r -            (last) cat col to stdin
+r n     normal distribution(float)
+r 3n    N=3 normal
+r 100z  complex binormal 1.2a34
+r 3n-   append as column to stdin
 `
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
 	n, pipe, u, z := atoi(os.Getenv("N")), false, true, false
 	args := os.Args[1:]
-	if len(args) > 0 && args[len(args)-1] == "-" {
-		pipe = true
-		args = args[:len(args)-1]
-	}
 	if len(args) > 0 {
 		a := args[0]
+		if strings.HasSuffix(a, "-") {
+			pipe = true
+			a = a[:len(a)-1]
+		}
 		if strings.HasPrefix(a, "-") {
 			fmt.Fprintf(os.Stderr, help)
 			os.Exit(1)
@@ -36,7 +40,7 @@ func main() {
 			a = a[:len(a)-1]
 		}
 		if strings.HasSuffix(a, "a") || strings.HasSuffix(a, "z") {
-			z = true
+			u, z = false, true
 			a = a[:len(a)-1]
 		}
 		if len(a) > 0 {

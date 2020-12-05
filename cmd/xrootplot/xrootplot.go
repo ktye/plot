@@ -26,6 +26,7 @@ const (
 	FILE    = 2
 )
 const use = `|plot [-dtcw:h:o:] [-plt] [0 2 ..]
+ktye/plot/cmd/xrootplot/xrootplot.go
  -d   print (uniform) plot data [csv]
  -t   print table(caption) data [csv]
  -1   single axes
@@ -34,7 +35,6 @@ const use = `|plot [-dtcw:h:o:] [-plt] [0 2 ..]
  -p   convert to plt format
  -wWIDTH -hHEIGHT
   0.. plot number
-src: /c/k/plot/cmd/xrootplot/xrootplot.go
 `
 
 var dst, dat, tab, sgl, plt, wid, hei, out = TERM, false, false, false, false, 0, 0, ""
