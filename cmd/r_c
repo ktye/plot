@@ -10,7 +10,7 @@ typedef int32_t I;
 typedef int64_t J;
 V help() {   // echo "disable r" >> ~/.zshrc
 	fprintf(stderr,"random numbers /c/k/plot/cmd/r_c        \n");
-	fprintf(stderr,"r       N(env) float [0,1]              \n");
+	fprintf(stderr,"r       N(env) float [-1,1]             \n");
 	fprintf(stderr,"r 3     N=3                             \n");
 	fprintf(stderr,"r n            float normal distribution\n");
 	fprintf(stderr,"r 3n                                    \n");
