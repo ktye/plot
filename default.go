@@ -50,7 +50,26 @@ func (p *Plot) defaultBackgroundColor() color.Color {
 
 // defaultTitleHeight is the vertical space for the plot title.
 func (p *Plot) defaultTitleHeight() int {
-	return font1.Metrics().Height.Ceil() * 2
+	if p.Title == "" {
+		return 2
+	}
+	return 2 + font1.Metrics().Height.Ceil()
+}
+
+// defaultXLabelHeight is the vertical space for the x-axis label.
+func (p *Plot) defaultXlabelHeight() int {
+	if p.Xlabel == "" {
+		return 2
+	}
+	return 2 + font1.Metrics().Height.Ceil()
+}
+
+// defaultYLabelWidth is the horizontal space for the rotated y-axis label.
+func (p *Plot) defaultYlabelWidth() int {
+	if p.Ylabel == "" {
+		return 2
+	}
+	return 2 + font1.Metrics().Height.Ceil()
 }
 
 // defaultTicLabelHeight is the vertical space for the tic labels.

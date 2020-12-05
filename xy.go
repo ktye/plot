@@ -20,18 +20,22 @@ type xyPlot struct {
 // - (border)
 // - (vFill)
 // - titleHeight
+// - ticLength
 // - plotAreaHeight
+// - ticLength
 // - ticLabelHeight
-// - titleHeight
+// - xlabelHeight
 // - (vFill)
 // - (border)
 //
 // Horizontal layout, left to right
 // - (border)
 // - (hFill)
-// - titleHeight (y label is rotated)
+// - ylabelWidth (y label is rotated)
 // - ticLabelWidth
+// - 2*ticLength
 // - plotAreaWidth
+// - ticLength
 // - rightXYWidth
 // - (hFill)
 // - (border)
@@ -40,8 +44,11 @@ type xyDimension struct {
 	plotAreaWidth  int
 	rightXYWidth   int
 	titleHeight    int
+	xlabelHeight   int
+	ylabelWidth    int
 	ticLabelWidth  int
 	ticLabelHeight int
+	ticLength      int
 }
 
 // Create a new xy plot.
@@ -54,20 +61,23 @@ func (plt *Plot) NewXY(width, height int) (p xyPlot, err error) {
 
 	// Calculate Dimensions.
 	border := plt.defaultBorder()
+	p.ticLength = plt.defaultTicLength()
 	p.titleHeight = plt.defaultTitleHeight()
 	p.ticLabelHeight = plt.defaultTicLabelHeight()
 	p.ticLabelWidth = plt.defaultTicLabelWidth(ytics.Labels)
+	p.xlabelHeight = plt.defaultXlabelHeight()
+	p.ylabelWidth = plt.defaultYlabelWidth()
 	if len(xtics.Labels) > 0 {
 		p.rightXYWidth = plt.defaultRightXYWidth(xtics.Labels[len(xtics.Labels)-1])
 	}
 
 	// Needed space for decorations.
-	hFix := 2*border + p.titleHeight + p.ticLabelWidth + p.rightXYWidth
-	vFix := 2*border + 2*p.titleHeight + p.ticLabelHeight
+	hFix := func() int { return 2*border + 3*p.ticLength + p.ylabelWidth + p.ticLabelWidth + p.rightXYWidth }
+	vFix := func() int { return 2*border + 2*p.ticLength + p.titleHeight + p.ticLabelHeight + p.xlabelHeight }
 
 	// Available space for plotArea.
-	hSpace := width - hFix
-	vSpace := height - vFix
+	hSpace := width - hFix()
+	vSpace := height - vFix()
 
 	// Plot may be wide but not too slender.
 	if vSpace > 2*hSpace {
@@ -78,15 +88,15 @@ func (plt *Plot) NewXY(width, height int) (p xyPlot, err error) {
 	p.plotAreaHeight = vSpace
 
 	// Calculate (smaller) image dimensions.
-	width = p.titleHeight + p.ticLabelWidth + p.plotAreaWidth + p.rightXYWidth
-	height = 2*p.titleHeight + p.plotAreaHeight + p.ticLabelHeight
+	width = hFix() + p.plotAreaWidth
+	height = vFix() + p.plotAreaHeight
 
 	// Create the image.
 	p.im = image.NewRGBA(image.Rect(0, 0, width, height))
 
 	ax := plt.newAxes(
-		p.titleHeight+p.ticLabelWidth,
-		p.titleHeight,
+		p.ylabelWidth+p.ticLabelWidth+2*p.ticLength+border,
+		p.titleHeight+p.ticLength+border,
 		p.plotAreaWidth,
 		p.plotAreaHeight,
 		p.Limits,

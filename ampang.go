@@ -18,20 +18,23 @@ type ampAngPlot struct {
 // - (border)
 // - (vFill)
 // - titleHeight
+// - ticLength
 // - ampAreaHeight
 // - ampAngSpace
 // - angAreaHeight
 // - ticLabelHeight
-// - titleHeight
+// - xlabelHeight
 // - (vFill)
 // - (border)
 //
 // Horizontal layout, left to right
 // - (border)
 // - (hFill)
-// - titleHeight (y label is rotated)
+// - ylabelWidth (y label is rotated)
 // - ticLabelWidth
+// - 2*ticLength
 // - plotAreaWidth
+// - ticLength
 // - rightXYWidth
 // - (hFill)
 // - (border)
@@ -42,8 +45,11 @@ type ampAngDimension struct {
 	plotAreaWidth  int
 	rightXYWidth   int
 	titleHeight    int
+	xlabelHeight   int
+	ylabelWidth    int
 	ticLabelWidth  int
 	ticLabelHeight int
+	ticLength      int
 }
 
 // Create a new ampang plot.
@@ -57,20 +63,25 @@ func (plt *Plot) NewAmpAng(width, height int) (p ampAngPlot, err error) {
 	// Calculate Dimensions.
 	border := plt.defaultBorder()
 	p.titleHeight = plt.defaultTitleHeight()
+	p.ticLength = plt.defaultTicLength()
 	p.ampAngSpace = plt.defaultAmpAngSpace()
 	p.ticLabelHeight = plt.defaultTicLabelHeight()
-	p.ticLabelWidth = plt.defaultTicLabelWidth(ytics.Labels)
+	p.ticLabelWidth = plt.defaultTicLabelWidth(append(ytics.Labels, "-180"))
+	p.xlabelHeight = plt.defaultXlabelHeight()
+	p.ylabelWidth = plt.defaultYlabelWidth()
 	if p.rightXYWidth = 0; len(xtics.Labels) > 0 {
 		p.rightXYWidth = plt.defaultRightXYWidth(xtics.Labels[len(xtics.Labels)-1])
 	}
 
 	// Needed space for decorations.
-	hFix := 2*border + p.titleHeight + p.ticLabelWidth + p.rightXYWidth
-	vFix := 2*border + 2*p.titleHeight + p.ampAngSpace + p.ticLabelHeight
+	hFix := func() int { return 2*border + 3*p.ticLength + p.ylabelWidth + p.ticLabelWidth + p.rightXYWidth }
+	vFix := func() int {
+		return 2*border + 2*p.ticLength + p.titleHeight + p.ampAngSpace + p.ticLabelHeight + p.xlabelHeight
+	}
 
 	// Available space for plotArea.
-	hSpace := width - hFix
-	vSpace := height - vFix
+	hSpace := width - hFix()
+	vSpace := height - vFix()
 
 	// Make sure the plot is not too wide or too slender.
 	if hSpace > 3*vSpace/2 {
@@ -88,15 +99,15 @@ func (plt *Plot) NewAmpAng(width, height int) (p ampAngPlot, err error) {
 	}
 
 	// Calculate (smaller) image dimensions.
-	width = p.titleHeight + p.ticLabelWidth + p.plotAreaWidth + p.rightXYWidth
-	height = 2*p.titleHeight + p.ampAreaHeight + p.angAreaHeight + p.ampAngSpace + p.ticLabelHeight
+	width = hFix() + p.plotAreaWidth
+	height = vFix() + p.ampAreaHeight + p.angAreaHeight
 
 	// Create the image.
 	p.im = image.NewRGBA(image.Rect(0, 0, width, height))
 
 	amp := plt.newAxes(
-		p.titleHeight+p.ticLabelWidth,
-		p.titleHeight,
+		p.ylabelWidth+p.ticLabelWidth+2*p.ticLength+border,
+		p.titleHeight+p.ticLength+border,
 		p.plotAreaWidth,
 		p.ampAreaHeight,
 		p.Limits,
@@ -105,8 +116,8 @@ func (plt *Plot) NewAmpAng(width, height int) (p ampAngPlot, err error) {
 	p.amp = &amp
 
 	ang := plt.newAxes(
-		p.titleHeight+p.ticLabelWidth,
-		p.titleHeight+p.ampAreaHeight+p.ampAngSpace,
+		p.ylabelWidth+p.ticLabelWidth+2*p.ticLength+border,
+		p.titleHeight+p.ticLength+border+p.ampAreaHeight+p.ampAngSpace,
 		p.plotAreaWidth,
 		p.angAreaHeight,
 		Limits{false, p.Limits.Xmin, p.Limits.Xmax, -180.0, 180.0, 0, 0},
