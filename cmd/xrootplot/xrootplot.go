@@ -60,7 +60,7 @@ func main() {
 			hei = atoi(s[2:])
 		} else if suf(s, ".png") {
 			dst = FILE
-			out = s[2:]
+			out = s[1:]
 		} else if pre(s, "-p") {
 			plt = true
 		} else {
