@@ -28,14 +28,16 @@ const (
 const use = `|plot [-dtcw:h:o:] [-plt] [0 2 ..]
  -d   print (uniform) plot data [csv]
  -t   print table(caption) data [csv]
+ -1   single axes
+ FILE.png (to file as png instead of stdout)
  -c   console output (default iterm2 image)
- -wWIDTH -hHEIGHT
- -o   file.png
  -p   convert to plt format
+ -wWIDTH -hHEIGHT
   0.. plot number
+src: /c/k/plot/cmd/xrootplot/xrootplot.go
 `
 
-var dst, dat, tab, plt, wid, hei, out = TERM, false, false, false, 0, 0, ""
+var dst, dat, tab, sgl, plt, wid, hei, out = TERM, false, false, false, false, 0, 0, ""
 var idx []int
 
 func main() {
@@ -47,15 +49,17 @@ func main() {
 			dat = true
 		} else if pre(s, "-t") {
 			dat, tab = true, true
+		} else if s == "-1" {
+			sgl = true
 		} else if pre(s, "-c") {
 			dst = CONSOLE
 		} else if pre(s, "-w") {
 			wid = atoi(s[2:])
 		} else if pre(s, "-h") {
 			hei = atoi(s[2:])
-		} else if pre(s, "-o") {
+		} else if suf(s, ".png") {
 			dst = FILE
-			out = parseFile(s[2:])
+			out = s[2:]
 		} else if pre(s, "-p") {
 			plt = true
 		} else {
@@ -74,17 +78,11 @@ func atoi(s string) int {
 	fatal(e)
 	return n
 }
-func parseFile(s string) string {
-	if strings.HasSuffix(s, ".png") == false {
-		fatal(fmt.Errorf("-oFILE.png only png is supported"))
-	}
-	return s
-}
 
 func do(r io.Reader) {
 	plts, e := plot.DecodeAny(r)
 	fatal(e)
-	plts = dark(at(plts))
+	plts = dark(single(at(plts)))
 	pp(plot.AxisFromEnv(plts))
 }
 func pp(p plot.Plots) {
@@ -140,14 +138,26 @@ func at(p plot.Plots) plot.Plots {
 		return r
 	}
 }
-func dark(p plot.Plots) plot.Plots {
-	if dst != FILE {
+func dark(p plot.Plots) plot.Plots { // console is always dark, file or plt not so.
+	if dst != FILE { // && plt == false {
 		for i := range p {
 			p[i].Style.Dark = true
-			p[i].Style.Order = "#00ff00"
+			p[i].Style.Order = "green"
 		}
 	}
 	return p
+}
+func single(p plot.Plots) plot.Plots {
+	if len(p) < 2 || sgl == false {
+		return p
+	}
+	for _, x := range p[1:] {
+		p[0].Lines = append(p[0].Lines, x.Lines...)
+	}
+	for i := range p[0].Lines {
+		p[0].Lines[i].Id = i
+	}
+	return p[:1]
 }
 func pre(s, p string) bool { return strings.HasPrefix(s, p) }
 func suf(s, x string) bool { return strings.HasSuffix(s, x) }
