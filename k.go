@@ -10,9 +10,10 @@ import "fmt"
 //
 // If the input is a list of tables, they must have the same structure and create multiline plots.
 func KTablePlot(x uint32, C []byte, I []uint32, F []float64) (Plots, error) {
+	fmt.Println("ktp", x)
 	var plts Plots
-	if tp(x) == 6 {
-		n := nn(x)
+	if t := tp(x, I); t == 6 {
+		n := nn(x, I)
 		for i := uint32(0); i < n; i++ {
 			data, err := kdata(I[2+i+x>>2], C, I, F)
 			if err != nil {
@@ -26,31 +27,32 @@ func KTablePlot(x uint32, C []byte, I []uint32, F []float64) (Plots, error) {
 		if plts == nil {
 			return nil, fmt.Errorf("k-table data is empty")
 		}
-	} else if tp(x) == 7 {
+	} else if t == 7 {
 		data, err := kdata(x, C, I, F)
 		if err != nil {
 			return nil, err
 		}
 		plts, err = newline(plts, data)
 	} else {
-		return nil, fmt.Errorf("input is not a dict-table or list thereof")
+		return nil, fmt.Errorf("input is not a dict-table or list thereof (%d)", t)
 	}
 	return plts, nil
 }
 func kdata(x uint32, C []byte, I []uint32, F []float64) ([]col, error) {
-	if tp(x) != 7 {
+	if tp(x, I) != 7 {
 		return nil, fmt.Errorf("data is not a k-table")
 	}
 	val := I[3+x>>2]
-	n := nn(x)
+	n := nn(I[2+x>>2], I)
 	if n == 0 {
 		return nil, fmt.Errorf("table is empty")
 	}
-	m := nn(I[2+val>>2])
+	m := nn(I[2+val>>2], I)
+	fmt.Printf("kdata n=%d m=%d\n", n, m)
 	var r []col
 	for i := uint32(0); i < n; i++ {
 		y := I[2+i+val>>2]
-		yn := nn(y)
+		yn := nn(y, I)
 		if yn != m {
 			return nil, fmt.Errorf("dict is not uniform")
 		}
@@ -63,8 +65,8 @@ func kdata(x uint32, C []byte, I []uint32, F []float64) ([]col, error) {
 	return r, nil
 }
 func kcol(x uint32, C []byte, I []uint32, F []float64) (c col, e error) {
-	t := tp(x)
-	n := nn(x)
+	t := tp(x, I)
+	n := nn(x, I)
 	switch t {
 	case 2:
 		c.r = make([]float64, n)
@@ -87,15 +89,15 @@ func kcol(x uint32, C []byte, I []uint32, F []float64) (c col, e error) {
 	}
 	return c, nil
 }
-func tp(x uint32) uint32 {
+func tp(x uint32, I []uint32) uint32 {
 	if x < 256 {
 		return 0
 	}
-	return x >> 29
+	return I[x>>2] >> 29
 }
-func nn(x uint32) (xn uint32) {
+func nn(x uint32, I []uint32) (xn uint32) {
 	if x < 256 {
 		return 1
 	}
-	return x & 536870911
+	return I[x>>2] & 536870911
 }
