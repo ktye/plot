@@ -21,6 +21,8 @@ func (ui *Plot) SetCaption() {
 	if s, lineOffset, err := ui.CaptionStrings(); err != nil {
 		log.Print(err)
 		return
+	} else if len(s) == 0 {
+		ui.table.SetVisible(false)
 	} else {
 		ui.lineOffset = lineOffset
 		if ui.plots != nil && len(*ui.plots) > 0 {
