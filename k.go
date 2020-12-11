@@ -42,21 +42,22 @@ func kdata(x uint32, C []byte, I []uint32, F []float64) ([]col, error) {
 	if tp(x, I) != 7 {
 		return nil, fmt.Errorf("data is not a k-table")
 	}
+	key := I[2+x>>2]
 	val := I[3+x>>2]
-	n := nn(I[2+x>>2], I)
+	n := nn(val, I)
 	if n == 0 {
 		return nil, fmt.Errorf("table is empty")
 	}
 	m := nn(I[2+val>>2], I)
-	fmt.Printf("kdata n=%d m=%d\n", n, m)
 	var r []col
 	for i := uint32(0); i < n; i++ {
+		s := I[2+i+key>>2]
 		y := I[2+i+val>>2]
 		yn := nn(y, I)
 		if yn != m {
 			return nil, fmt.Errorf("dict is not uniform")
 		}
-		c, e := kcol(y, C, I, F)
+		c, e := kcol(y, C, I, F, ksym(s, C, I))
 		if e != nil {
 			return nil, e
 		}
@@ -64,7 +65,12 @@ func kdata(x uint32, C []byte, I []uint32, F []float64) ([]col, error) {
 	}
 	return r, nil
 }
-func kcol(x uint32, C []byte, I []uint32, F []float64) (c col, e error) {
+func ksym(x uint32, C []byte, I []uint32) string {
+	r := I[(I[132>>2]+x)>>2]
+	n := nn(r, I)
+	return string(C[8+r : 8+r+n])
+}
+func kcol(x uint32, C []byte, I []uint32, F []float64, s string) (c col, e error) {
 	t := tp(x, I)
 	n := nn(x, I)
 	switch t {
@@ -87,6 +93,7 @@ func kcol(x uint32, C []byte, I []uint32, F []float64) (c col, e error) {
 	default:
 		return c, fmt.Errorf("column data is not numeric")
 	}
+	c.s = s
 	return c, nil
 }
 func tp(x uint32, I []uint32) uint32 {
