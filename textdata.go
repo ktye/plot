@@ -57,15 +57,18 @@ func newline(plts Plots, data []col) (Plots, error) {
 	if len(data) == 1 && data[0].cmplx == false { // y
 		data = []col{col{r: til(len(data[0].r))}, data[0]}
 	}
+	xl := ""
 	if data[0].cmplx {
 		t = Polar
 	} else if len(data) > 1 && data[1].cmplx {
 		t = AmpAng
 		x = data[0].r
+		xl = data[0].s
 		data = data[1:]
 	} else {
 		t = XY
 		x = data[0].r
+		xl = data[0].s
 		data = data[1:]
 	}
 	if len(plts) == 0 {
@@ -75,8 +78,9 @@ func newline(plts Plots, data []col) (Plots, error) {
 	} else if len(plts) != len(data) {
 		return nil, fmt.Errorf("data is not uniform")
 	}
-
 	for i := range plts {
+		plts[i].Xlabel = xl
+		plts[i].Title = data[i].s
 		plts[i].Type = t
 		var l Line
 		id := len(plts[i].Lines)
@@ -91,6 +95,7 @@ func newline(plts Plots, data []col) (Plots, error) {
 }
 
 type col struct {
+	s     string
 	r     []float64
 	c     []complex128
 	cmplx bool
