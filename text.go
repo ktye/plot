@@ -335,6 +335,7 @@ func fs(w io.Writer, name string, v []float64, e error) error { // js cannot han
 	w.Write([]byte{'\n'})
 	return nil
 }
+func Sj(r LineReader, name string, v interface{}, e error) error { return sj(r, name, v, e) }
 func sj(r LineReader, name string, v interface{}, e error) error {
 	if e != nil {
 		return e
