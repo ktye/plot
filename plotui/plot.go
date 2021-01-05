@@ -172,7 +172,7 @@ func (ui *Plot) setImage() error {
 	if ui.canvas == nil { // headless mode
 		return nil
 	}
-	bounds := ui.canvas.ClientBounds()
+	bounds := ui.canvas.ClientBoundsPixels()
 	if im, ip, err := ui.image(bounds.Width, bounds.Height); err != nil {
 		return err
 	} else {
@@ -241,7 +241,7 @@ func (ui *Plot) update(hiIDs []plot.HighlightID) {
 	if len(ui.iplots) == 0 {
 		return
 	}
-	bounds := ui.canvas.ClientBounds()
+	bounds := ui.canvas.ClientBoundsPixels()
 	if im := plot.Image(ui.iplots, hiIDs, bounds.Width, bounds.Height, ui.Columns); im == nil {
 		log.Println("could not make image: ", hiIDs)
 	} else {

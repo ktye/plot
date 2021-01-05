@@ -65,7 +65,7 @@ func (ui *Plot) mouseUp(x, y int, button walk.MouseButton) {
 	elapsed := time.Since(ui.mouse.time)
 	dx := x - ui.mouse.x
 	dy := y - ui.mouse.y
-	bounds := ui.canvas.ClientBounds()
+	bounds := ui.canvas.ClientBoundsPixels()
 	if dx*dx+dy*dy > 100 {
 		// Click and Move (zoom, pan or draw line)
 		if ui.mouse.modifier == walk.ModShift || ui.mouse.modifier == walk.ModAlt {
