@@ -10,7 +10,6 @@ import "fmt"
 //
 // If the input is a list of tables, they must have the same structure and create multiline plots.
 func KTablePlot(x uint32, C []byte, I []uint32, F []float64) (Plots, error) {
-	fmt.Println("ktp", x)
 	var plts Plots
 	if t := tp(x, I); t == 6 {
 		n := nn(x, I)
