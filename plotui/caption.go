@@ -24,6 +24,7 @@ func (ui *Plot) SetCaption() {
 	} else if len(s) == 0 {
 		ui.table.SetVisible(false)
 	} else {
+		ui.table.SetVisible(true)
 		ui.lineOffset = lineOffset
 		if ui.plots != nil && len(*ui.plots) > 0 {
 			ui.model.Lock()
