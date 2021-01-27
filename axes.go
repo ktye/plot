@@ -262,7 +262,7 @@ func (a axes) drawPolarTics(ring bool) {
 	phi := 130.0 * math.Pi / 180.0
 	s := strconv.FormatFloat(a.limits.Ymax, 'g', 4, 64)
 	p.Add(vg.Ray{a.x + r, a.y + r, r, 3 * l, phi - phi0, a.plot.defaultAxesGridLineWidth()})
-	tx := float64(a.x+r) + float64(r+3*l)*math.Cos(phi-phi0)
+	tx := float64(a.x+r) + float64(r+3*l)*math.Cos(phi-phi0) - float64(2*l)
 	ty := float64(a.y+r) + float64(r+3*l)*math.Sin(phi-phi0)
 	p.Add(vg.Text{int(tx + 0.5), int(ty + 0.5), s, 6})
 	ty += float64(3 + font2.Metrics().Height.Ceil()) // 3 should be line gap

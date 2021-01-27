@@ -20,11 +20,9 @@ type polarPlot struct {
 // Vertical layout
 // - (border)
 // - (vFill)
-// - ticLength
 // - titleHeight
 // - ticLabelHeight
 // - polarDiameter
-// - ticLength
 // - ticLabelHeight
 // - (vFill)
 // - (border)
@@ -42,7 +40,6 @@ type polarDimension struct {
 	titleHeight    int
 	ticLabelWidth  int
 	ticLabelHeight int
-	ticLength      int
 }
 
 // Create a new polar coordinate system in the subimage.
@@ -60,15 +57,14 @@ func (plt *Plot) NewPolar(width, height int, isRing bool) (p polarPlot, err erro
 	p.ticLabelHeight = plt.defaultTicLabelHeight()
 	p.ticLabelWidth = plt.defaultPolarTicLabelWidth()
 	p.titleHeight = plt.defaultTitleHeight()
-	p.ticLength = plt.defaultTicLength()
 
 	// Needed space for decorations.
-	hFix := 2*border + 2*p.ticLabelWidth
-	vFix := 2*border + p.titleHeight + 2*p.ticLabelHeight + 2*p.ticLength
+	hFix := func() int { return 2*border + 2*p.ticLabelWidth }
+	vFix := func() int { return 2*border + p.titleHeight + 2*p.ticLabelHeight }
 
 	// Available space for plotArea.
-	hSpace := width - hFix
-	vSpace := height - vFix
+	hSpace := width - hFix()
+	vSpace := height - vFix()
 
 	if hSpace < 0 || vSpace < 0 {
 		p.polarDiameter = 0
@@ -84,19 +80,19 @@ func (plt *Plot) NewPolar(width, height int, isRing bool) (p polarPlot, err erro
 	if p.polarDiameter%2 != 1 {
 		p.polarDiameter--
 	}
-
-	// Calculate (smaller) image dimensions.
-	width = 2*p.ticLabelWidth + p.polarDiameter
-	height = p.titleHeight + 2*p.ticLabelHeight + 2*p.ticLength + p.polarDiameter
 	if p.polarDiameter < 1 {
 		return p, fmt.Errorf("image space is too small")
 	}
 
+	// Calculate (smaller) image dimensions.
+	width = hFix() + p.polarDiameter
+	height = vFix() + p.polarDiameter // p.titleHeight + 2*p.ticLabelHeight + 2*p.ticLength + p.polarDiameter
+
 	// Create Image.
 	p.im = image.NewRGBA(image.Rect(0, 0, width, height))
 	ax := plt.newAxes(
-		p.ticLabelWidth,
-		p.titleHeight+p.ticLabelHeight,
+		p.ticLabelWidth+border,
+		p.titleHeight+p.ticLabelHeight+border,
 		p.polarDiameter,
 		p.polarDiameter,
 		p.Limits,
@@ -114,7 +110,7 @@ func (p polarPlot) draw(noTics bool) {
 	if noTics == false {
 		p.axes.drawPolarTics(p.ring)
 	}
-	p.axes.drawTitle(p.ticLabelHeight + 3) // The title needs extra spacing because of the angule label.
+	p.axes.drawTitle(p.ticLabelHeight + 0) // The title needs extra spacing because of the angule label.
 }
 
 func (p polarPlot) background() color.Color {
