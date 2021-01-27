@@ -47,6 +47,8 @@ func (p Plots) IPlots(width, height, columns int) ([]IPlotter, error) {
 			plotters[i], err = p[i].NewAmpAng(w, h)
 		case Foto:
 			plotters[i], err = p[i].NewFoto(w, h)
+		case Text:
+			plotters[i], err = p[i].NewTextPlot(w, h)
 		default:
 			return plotters, fmt.Errorf("plot type: '%s' is not implemented.", p[i].Type)
 		}

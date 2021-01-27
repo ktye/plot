@@ -25,6 +25,7 @@ const (
 	Ring   PlotType = "ring"
 	AmpAng PlotType = "ampang"
 	Raster PlotType = "raster"
+	Text   PlotType = "text"
 )
 
 // Plot is the plot definition structure.
