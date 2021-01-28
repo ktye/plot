@@ -24,7 +24,7 @@ func (plt *Plot) NewTextPlot(width, height int) (p textPlot, err error) {
 
 	lines := strings.Split(plt.Foto, "\n")
 	paint := vg.NewPainter(p.im)
-	paint.SetFont(font1)
+	//paint.SetFont(font1)
 	paint.SetColor(p.plot.defaultForegroundColor())
 	x, y := 10, 10
 	dy := font1.Metrics().Height.Ceil()
