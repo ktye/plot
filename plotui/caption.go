@@ -58,6 +58,7 @@ func (ui *Plot) SetCaption() {
 		ui.model.lines = s
 		ui.model.PublishRowsReset()
 		ui.table.StretchLastColumn()
+		ui.table.Invalidate()
 	}
 }
 
