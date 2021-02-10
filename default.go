@@ -58,7 +58,7 @@ func (p *Plot) defaultTitleHeight() int {
 
 // defaultXLabelHeight is the vertical space for the x-axis label.
 func (p *Plot) defaultXlabelHeight() int {
-	if p.Xlabel == "" {
+	if p.Xlabel+p.Xunit == "" {
 		return 2
 	}
 	return 2 + font1.Metrics().Height.Ceil()
@@ -66,7 +66,7 @@ func (p *Plot) defaultXlabelHeight() int {
 
 // defaultYLabelWidth is the horizontal space for the rotated y-axis label.
 func (p *Plot) defaultYlabelWidth() int {
-	if p.Ylabel == "" {
+	if p.Ylabel+p.Yunit == "" {
 		return 2
 	}
 	return 2 + font1.Metrics().Height.Ceil()
@@ -119,5 +119,5 @@ func (p *Plot) defaultAxesGridLineWidth() int {
 // defaultAmpAngSpace is the vertical space between the amplitude
 // and the phase axes for an ampang plot.
 func (p *Plot) defaultAmpAngSpace() int {
-	return font1.Metrics().Height.Ceil() / 2
+	return 2 * p.defaultTicLength()
 }

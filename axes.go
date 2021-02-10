@@ -298,7 +298,7 @@ func (a axes) drawXlabel() {
 	p.SetColor(a.fg)
 	p.SetFont(font1)
 	x := a.x + a.width/2
-	y := a.y + a.height + a.plot.defaultTicLabelHeight() + 3
+	y := a.y + a.height + a.plot.defaultTicLabelHeight() //+ 3
 	t := a.plot.Xlabel
 	if a.plot.Xunit != "" {
 		t += " " + string(a.plot.Xunit)
