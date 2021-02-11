@@ -15,7 +15,16 @@ type textPlot struct {
 	im   *image.RGBA
 }
 
-// Create a new foto plot in the subimage.
+// ErrorPlot returns Plots that render an error message.
+func ErrorPlot(err error) Plots {
+	s := ""
+	if err != nil {
+		s = err.Error()
+	}
+	return Plots{{Type: Text, Foto: s}}
+}
+
+// Create a new text plot in the subimage.
 func (plt *Plot) NewTextPlot(width, height int) (p textPlot, err error) {
 	p.plot = plt
 
