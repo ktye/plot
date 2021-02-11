@@ -167,7 +167,7 @@ func (p polarPlot) line(x0, y0, x1, y1 int) (complex128, bool) {
 		Style: DataStyle{Line: LineStyle{Width: 1, Color: -1}},
 	})
 	if p.axes.limits.isPolarLimits() {
-		p.draw(true)
+		p.draw(false)
 	} else { // axes are zoomed.
 		p.axes.drawPolarDataOnly()
 	}
@@ -204,7 +204,7 @@ func (p polarPlot) click(x, y int, snapToPoint bool) (Callback, bool) {
 			},
 		})
 		if p.axes.limits.isPolarLimits() {
-			p.draw(true)
+			p.draw(false)
 		} else { // axes are zoomed.
 			p.axes.drawPolarDataOnly()
 		}
