@@ -264,9 +264,16 @@ func (a axes) drawPolarTics(ring bool) {
 	p.Add(vg.Ray{a.x + r, a.y + r, r, 3 * l, phi - phi0, a.plot.defaultAxesGridLineWidth()})
 	tx := float64(a.x+r) + float64(r+3*l)*math.Cos(phi-phi0) - float64(2*l)
 	ty := float64(a.y+r) + float64(r+3*l)*math.Sin(phi-phi0)
+	singleLine := false
+	if ls := s + string(a.plot.Yunit); len(ls) < 6 {
+		singleLine = true
+		s = ls
+	}
 	p.Add(vg.Text{int(tx + 0.5), int(ty + 0.5), s, 6})
-	ty += float64(3 + font2.Metrics().Height.Ceil()) // 3 should be line gap
-	p.Add(vg.Text{int(tx + 0.5), int(ty + 0.5), string(a.plot.Yunit), 6})
+	if singleLine == false {
+		ty += float64(3 + font2.Metrics().Height.Ceil()) // 3 should be line gap
+		p.Add(vg.Text{int(tx + 0.5), int(ty + 0.5), string(a.plot.Yunit), 6})
+	}
 	if ring {
 		s = strconv.FormatFloat(a.limits.Zmin, 'g', 4, 64)
 		rmin := int(innerRing*float64(r)) - 3*l - 1
