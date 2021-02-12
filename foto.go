@@ -113,7 +113,7 @@ func (p fotoPlot) line(x0, y0, x1, y1 int) (complex128, bool) {
 	return complex(0, 0), false
 }
 
-func (p fotoPlot) click(x, y int, snapToPoint bool) (Callback, bool) {
+func (p fotoPlot) click(x, y int, snapToPoint, deleteLine bool) (Callback, bool) {
 	return Callback{}, false
 }
 

@@ -16,7 +16,7 @@ type IPlotter interface {
 	background() color.Color
 	zoom(int, int, int, int) bool
 	pan(int, int, int, int) bool
-	click(int, int, bool) (Callback, bool)
+	click(int, int, bool, bool) (Callback, bool)
 	line(int, int, int, int) (complex128, bool)
 	limits() Limits
 }

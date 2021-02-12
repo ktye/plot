@@ -110,11 +110,16 @@ func (ui *Plot) mouseUp(x, y int, button walk.MouseButton) {
 	} else {
 		if elapsed < 300*time.Millisecond {
 			// Double click (without moving)
-			snapToPoint := true
+			snapToPoint, deleteLine := true, false
 			if walk.ModifiersDown() == walk.ModShift {
 				snapToPoint = false
 			}
-			if callback, ok := plot.ClickIPlotters(ui.iplots, x, y, bounds.Width, bounds.Height, ui.Columns, snapToPoint); ok {
+			if walk.ModifiersDown() == walk.ModAlt {
+				// delete line takes the same path as MeasurePoint
+				deleteLine = true
+				snapToPoint = false
+			}
+			if callback, ok := plot.ClickIPlotters(ui.iplots, x, y, bounds.Width, bounds.Height, ui.Columns, snapToPoint, deleteLine); ok {
 				if callback.Type == plot.PointInfoCallback {
 					pointInfo := callback.PointInfo
 					hi := []plot.HighlightID{plot.HighlightID{

@@ -174,7 +174,7 @@ func (p polarPlot) line(x0, y0, x1, y1 int) (complex128, bool) {
 	return vec, true
 }
 
-func (p polarPlot) click(x, y int, snapToPoint bool) (Callback, bool) {
+func (p polarPlot) click(x, y int, snapToPoint, deleteLine bool) (Callback, bool) {
 	if !p.axes.isInside(x, y) {
 		return Callback{
 			Type:   AxisCallback,
@@ -192,17 +192,23 @@ func (p polarPlot) click(x, y int, snapToPoint bool) (Callback, bool) {
 			pi.X = 0
 			pi.Y = 0
 		}
-		p.plot.Lines = append(p.plot.Lines, Line{
-			Id: p.plot.nextNegativeLineId(),
-			C:  []complex128{pi.C},
-			Style: DataStyle{
-				Marker: MarkerStyle{
-					Marker: CrossMarker,
-					Color:  -1,
-					Size:   3,
+		if deleteLine {
+			if n := len(p.plot.Lines); n > 0 {
+				p.plot.Lines = p.plot.Lines[:n-1]
+			}
+		} else {
+			p.plot.Lines = append(p.plot.Lines, Line{
+				Id: p.plot.nextNegativeLineId(),
+				C:  []complex128{pi.C},
+				Style: DataStyle{
+					Marker: MarkerStyle{
+						Marker: CrossMarker,
+						Color:  -1,
+						Size:   3,
+					},
 				},
-			},
-		})
+			})
+		}
 		if p.axes.limits.isPolarLimits() {
 			p.draw(false)
 		} else { // axes are zoomed.

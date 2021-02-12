@@ -194,7 +194,7 @@ func (u *UI) mouseUp(pos image.Point, but int, mod uint32) int {
 		if mod == 1 {
 			snapToPoint = false
 		}
-		if cb, ok := ClickIPlotters(u.iplots, pos.X, pos.Y, bounds.Dx(), bounds.Dy(), 0, snapToPoint); ok {
+		if cb, ok := ClickIPlotters(u.iplots, pos.X, pos.Y, bounds.Dx(), bounds.Dy(), 0, snapToPoint, false); ok {
 			if cb.Type == PointInfoCallback {
 				pointInfo := cb.PointInfo
 				hi := []HighlightID{HighlightID{

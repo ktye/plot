@@ -179,7 +179,7 @@ func (p xyPlot) line(x0, y0, x1, y1 int) (complex128, bool) {
 	return vec, true
 }
 
-func (p xyPlot) click(x, y int, snapToPoint bool) (Callback, bool) {
+func (p xyPlot) click(x, y int, snapToPoint, deleteLine bool) (Callback, bool) {
 	if !p.ax.isInside(x, y) {
 		limits := p.ax.limits
 		if x < p.ax.x {

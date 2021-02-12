@@ -218,7 +218,7 @@ func (p ampAngPlot) line(x0, y0, x1, y1 int) (complex128, bool) {
 	return vec, true
 }
 
-func (p ampAngPlot) click(x, y int, snapToPoint bool) (Callback, bool) {
+func (p ampAngPlot) click(x, y int, snapToPoint, deleteLine bool) (Callback, bool) {
 	if p.amp.isInside(x, y) {
 		pi, ok := p.amp.click(x, y, xyAmp{}, snapToPoint)
 		if ok == true && snapToPoint == false {

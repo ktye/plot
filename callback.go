@@ -24,6 +24,7 @@ const (
 	AxisCallback      string = "Axis"
 	UnitCallback      string = "Unit"
 	MeasurePoint      string = "Measure Point"
+	DeleteLine        string = "Delete Line"
 )
 
 type HighlightID struct {
