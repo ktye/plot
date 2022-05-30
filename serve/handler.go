@@ -1,7 +1,10 @@
 package serve
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"html"
 	"image"
 	"image/color"
 	"image/draw"
@@ -21,6 +24,7 @@ type t struct {
 	p       plot.Plots
 	hp      []plot.IPlotter
 	hi      []plot.HighlightID
+	pi      plot.PointInfo
 	w, h, c int
 }
 
@@ -35,6 +39,15 @@ func SetPlots(plots plot.Plots) {
 	p.w, p.h, p.c = 0, 0, 0
 }
 
+type Option struct {
+	Class    string `json:"c"`
+	Color    string `json:"rgb"`
+	Text     string `json:"t"`
+	Selected bool   `json:"s"`
+	Number   string `json:"n"`
+	Line     int    `json:"l"`
+}
+
 func setSize(width, height, columns int) {
 	p.w, p.h, p.c = width, height, columns
 	p.hp, _ = p.p.IPlots(width, height, columns)
@@ -46,12 +59,26 @@ func Plot(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
 	wi, hi := atoi(q.Get("w")), atoi(q.Get("h"))
+	hl := atois(q.Get("hl"))
 	x, y := atoi(q.Get("x")), atoi(q.Get("y"))
 	z := atois(q.Get("z"))
-	fmt.Println("w", wi, "h", hi, "z", z, "x", x, "y", y)
+	//fmt.Println("w", wi, "h", hi, "z", z, "x", x, "y", y, "hl", hl)
 
 	if p.p == nil {
 		http.Error(w, "not plot is set", 400)
+		return
+	}
+	if q.Get("caption") != "" {
+		writeCaption(w, r)
+		return
+	}
+	if q.Get("gethi") != "" {
+		if p.hi == nil {
+			p.pi.LineID = -1
+		}
+		if e := json.NewEncoder(w).Encode(p.pi); e != nil {
+			http.Error(w, e.Error(), 400)
+		}
 		return
 	}
 	if p.hp == nil || p.w != wi || p.h != hi {
@@ -60,6 +87,22 @@ func Plot(w http.ResponseWriter, r *http.Request) {
 	if p.hp == nil {
 		http.Error(w, "no plot (bad size?)", 400)
 		return
+	}
+	if s := q.Get("pt"); s != "" { // slider
+		pt := atoi(s)
+		if len(p.hi) == 0 {
+			p.hi = []plot.HighlightID{plot.HighlightID{Line: 0}}
+		}
+		for i := range p.hi {
+			p.hi[i].Point = pt
+		}
+	} else if len(hl) == 0 {
+		p.hi = nil
+	} else { // caption line
+		p.hi = make([]plot.HighlightID, len(hl))
+		for i, n := range hl {
+			p.hi[i] = plot.HighlightID{Line: n - 1, Point: -1}
+		}
 	}
 	if len(z) == 4 {
 		if q.Get("draw") != "" {
@@ -74,12 +117,12 @@ func Plot(w http.ResponseWriter, r *http.Request) {
 		snapToPoint := true
 		if callback, ok := plot.ClickIPlotters(p.hp, x, y, p.w, p.h, p.c, snapToPoint, false); ok {
 			if callback.Type == plot.PointInfoCallback {
-				pointInfo := callback.PointInfo
+				p.pi = callback.PointInfo
 				p.hi = []plot.HighlightID{plot.HighlightID{
-					Line:   pointInfo.LineID,
-					Point:  pointInfo.PointNumber,
-					XImage: pointInfo.X,
-					YImage: pointInfo.Y,
+					Line:   p.pi.LineID,
+					Point:  p.pi.PointNumber,
+					XImage: p.pi.X,
+					YImage: p.pi.Y,
 				}}
 				//ww.Header().Set("l", itoa(pointInfo.LineID))
 				//ww.Header().Set("m", itoa(pointInfo.NumPoints-1))
@@ -95,6 +138,46 @@ func Plot(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "image/png")
 	png.Encode(w, im)
+}
+func writeCaption(w http.ResponseWriter, r *http.Request) {
+	if len(p.p) == 0 || p.p[0].Caption == nil {
+		return
+	}
+	c := p.p[0].Caption
+
+	var buf bytes.Buffer
+	lineOffset, e := c.WriteTable(&buf, plot.Numbers)
+	if e != nil {
+		errImage(w, p.w, p.h, e)
+		return
+	}
+	s := strings.Split(string(buf.Bytes()), "\n")
+	if len(s) > 0 && len(s[len(s)-1]) == 0 {
+		s = s[:len(s)-1]
+	}
+	o := make([]Option, len(s))
+	for i := 0; i < len(s); i++ {
+		o[i].Text = s[i]
+		if n := i - lineOffset; n >= 0 {
+			o[i].Number = strconv.Itoa(n + 1)
+		}
+		if co := c.Color(i, lineOffset); co != nil {
+			o[i].Color = htmlColor(co)
+		}
+	}
+	if c.Title != "" && len(o) > 0 {
+		o[0].Class = "header"
+	}
+	for i := range o {
+		o[i].Text = html.EscapeString(o[i].Text)
+	}
+	if e := json.NewEncoder(w).Encode(o); e != nil {
+		fmt.Println(e)
+	}
+}
+func htmlColor(c color.Color) string {
+	r, g, b, a := c.RGBA()
+	return fmt.Sprintf("#%02x%02x%02x%02x", r>>8, g>>8, b>>8, a>>8)
 }
 
 func atoi(s string) int {
@@ -133,6 +216,7 @@ const Js = `
 var plotcnv = document.getElementById("plot-cnv")
 var plotsld = document.getElementById("plot-sld")
 var plotimg = document.getElementById("plot-img")
+var plotcap = document.getElementById("plot-cap")
 var ctx = plotcnv.getContext("2d")
 var zoom = false
 function zoomStart(e){ zoom=[e.offsetX, e.offsetY, 0, 0]; plotcnv.style.cursor="crosshair" }
@@ -146,33 +230,69 @@ function zoomEnd(e){
  if (Math.abs(zoom[2]) < 5 || Math.abs(zoom[3]) < 5) { zoom=false; return }
  let w = plotcnv.clientWidth; var h = plotcnv.clientHeight
  let p = "hi?&w="+w+"&h="+h+"&z="+zoom
- //console.log("zoom:", p, e.shiftKey)
  let draw = e.shiftKey ? "&draw=1" : ""
  plot("&z="+zoom+draw)
- //plot.src = p
  zoom = false
 }
 function clearZoom(){ctx.clearRect(0,0,plotcnv.width,plotcnv.height)}
 function clickPlot(e){
- plot("&x="+e.offsetX+"&y="+e.offsetY)
+ plot("&x="+e.offsetX+"&y="+e.offsetY, true)
 }
 function slideWheel(e) {
  plotsld.value = Number(plotsld.value) + ((e.deltaY<0) ? 1 : -1)
  plotSlide()
 }
-function plotSlide(){ console.log("slide:", plotsld.value) }
+function plotSlide(){ plot("&pt="+plotsld.value) }
 
-function plot(x){
+function plot(x,sethi){
  x = (x === undefined) ? "" : x
- console.log("plot", x)
  plotimg.src = "plot?w=" + plotimg.width + "&h=" + plotimg.height + x
+ if(sethi===true)get("plot?gethi=1", setHighlightAfterClick)
 }
+function caption(){get("plot?caption=1",setCaption)}
+
+function deleteAll(e){var c=e.lastElementChild;while(c){e.removeChild(c);c=e.lastElementChild}}
+function space(s){return s.replace(/ /g, "&nbsp;")}
+function setOptions(e,opts){deleteAll(e);
+ for(var i=0;i<opts.length;i++){
+  var op=opts[i]
+  var o=document.createElement("option")
+  if(op.c != "")o.classList.add(op.c)
+  if(op.n != "")o.dataset.n = op.n
+  o.style.color=op.rgb
+  o.dataset.l=op.l;e.appendChild(o);o.innerHTML=space(op.t);o.selected=op.s}}
+function setCaption(s) { 
+ var o=JSON.parse(s)
+ if(o.Error){deleteAll(caption);getSet(o.Src);return}
+ setOptions(plotcap,o)
+ plotcap.onchange=function(){var s=selectedNumbers(plotcap);plot("&hl="+String(s))}
+}
+function setHighlightAfterClick(s){
+ let h=JSON.parse(s);if(h.LineID<0)return
+ setSelectedCaptionLine(1+h.LineID)
+ if(h.PointNumber>=0&&h.NumPoints>0)setSlider(h.PointNumber,h.NumPoints)
+}
+function setSlider(x,n){plotsld.min=1;plotsld.max=n;plotsld.value=x}
+function setSelectedCaptionLine(x){
+ for(let i=0;i<plotcap.childNodes.length;i++)plotcap.childNodes[i].selected=(plotcap.childNodes[i].dataset.n==x)}
+function selectedNumbers(e){ // [1,3,9]
+ if(e.selectedIndex<0){return ""}
+ let n=[]
+ for(var i=e.selectedIndex;i<e.length;i++)if(e[i].selected && e[i].dataset.n)n.push(Number(e[i].dataset.n))
+ return n
+}
+function get(p,f){
+ var r=new XMLHttpRequest()
+ r.onreadystatechange=function(){if(this.readyState==4&&this.status==200){if(f)f(this.response,this)}}
+ r.open("GET",p)
+ r.send() }
 
 plotcnv.ondblclick  = clickPlot
 plotcnv.onwheel     = slideWheel
 plotcnv.onmousedown = zoomStart
 plotcnv.onmousemove = zoomMove
 plotcnv.onmouseup   = zoomEnd
+plotsld.onchange    = plotSlide
 `
 
 func Html(w, h int) string {

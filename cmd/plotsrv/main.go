@@ -22,7 +22,7 @@ func main() {
 
 	http.HandleFunc("/plot", serve.Plot)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(page())) })
-	fmt.Println(addr)
+	fmt.Println("plotsrv -addr", addr)
 	http.ListenAndServe(addr, nil)
 }
 
@@ -36,7 +36,7 @@ func page() string {
 		`#plot-cnv{position:absolute;right:10px;top:10px; ` + wh + `z-index:1;}`,
 		`#plot-img{position:absolute;right:10px;top:10px; ` + wh + `z-index:0;}`,
 		`#plot-sld{position:absolute;right:10px;top:410px;` + wpx + `;height:20px}`,
-		`#plot-cap{position:absolute;right:10px;top:430px;` + wpx + `;height:200px}`,
+		`#plot-cap{position:absolute;right:10px;top:430px;` + wpx + `;height:200px;font-family:monospace}`,
 		`</style>`,
 		`</head><body>`,
 		serve.Html(w, h),
@@ -70,7 +70,8 @@ func exampleplots() plot.Plots {
 		}
 		return plot.Line{Id: id, X: x, Y: y, C: c}
 	}
-	return plot.Plots{
+	c := caption()
+	plts := plot.Plots{
 		plot.Plot{
 			Type: plot.XY,
 			Lines: []plot.Line{
@@ -78,6 +79,7 @@ func exampleplots() plot.Plots {
 				ln(1, rnd, nil),
 				ln(2, rnd, nil),
 			},
+			Caption: &c,
 		},
 		plot.Plot{
 			Type: plot.Polar,
@@ -96,4 +98,27 @@ func exampleplots() plot.Plots {
 			},
 		},
 	}
+	plts[0].SetCaptionColors()
+	//fmt.Println(plts[0].Caption)
+	return plts
+}
+func caption() (c plot.Caption) {
+	c.Title = "Example plot"
+	c.LeadText = []string{"description 1", "description 2"}
+	c.Columns = []plot.CaptionColumn{
+		plot.CaptionColumn{
+			Class:  "c1",
+			Name:   "alpha",
+			Unit:   "m/s",
+			Format: "%.1f",
+			Data:   []float64{1.2, 3.4, 5.5, 6.7},
+		},
+		plot.CaptionColumn{
+			Class: "c1",
+			Name:  "beta",
+			Unit:  "",
+			Data:  []string{"alpha beta", "gamma", "delta epsilon", "omega"},
+		},
+	}
+	return c
 }

@@ -82,7 +82,7 @@ type PointInfo struct {
 	NumPoints   int        // Number of data points of the clicked line.
 	IsEnvelope  bool       // Mark if the line type is an envelope.
 	X, Y, Z     float64    // Points coordinates, Z is only used for images.
-	C           complex128 // Complex data value of the line point, if it has one.
+	C           complex128 `json:"-"` // Complex data value of the line point, if it has one.
 	IsImage     bool       // Mark if the PlotType is an Image.
 	Zmin, Zmax  float64    // Min, Max value of zaxis.
 }
