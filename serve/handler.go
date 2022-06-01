@@ -25,17 +25,19 @@ type t struct {
 	hp      []plot.IPlotter
 	hi      []plot.HighlightID
 	pi      plot.PointInfo
+	e       error
 	w, h, c int
 }
 
 var p t
 
-func SetPlots(plots plot.Plots) {
+func SetPlots(plots plot.Plots, e error) {
 	p.Lock()
 	defer p.Unlock()
 	p.p = plots
 	p.hp = nil
 	p.hi = nil
+	p.e = e
 	p.w, p.h, p.c = 0, 0, 0
 }
 
@@ -64,6 +66,10 @@ func Plot(w http.ResponseWriter, r *http.Request) {
 	z := atois(q.Get("z"))
 	//fmt.Println("w", wi, "h", hi, "z", z, "x", x, "y", y, "hl", hl)
 
+	if p.e != nil {
+		errImage(w, wi, hi, p.e)
+		return
+	}
 	if p.p == nil {
 		http.Error(w, "not plot is set", 400)
 		return
@@ -212,6 +218,11 @@ func errImage(w http.ResponseWriter, width, height int, err error) {
 	}
 }
 
+func Plotjs(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/javascript")
+	w.Write([]byte(Js))
+}
+
 const Js = `
 var plotcnv = document.getElementById("plot-cnv")
 var plotsld = document.getElementById("plot-sld")
@@ -293,6 +304,8 @@ plotcnv.onmousedown = zoomStart
 plotcnv.onmousemove = zoomMove
 plotcnv.onmouseup   = zoomEnd
 plotsld.onchange    = plotSlide
+
+export { plot, caption }
 `
 
 func Html(w, h int) string {

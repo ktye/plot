@@ -18,8 +18,9 @@ func main() {
 	flag.StringVar(&addr, "addr", ":2020", "server address")
 	flag.Parse()
 
-	serve.SetPlots(exampleplots())
+	serve.SetPlots(exampleplots(), nil)
 
+	http.HandleFunc("/plot.js", serve.Plotjs)
 	http.HandleFunc("/plot", serve.Plot)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(page())) })
 	fmt.Println("plotsrv -addr", addr)
@@ -40,9 +41,10 @@ func page() string {
 		`</style>`,
 		`</head><body>`,
 		serve.Html(w, h),
-		`<script>`,
-		serve.Js,
-		`</script>`,
+		`<script type=module>
+		 import { plot, caption } from './plot.js'
+		 plot();caption();
+		</script>`,
 		`</body>`,
 		`</html>`,
 	}, "\n")
