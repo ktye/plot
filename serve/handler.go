@@ -226,10 +226,10 @@ func Plotjs(w http.ResponseWriter, r *http.Request) {
 const Js = `
 var plotcnv = document.getElementById("plot-cnv")
 var plotsld = document.getElementById("plot-sld")
-var plotimg = document.getElementById("plot-img")
 var plotcap = document.getElementById("plot-cap")
 var ctx = plotcnv.getContext("2d")
 var zoom = false
+var bak
 function zoomStart(e){ zoom=[e.offsetX, e.offsetY, 0, 0]; plotcnv.style.cursor="crosshair" }
 function zoomMove(e){
  if(zoom!==false){
@@ -245,7 +245,7 @@ function zoomEnd(e){
  plot("&z="+zoom+draw)
  zoom = false
 }
-function clearZoom(){ctx.clearRect(0,0,plotcnv.width,plotcnv.height)}
+function clearZoom(){ctx.clearRect(0,0,plotcnv.width,plotcnv.height); ctx.drawImage(bak,0,0) }
 function clickPlot(e){
  plot("&x="+e.offsetX+"&y="+e.offsetY, true)
 }
@@ -257,7 +257,10 @@ function plotSlide(){ plot("&pt="+plotsld.value) }
 
 function plot(x,sethi){
  x = (x === undefined) ? "" : x
- plotimg.src = "plot?w=" + plotimg.width + "&h=" + plotimg.height + x
+ let url = "plot?w=" + plotcnv.width + "&h=" + plotcnv.height + x
+ let bg = new Image();
+ bg.src = url
+ bg.onload = function(){ctx.drawImage(bg,0,0); bak=bg }
  if(sethi===true)get("plot?gethi=1", setHighlightAfterClick)
 }
 function caption(){get("plot?caption=1",setCaption)}
@@ -308,13 +311,13 @@ plotsld.onchange    = plotSlide
 export { plot, caption }
 `
 
+// plotimg plot-img
+
 func Html(w, h int) string {
-	wh := fmt.Sprintf(`width="%d" height="%d"`, w, h)
 	return fmt.Sprintf(`<div id="plot-div">
- <canvas id="plot-cnv" %s></canvas>
- <image  id="plot-img" %s></image>
+ <canvas id="plot-cnv" width="%d" height="%d"></canvas>
  <input  id="plot-sld" type="range" min="1" max="100" value="50" />
  <select id="plot-cap" multiple></select>
 </div>
-`, wh, wh)
+`, w, h)
 }
