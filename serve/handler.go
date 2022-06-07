@@ -66,16 +66,16 @@ func Plot(w http.ResponseWriter, r *http.Request) {
 	z := atois(q.Get("z"))
 	//fmt.Println("w", wi, "h", hi, "z", z, "x", x, "y", y, "hl", hl)
 
+	if q.Get("caption") != "" {
+		writeCaption(w, r)
+		return
+	}
 	if p.e != nil {
 		errImage(w, wi, hi, p.e)
 		return
 	}
 	if p.p == nil {
 		http.Error(w, "not plot is set", 400)
-		return
-	}
-	if q.Get("caption") != "" {
-		writeCaption(w, r)
 		return
 	}
 	if q.Get("gethi") != "" {
@@ -146,7 +146,9 @@ func Plot(w http.ResponseWriter, r *http.Request) {
 	png.Encode(w, im)
 }
 func writeCaption(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	if len(p.p) == 0 || p.p[0].Caption == nil {
+		w.Write([]byte("[]"))
 		return
 	}
 	c := p.p[0].Caption
@@ -257,7 +259,8 @@ function plotSlide(){ plot("&pt="+plotsld.value) }
 
 function plot(x,sethi){
  x = (x === undefined) ? "" : x
- let url = "plot?w=" + plotcnv.width + "&h=" + plotcnv.height + x
+ let r = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+ let url = "plot?w=" + plotcnv.width + "&h=" + plotcnv.height + x + "&r=" + r
  let bg = new Image();
  bg.src = url
  bg.onload = function(){ctx.drawImage(bg,0,0); bak=bg }
