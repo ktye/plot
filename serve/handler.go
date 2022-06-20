@@ -75,7 +75,7 @@ func Plot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if p.p == nil {
-		http.Error(w, "not plot is set", 400)
+		errImage(w, wi, hi, fmt.Errorf("no plot"))
 		return
 	}
 	if q.Get("gethi") != "" {
