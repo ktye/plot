@@ -88,12 +88,17 @@ type imageResult struct {
 type grid struct {
 	plots, width, height, maxcols int
 	rows, cols, w, h              int
+	colmajor                      bool
 }
 
 func newGrid(plots, width, height, maxcols int) grid {
 	g := grid{plots: plots, width: width, height: height, maxcols: maxcols}
 	if g.maxcols == 0 {
 		g.maxcols = 4
+	}
+	if g.maxcols < 0 {
+		g.maxcols = -g.maxcols
+		g.colmajor = true
 	}
 	if plots <= g.maxcols {
 		g.rows, g.cols = 1, plots
@@ -110,6 +115,9 @@ func newGrid(plots, width, height, maxcols int) grid {
 }
 func (g grid) rect(n int) image.Rectangle {
 	i, k := n/g.cols, n%g.cols
+	if g.colmajor {
+		i, k = k, i
+	}
 	x := 0
 	if i == (g.plots-1)/g.cols { // center plots on last row (space on the left and right)
 		plots := 1 + ((g.plots - 1) % g.cols)
