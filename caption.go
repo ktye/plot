@@ -189,8 +189,9 @@ func (c *Caption) WriteTable(w io.Writer, flags uint) (int, error) {
 	if len(leadText) > 0 && leadText[len(leadText)-1] != "" {
 		leadText = append(leadText, "")
 	}
+	var b bytes.Buffer
 	for _, s := range leadText {
-		fmt.Fprintln(w, s)
+		fmt.Fprintln(&b, s)
 	}
 	lineOffset += len(leadText)
 	if len(c.Columns) == 0 {
@@ -198,7 +199,6 @@ func (c *Caption) WriteTable(w io.Writer, flags uint) (int, error) {
 	}
 
 	// Build the table.
-	var b bytes.Buffer
 	tw := tabwriter.NewWriter(&b, 0, 8, 2, ' ', 0)
 	c.SetEmptyColumns()
 
