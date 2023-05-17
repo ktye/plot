@@ -178,6 +178,7 @@ func (c *Caption) WriteTable(w io.Writer, flags uint) (int, error) {
 
 	// lineOffset is the offset of the first data line.
 	lineOffset := 0
+	dataOffset := 0 // lineOffset without title and lead text
 
 	// Write Title.
 	if c.Title != "" {
@@ -221,6 +222,7 @@ func (c *Caption) WriteTable(w io.Writer, flags uint) (int, error) {
 		fmt.Fprintf(tw, "%s", column.Name+ap)
 	}
 	lineOffset++
+	dataOffset++
 
 	// Write units.
 	noUnits := true
@@ -251,6 +253,7 @@ func (c *Caption) WriteTable(w io.Writer, flags uint) (int, error) {
 			fmt.Fprintf(tw, "%s"+ap, string(column.Unit))
 		}
 		lineOffset++
+		dataOffset++
 	}
 	nonEmptyColumns := 0
 	for _, column := range c.Columns {
@@ -342,7 +345,7 @@ E:
 		lines := strings.Split(string(b.Bytes()), "\n")
 		for i, s := range lines {
 			color := "white"
-			if co := c.Color(i, lineOffset); co != nil {
+			if co := c.Color(i, dataOffset); co != nil {
 				r, g, b, _ := co.RGBA()
 				color = fmt.Sprintf("#%02X%02X%02X", r>>8, g>>8, b>>8)
 			}
