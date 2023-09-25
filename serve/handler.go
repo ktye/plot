@@ -276,13 +276,18 @@ function setOptions(e,opts){deleteAll(e);
   var o=document.createElement("option")
   if(op.c != "")o.classList.add(op.c)
   if(op.n != "")o.dataset.n = op.n
-  o.style.color=op.rgb
+  //o.style.color=op.rgb
+  o.style.background=i?"white":"black"
+  o.style.color=i?"black":"white"
+  o.style.borderLeft="0.5em solid "+((i==0)?"black":(i==1)?"white":op.rgb)
   o.dataset.l=op.l;e.appendChild(o);o.innerHTML=space(op.t);o.selected=op.s}}
 function setCaption(s) { 
  var o=JSON.parse(s)
  if(o.Error){deleteAll(caption);getSet(o.Src);return}
  setOptions(plotcap,o)
- plotcap.onchange=function(){var s=selectedNumbers(plotcap);plot("&hl="+String(s))}
+ plotcap.onchange=function(){
+  Array.from(plotcap.options).forEach((o,i)=>{if(i<2)o.selected=false})
+  var s=selectedNumbers(plotcap);plot("&hl="+String(s))}
 }
 function setHighlightAfterClick(s){
  let h=JSON.parse(s);if(h.LineID<0)return
