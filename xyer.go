@@ -19,6 +19,7 @@ type xyer interface {
 // It is used for polar and ring plots. Polar plots ignore rmin and rmax.
 type xyPolar struct {
 	rmin, rmax float64
+	ccw        bool
 }
 
 const innerRing = 0.5 // inner ring display ratio to outer ring
@@ -27,6 +28,9 @@ func (p xyPolar) XY(l Line) (x, y []float64, isEnvelope bool) {
 	if p.rmin == 0 && p.rmax == 0 { // polar coordinates use l.C
 		x = xmath.ImagVector(l.C)
 		y = xmath.RealVector(l.C)
+		if p.ccw {
+			return y, x, false
+		}
 		return x, y, false
 	} else { // ring coordinates r, phi are stored in l.X and l.Y
 		// As l.X may be negative, this cannot be stored as a complex number.
@@ -48,6 +52,9 @@ func (p xyPolar) XY(l Line) (x, y []float64, isEnvelope bool) {
 			x[i], y[i] = math.Sincos(θ[i])
 			x[i] *= r[i]
 			y[i] *= r[i]
+		}
+		if p.ccw {
+			return y, x, false
 		}
 		return x, y, false
 	}

@@ -105,10 +105,11 @@ func (plt *Plot) NewPolar(width, height int, isRing bool) (p polarPlot, err erro
 }
 
 func (p polarPlot) draw(noTics bool) {
+	ccw := p.plot.Style.Counterclockwise
 	p.axes.fillParentBackground()
-	p.axes.drawPolar(p.ring)
+	p.axes.drawPolar(p.ring, ccw)
 	if noTics == false {
-		p.axes.drawPolarTics(p.ring)
+		p.axes.drawPolarTics(p.ring, ccw)
 	}
 	p.axes.drawTitle(p.ticLabelHeight + 0) // The title needs extra spacing because of the angule label.
 }
@@ -134,7 +135,7 @@ func (p polarPlot) zoom(x, y, dx, dy int) bool {
 	p.axes.limits.Xmax = X1
 	p.axes.limits.Ymin = Y0
 	p.axes.limits.Ymax = Y1
-	p.axes.drawPolarDataOnly()
+	p.axes.drawPolarDataOnly(p.plot.Style.Counterclockwise)
 	return true
 }
 
@@ -147,7 +148,7 @@ func (p polarPlot) pan(x, y, dx, dy int) bool {
 	p.axes.limits.Xmax -= DX
 	p.axes.limits.Ymin += DY
 	p.axes.limits.Ymax += DY
-	p.axes.drawPolarDataOnly()
+	p.axes.drawPolarDataOnly(p.plot.Style.Counterclockwise)
 	return true
 }
 
@@ -169,7 +170,7 @@ func (p polarPlot) line(x0, y0, x1, y1 int) (complex128, bool) {
 	if p.axes.limits.isPolarLimits() {
 		p.draw(false)
 	} else { // axes are zoomed.
-		p.axes.drawPolarDataOnly()
+		p.axes.drawPolarDataOnly(p.plot.Style.Counterclockwise)
 	}
 	return vec, true
 }
@@ -181,14 +182,19 @@ func (p polarPlot) click(x, y int, snapToPoint, deleteLine bool) (Callback, bool
 			Limits: Limits{Xmax: p.axes.limits.Xmax, Ymax: p.axes.limits.Ymax},
 		}, true
 	}
-	pi, ok := p.axes.click(x, y, p.axes.xyRing(), snapToPoint)
+	ccw := p.plot.Style.Counterclockwise
+	pi, ok := p.axes.click(x, y, p.axes.xyRing(ccw), snapToPoint)
 	if ok && snapToPoint == false {
 		if p.ring {
 			pi.C = complex(0, 0)
 			pi.X = pi.X
 			pi.Y = pi.Y
 		} else {
-			pi.C = complex(pi.Y, pi.X)
+			if ccw {
+				pi.C = complex(pi.X, pi.Y)
+			} else {
+				pi.C = complex(pi.Y, pi.X)
+			}
 			pi.X = 0
 			pi.Y = 0
 		}
@@ -212,7 +218,7 @@ func (p polarPlot) click(x, y int, snapToPoint, deleteLine bool) (Callback, bool
 		if p.axes.limits.isPolarLimits() {
 			p.draw(false)
 		} else { // axes are zoomed.
-			p.axes.drawPolarDataOnly()
+			p.axes.drawPolarDataOnly(p.plot.Style.Counterclockwise)
 		}
 		return Callback{Type: MeasurePoint, PointInfo: pi}, ok
 	}
@@ -221,10 +227,11 @@ func (p polarPlot) click(x, y int, snapToPoint, deleteLine bool) (Callback, bool
 
 func (p polarPlot) highlight(id []HighlightID) *image.RGBA {
 	if id != nil {
+		ccw := p.plot.Style.Counterclockwise
 		a := p.axes
-		a.highlight(id, a.xyRing())
+		a.highlight(id, a.xyRing(ccw))
 		if a.limits.isPolarLimits() {
-			a.drawPolarTics(p.ring)
+			a.drawPolarTics(p.ring, ccw)
 			a.drawPolarCircle(p.ring)
 		}
 	}

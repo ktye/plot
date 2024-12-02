@@ -43,10 +43,11 @@ type Plot struct {
 
 // Style definitions for the plot. All values have defaults if unset.
 type Style struct {
-	Dark        bool          // Dark: green on black, otherwise black on white
-	Transparent bool          // Transparent background.
-	Map         color.Palette // Palette for spectrogram image.
-	Order       color.Order   // Color order for lines and markers.
+	Dark             bool          // Dark: green on black, otherwise black on white
+	Transparent      bool          // Transparent background.
+	Map              color.Palette // Palette for spectrogram image.
+	Order            color.Order   // Color order for lines and markers.
+	Counterclockwise bool          // Direction of polar diagrams
 }
 
 // WriteFile writes Plots to disk.

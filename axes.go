@@ -157,17 +157,17 @@ func (a axes) drawXYTics(X, Y []float64, xlabels, ylabels []string) {
 
 // drawPolarDataOnly draws data for a polar diagram, but does not draw the diagram itself.
 // It is used for interactive replot after zoom/pan.
-func (a axes) drawPolarDataOnly() {
+func (a axes) drawPolarDataOnly(ccw bool) {
 	draw.Draw(a.inside, a.inside.Bounds(), image.NewUniform(a.bg), image.ZP, draw.Src)
 	p := vg.NewPainter(a.inside)
-	a.drawLines(p, a.xyRing())
+	a.drawLines(p, a.xyRing(ccw))
 	p.Paint()
 	draw.Draw(a.parent, image.Rect(a.x, a.y, a.x+a.width, a.y+a.height), a.inside, image.Point{0, 0}, draw.Src)
 }
 
 // DrawPolar draws the polar diagram background (x/y-lines), the data and the circle around.
 // It draws everything what is within the axes and puts the axes in the parent figure.
-func (a axes) drawPolar(ring bool) {
+func (a axes) drawPolar(ring, ccw bool) {
 	// Draw to inside image.
 	// Fill transparent background.
 	draw.Draw(a.inside, a.inside.Bounds(), image.NewUniform(a.bg), image.ZP, draw.Src)
@@ -175,7 +175,7 @@ func (a axes) drawPolar(ring bool) {
 	// Draw data
 	p := vg.NewPainter(a.inside)
 	p.SetColor(a.fg)
-	a.drawLines(p, a.xyRing())
+	a.drawLines(p, a.xyRing(ccw))
 
 	p.Paint()
 
@@ -184,7 +184,9 @@ func (a axes) drawPolar(ring bool) {
 	a.drawPolarCircle(ring)
 }
 
-func (a axes) xyRing() xyPolar { return xyPolar{rmin: a.limits.Zmin, rmax: a.limits.Zmax} }
+func (a axes) xyRing(ccw bool) xyPolar {
+	return xyPolar{rmin: a.limits.Zmin, rmax: a.limits.Zmax, ccw: ccw}
+}
 
 func (a axes) drawPolarCircle(ring bool) {
 	// Draw x/y axis.
@@ -236,7 +238,7 @@ func (a axes) drawPolarCircle(ring bool) {
 }
 
 // DrawPolarTics draws tics, tic labels and the polar scale and unit.
-func (a axes) drawPolarTics(ring bool) {
+func (a axes) drawPolarTics(ring, ccw bool) {
 	// Draw Tics.
 	p := vg.NewPainter(a.parent)
 	p.SetColor(a.fg)
@@ -252,6 +254,9 @@ func (a axes) drawPolarTics(ring bool) {
 		phi := float64(i) * math.Pi / 180.0
 		p.Add(vg.Ray{a.x + r, a.y + r, r - l/2, l, phi, a.plot.defaultAxesGridLineWidth()})
 		s := strconv.Itoa(i)
+		if ccw {
+			s = strconv.Itoa((360 + 90 - i) % 360)
+		}
 		tx := float64(a.x+r) + float64(r+l/2)*math.Cos(phi-phi0)
 		ty := float64(a.y+r) + float64(r+l/2)*math.Sin(phi-phi0)
 		p.Add(vg.Text{int(tx + 0.5), int(ty + 0.5), s, aligns[i/30]})
@@ -522,7 +527,11 @@ func (a axes) drawPoint(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, 
 				if len(l.X) > pointNumber && pointNumber >= 0 {
 					xstr = fmt.Sprintf("%.4g, ", l.X[pointNumber])
 				}
-				s = xstr + xmath.Absang(complex(yp, xp), "%.4g@%.0f")
+				z := complex(yp, xp)
+				if xyp.ccw {
+					z = complex(xp, yp)
+				}
+				s = xstr + xmath.Absang(z, "%.4g@%.0f")
 			} else { // ring
 				s = fmt.Sprintf("%.4g@%.1f", l.X[pointNumber], 180.0*l.Y[pointNumber]/math.Pi)
 			}
