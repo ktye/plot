@@ -33,7 +33,7 @@ func (p *Plot) defaultBorder() int {
 
 func (p *Plot) defaultForegroundColor() color.Color {
 	if p.Style.Dark {
-		return color.RGBA{32, 230, 32, 255}
+		return color.RGBA{200, 200, 200, 255}
 	}
 	return color.Black
 }
