@@ -19,6 +19,7 @@ import (
 // axes defines the position of the axes in the plot image.
 type axes struct {
 	x, y, width, height int    // upper left point, width and height (inclusive).
+	zSpace              int    // x,y axes are shorter by this amount for xyz axes(zSpace>0)
 	limits              Limits // axis limits.
 	fg, bg              color.Color
 	inside              *image.RGBA
@@ -109,23 +110,30 @@ func (a axes) drawXYTics(X, Y []float64, xlabels, ylabels []string) {
 	// draw axis border lines
 	boxLw := a.plot.defaultAxesGridLineWidth()
 	aoff := a.plot.defaultTicLength()
-	p.Add(vg.Line{vg.LineCoords{a.x, a.y - aoff, a.width - 1, 0}, boxLw, true})
-	p.Add(vg.Line{vg.LineCoords{a.x, a.y + a.height + aoff, a.width - 1, 0}, boxLw, true})
-	p.Add(vg.Line{vg.LineCoords{a.x - aoff, a.y, 0, a.height - 1}, boxLw, true})
-	p.Add(vg.Line{vg.LineCoords{a.x + a.width + aoff - 1, a.y, 0, a.height - 1}, boxLw, true})
+	zw := a.zSpace
+	p.Add(vg.Line{vg.LineCoords{a.x + zw, a.y - aoff, a.width - 1 - zw, 0}, boxLw, true})           //top
+	p.Add(vg.Line{vg.LineCoords{a.x, a.y + a.height + aoff, a.width - 1 - zw, 0}, boxLw, true})     //bottom
+	p.Add(vg.Line{vg.LineCoords{a.x - aoff, a.y + zw, 0, a.height - 1 - zw}, boxLw, true})          //left
+	p.Add(vg.Line{vg.LineCoords{a.x + a.width + aoff - 1, a.y, 0, a.height - 1 - zw}, boxLw, true}) //right
+	if zw > 0 {                                                                                     //diag (todo correct aoff)
+		p.Add(vg.Line{vg.LineCoords{a.x, a.y + a.height + aoff, zw, -zw}, boxLw, true})                    //lower left
+		p.Add(vg.Line{vg.LineCoords{a.x, a.y - aoff + zw, zw, -zw}, boxLw, true})                          //upper left
+		p.Add(vg.Line{vg.LineCoords{a.x + a.width - 1 - zw, a.y + a.height + aoff, zw, -zw}, boxLw, true}) //lower right
+	}
 
 	// x and y tics on all 4 borders.
 	L := a.plot.defaultTicLength()
 	lw := a.plot.defaultAxesGridLineWidth()
 	lim := a.limits
 	cs := vg.CoordinateSystem{lim.Xmin, lim.Ymax, lim.Xmax, lim.Ymin}
-	rect := image.Rect(a.x, a.y, a.x+a.width, a.y+a.height)
-	p.Add(vg.FloatTics{P: X, Q: a.limits.Ymin, Horizontal: true, LeftTop: false, L: L, LineWidth: lw, CoordinateSystem: cs, Rect: rect})
-	p.Add(vg.FloatTics{P: X, Q: a.limits.Ymax, Horizontal: true, LeftTop: true, L: L, LineWidth: lw, CoordinateSystem: cs, Rect: rect})
-	p.Add(vg.FloatTics{P: Y, Q: a.limits.Xmin, Horizontal: false, LeftTop: true, L: L, LineWidth: lw, CoordinateSystem: cs, Rect: rect})
-	p.Add(vg.FloatTics{P: Y, Q: a.limits.Xmax, Horizontal: false, LeftTop: false, L: L, LineWidth: lw, CoordinateSystem: cs, Rect: rect})
+	rect0 := image.Rect(a.x, a.y+zw, a.x+a.width-zw, a.y+a.height) //lower right
+	rect1 := image.Rect(a.x+zw, a.y, a.x+a.width, a.y+a.height-zw) //upper left
+	p.Add(vg.FloatTics{P: X, Q: a.limits.Ymin, Horizontal: true, LeftTop: false, L: L, LineWidth: lw, CoordinateSystem: cs, Rect: rect0})
+	p.Add(vg.FloatTics{P: X, Q: a.limits.Ymax, Horizontal: true, LeftTop: true, L: L, LineWidth: lw, CoordinateSystem: cs, Rect: rect1})
+	p.Add(vg.FloatTics{P: Y, Q: a.limits.Xmin, Horizontal: false, LeftTop: true, L: L, LineWidth: lw, CoordinateSystem: cs, Rect: rect0})
+	p.Add(vg.FloatTics{P: Y, Q: a.limits.Xmax, Horizontal: false, LeftTop: false, L: L, LineWidth: lw, CoordinateSystem: cs, Rect: rect1})
 
-	// Draw x tic labels if requested
+	// Draw x tic labels if requested (todo aoff)
 	textWidth := func(s string) int {
 		return 7 * len(s) // Hard-coded.
 	}
@@ -134,22 +142,22 @@ func (a axes) drawXYTics(X, Y []float64, xlabels, ylabels []string) {
 	for i, s := range xlabels {
 		// Skip label, if it does not fit.
 		if i > 0 {
-			start, _ := cs.Pixel(X[i], lim.Ymin, rect)
+			start, _ := cs.Pixel(X[i], lim.Ymin, rect0)
 			start -= textWidth(s) / 2
 			if start-stop < 3 {
 				continue
 			}
 		}
-		stop, _ = cs.Pixel(X[i], lim.Ymin, rect)
+		stop, _ = cs.Pixel(X[i], lim.Ymin, rect0)
 		stop += textWidth(s) / 2
 		yoff := font2.Metrics().Height.Ceil()
-		p.Add(vg.FloatText{X: X[i], Y: lim.Ymin, S: s, Yoff: yoff, Align: 5, CoordinateSystem: cs, Rect: rect})
+		p.Add(vg.FloatText{X: X[i], Y: lim.Ymin, S: s, Yoff: yoff, Align: 5, CoordinateSystem: cs, Rect: rect0})
 	}
 
 	// Draw y tic labels if requested
 	xoff := -2 * L
 	for i, s := range ylabels {
-		p.Add(vg.FloatText{X: lim.Xmin, Y: Y[i], S: s, Yoff: 2, Xoff: xoff, Align: 3, CoordinateSystem: cs, Rect: rect})
+		p.Add(vg.FloatText{X: lim.Xmin, Y: Y[i], S: s, Yoff: 2, Xoff: xoff, Align: 3, CoordinateSystem: cs, Rect: rect0})
 	}
 
 	p.Paint()
@@ -349,22 +357,35 @@ func (a axes) drawYlabel() {
 	draw.Draw(a.parent, image.Rect(0, yoff, height, yoff+width), tmp, image.Point{0, 0}, draw.Src)
 }
 
+func scale3d(cs vg.CoordinateSystem) vg.CoordinateSystem {
+	dx := (cs.X1 - cs.X0) * math.Sqrt2
+	dy := (cs.Y1 - cs.Y0) * math.Sqrt2
+	return vg.CoordinateSystem{cs.X0, cs.Y0 - dy, cs.X0 + dx, cs.Y1}
+}
+
 // drawLines draws plot's line data to the axes.
 // It uses default styles, if no styles are defined.
 func (a axes) drawLines(p *vg.Painter, xy xyer) {
 	lim := a.limits
 	cs := vg.CoordinateSystem{lim.Xmin, lim.Ymax, lim.Xmax, lim.Ymin} // upper left, lower right corner.
-	for _, l := range a.plot.Lines {
+	if a.zSpace > 0 {
+		cs = scale3d(cs)
+	}
+	z := 0.0
+	for i, l := range a.plot.Lines {
 		// Append vertical line data to lines separated by NaNs.
 		for _, t := range l.V {
 			l.X = append(l.X, math.NaN(), t, t)
 			l.Y = append(l.Y, math.NaN(), lim.Ymin, lim.Ymax)
 		}
-		a.drawLine(p, xy, cs, l, false)
+		if n := len(a.plot.Lines); n > 0 {
+			z = float64(i) / float64(n-1)
+		}
+		a.drawLine(p, xy, cs, l, z, false)
 	}
 }
 
-func (a axes) drawLine(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, isHighlight bool) {
+func (a axes) drawLine(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, z float64, isHighlight bool) {
 	x, y, isEnvelope := xy.XY(l)
 
 	// Set default style if unset.
@@ -455,7 +476,7 @@ func (a axes) drawSegment(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line
 		l.C = l.C[start:stop]
 	}
 
-	a.drawLine(p, xy, cs, l, false)
+	a.drawLine(p, xy, cs, l, 0, false)
 }
 
 // drawDirectLine draws a single line directly on the axes parent image.
@@ -472,7 +493,7 @@ func (a axes) drawDirectLine(l Line, xy xyer, cs vg.CoordinateSystem) {
 		raster.FloatLines(m, x, y, raster.CoordinateSystem(cs))
 	*/
 	p := vg.NewPainter(im.(*image.RGBA))
-	a.drawLine(p, xy, cs, l, false)
+	a.drawLine(p, xy, cs, l, 0, false)
 	p.Paint()
 }
 
@@ -765,11 +786,15 @@ func (a *axes) highlight(ids []HighlightID, xy xyer) {
 			draw.Draw(a.inside, a.inside.Bounds(), image.NewUniform(a.bg), image.ZP, draw.Src)
 		}
 
-		for _, l := range a.plot.Lines {
+		z := 0.0
+		for i, l := range a.plot.Lines {
 			for _, id := range ids {
 				if l.Id == -1 || l.Id == id.Line {
 					if id.Point == -1 {
-						a.drawLine(p, xy, cs, l, true)
+						if n := len(a.plot.Lines); n > 0 {
+							z = float64(i) / float64(n-1)
+						}
+						a.drawLine(p, xy, cs, l, z, true)
 					} else if l.Segments == true {
 						a.drawSegment(p, xy, cs, l, id.Point)
 					} else {
@@ -822,7 +847,7 @@ func (a *axes) highlightImage(ids []HighlightID, xy xyer, ptr *vg.Painter) {
 	a.drawLine(ptr, xy, cs, Line{
 		X: []float64{lim.Xmin, lim.Xmax},
 		Y: []float64{yf, yf},
-	}, false)
+	}, 0, false)
 
 	// Draw vertical line throught selection.
 	style2 := DataStyle{Line: LineStyle{Color: 2}}
@@ -830,10 +855,10 @@ func (a *axes) highlightImage(ids []HighlightID, xy xyer, ptr *vg.Painter) {
 		X:     []float64{xf, xf},
 		Y:     []float64{lim.Ymin, lim.Ymax},
 		Style: style2,
-	}, false)
+	}, 0, false)
 
 	// Draw horizontal spectral line from the bottom to half the height.
-	a.drawLine(ptr, xy, cs, l, false)
+	a.drawLine(ptr, xy, cs, l, 0, false)
 
 	// Draw vertical spectral line from the right edge to half the width.
 	l = Line{
@@ -843,5 +868,5 @@ func (a *axes) highlightImage(ids []HighlightID, xy xyer, ptr *vg.Painter) {
 	for i := 0; i < len(line0.Image[xi]); i++ {
 		l.X = append(l.X, xmath.Scale(float64(line0.Image[xi][i]), 0, 255, lim.Xmax, 0.5*(lim.Xmin+lim.Xmax)))
 	}
-	a.drawLine(ptr, xy, cs, l, false)
+	a.drawLine(ptr, xy, cs, l, 0, false)
 }

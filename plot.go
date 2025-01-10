@@ -19,13 +19,14 @@ type Plots []Plot
 type PlotType string
 
 const (
-	XY     PlotType = "xy"
-	Foto   PlotType = "foto"
-	Polar  PlotType = "polar"
-	Ring   PlotType = "ring"
-	AmpAng PlotType = "ampang"
-	Raster PlotType = "raster"
-	Text   PlotType = "text"
+	XY        PlotType = "xy"
+	Foto      PlotType = "foto"
+	Polar     PlotType = "polar"
+	Ring      PlotType = "ring"
+	AmpAng    PlotType = "ampang"
+	Raster    PlotType = "raster"
+	Text      PlotType = "text"
+	Waterfall PlotType = "waterfall"
 )
 
 // Plot is the plot definition structure.

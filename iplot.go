@@ -45,6 +45,8 @@ func (p Plots) IPlots(width, height, columns int) ([]IPlotter, error) {
 			plotters[i], err = p[i].NewPolar(w, h, true)
 		case AmpAng:
 			plotters[i], err = p[i].NewAmpAng(w, h)
+		case Waterfall:
+			plotters[i], err = p[i].NewWaterfall(w, h)
 		case Foto:
 			plotters[i], err = p[i].NewFoto(w, h)
 		case Text:
