@@ -107,11 +107,8 @@ func (plt *Plot) NewPolar(width, height int, isRing bool) (p polarPlot, err erro
 func (p polarPlot) draw(noTics bool) {
 	ccw := p.plot.Style.Counterclockwise
 	p.axes.fillParentBackground()
-	p.axes.drawPolar(p.ring, ccw)
-	if noTics == false {
-		p.axes.drawPolarTics(p.ring, ccw)
-	}
-	p.axes.drawTitle(p.ticLabelHeight + 0) // The title needs extra spacing because of the angule label.
+	p.axes.drawPolar(p.ring, ccw, noTics)
+	p.axes.drawTitle(p.ticLabelHeight)
 }
 
 func (p polarPlot) background() color.Color {
@@ -135,7 +132,8 @@ func (p polarPlot) zoom(x, y, dx, dy int) bool {
 	p.axes.limits.Xmax = X1
 	p.axes.limits.Ymin = Y0
 	p.axes.limits.Ymax = Y1
-	p.axes.drawPolarDataOnly(p.plot.Style.Counterclockwise)
+	//p.axes.drawPolarDataOnly(p.plot.Style.Counterclockwise)
+	p.draw(true)
 	return true
 }
 
@@ -148,7 +146,7 @@ func (p polarPlot) pan(x, y, dx, dy int) bool {
 	p.axes.limits.Xmax -= DX
 	p.axes.limits.Ymin += DY
 	p.axes.limits.Ymax += DY
-	p.axes.drawPolarDataOnly(p.plot.Style.Counterclockwise)
+	p.draw(true)
 	return true
 }
 
@@ -170,7 +168,7 @@ func (p polarPlot) line(x0, y0, x1, y1 int) (complex128, bool) {
 	if p.axes.limits.isPolarLimits() {
 		p.draw(false)
 	} else { // axes are zoomed.
-		p.axes.drawPolarDataOnly(p.plot.Style.Counterclockwise)
+		p.draw(true)
 	}
 	return vec, true
 }
@@ -218,7 +216,7 @@ func (p polarPlot) click(x, y int, snapToPoint, deleteLine bool) (Callback, bool
 		if p.axes.limits.isPolarLimits() {
 			p.draw(false)
 		} else { // axes are zoomed.
-			p.axes.drawPolarDataOnly(p.plot.Style.Counterclockwise)
+			p.draw(true)
 		}
 		return Callback{Type: MeasurePoint, PointInfo: pi}, ok
 	}
@@ -230,10 +228,8 @@ func (p polarPlot) highlight(id []HighlightID) *image.RGBA {
 		ccw := p.plot.Style.Counterclockwise
 		a := p.axes
 		a.highlight(id, a.xyRing(ccw))
-		if a.limits.isPolarLimits() {
-			a.drawPolarTics(p.ring, ccw)
-			a.drawPolarCircle(p.ring)
-		}
+		//a.drawPolarTics(p.ring, ccw, a.limits.isPolarLimits() == false)
+		//a.drawPolarCircle(p.ring)
 	}
 	return p.im
 }

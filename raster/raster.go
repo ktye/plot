@@ -136,7 +136,7 @@ type CoordinateSystem struct {
 }
 
 // FloatLines draws connected lines given in floating point coordinates.
-func FloatLines(im Image, x, y []float64, cs CoordinateSystem) {
+func FloatLines(im Image, x, y []float64, cs CoordinateSystem) { //todo ztranslate
 	doStart := true
 	var X0, Y0 int
 	for i := range x {

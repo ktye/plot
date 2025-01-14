@@ -50,7 +50,7 @@ func (plt *Plot) NewWaterfall(width, height int) (p waterfallPlot, err error) {
 	if vSpace > 2*hSpace {
 		vSpace = 2 * hSpace
 	}
-	zSpace := int(math.Min(float64(hSpace), float64(vSpace)/(1+math.Sqrt2)))
+	zSpace := int(math.Min(float64(hSpace), float64(vSpace)) * (1 - math.Sqrt2/2))
 
 	p.plotAreaWidth = hSpace
 	p.plotAreaHeight = vSpace

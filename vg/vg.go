@@ -196,6 +196,25 @@ func (r Rectangle) Draw(p *Painter) {
 	}
 }
 
+type Triangle struct {
+	X0, Y0, X1, Y1, X2, Y2 int
+	LineWidth              int
+	Fill                   bool
+}
+
+func (t Triangle) Draw(p *Painter) {
+	var path raster.Path
+	path = append(path, 0, fixed.I(t.X0), fixed.I(t.Y0), 0)
+	path = append(path, 1, fixed.I(t.X1), fixed.I(t.Y1), 1)
+	path = append(path, 1, fixed.I(t.X2), fixed.I(t.Y2), 1)
+	path = append(path, 1, fixed.I(t.X0), fixed.I(t.Y0), 1)
+	if t.LineWidth > 0 {
+		p.Stroke(path, t.LineWidth)
+	} else {
+		p.Fill(path)
+	}
+}
+
 // Circle draws a circle within the given image rectangle X, Y, X+D, Y+D.
 // X and Y are the upper left coordinates.
 // We do not give the center coordinates, because we will be able to draw a
@@ -403,6 +422,7 @@ func (a ArrowHead) Draw(p *Painter) {
 // For every NaN in the path, a new line is started.
 type FloatPath struct {
 	X, Y []float64 // point coordinates
+	Z    int
 	CoordinateSystem
 	LineWidth int
 }
@@ -416,6 +436,9 @@ func (f FloatPath) Draw(p *Painter) {
 			continue
 		}
 		x, y := transform(f.X[i], f.Y[i], f.CoordinateSystem, rect26_6(p.im.Bounds()))
+		z := fixed.I(f.Z)
+		x += z
+		y -= z
 		if doStart {
 			path = append(path, 0, x, y, 0)
 			doStart = false
@@ -430,6 +453,7 @@ func (f FloatPath) Draw(p *Painter) {
 // X and Y must be a closed path.
 type FloatEnvelope struct {
 	X, Y []float64
+	Z    int
 	CoordinateSystem
 	LineWidth int
 }
@@ -437,8 +461,11 @@ type FloatEnvelope struct {
 func (f FloatEnvelope) Draw(p *Painter) {
 	var path raster.Path
 	bounds := rect26_6(p.im.Bounds())
+	z := fixed.I(f.Z)
 	for i := range f.X {
 		x, y := transform(f.X[i], f.Y[i], f.CoordinateSystem, bounds)
+		x += z
+		y -= z
 		if i == 0 {
 			path = append(path, 0, x, y, 0)
 		} else {
