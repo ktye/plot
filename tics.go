@@ -25,10 +25,11 @@ func getXTics(lim Limits) Tics {
 	a := autoscale{min: lim.Xmin, max: lim.Xmax, isInit: true}
 	return a.getTics()
 }
-
-// getYTics calculates the tic positions and tic labels for the y axis.
-// don't care, if they fit or not, they will be reduced later.
 func getYTics(lim Limits) Tics {
 	a := autoscale{min: lim.Ymin, max: lim.Ymax, isInit: true}
+	return a.getTics()
+}
+func getZTics(lim Limits) Tics {
+	a := autoscale{min: lim.Zmin, max: lim.Zmax, isInit: true}
 	return a.getTics()
 }

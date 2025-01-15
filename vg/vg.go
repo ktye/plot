@@ -479,6 +479,7 @@ func (f FloatEnvelope) Draw(p *Painter) {
 // FloatText is text with floating point coordinates.
 type FloatText struct {
 	X, Y       float64
+	Z          int
 	S          string
 	Xoff, Yoff int // Additional offset in pixel coordinates.
 	Align      int
@@ -488,8 +489,8 @@ type FloatText struct {
 
 func (f FloatText) toText() Text {
 	x, y := transform(f.X, f.Y, f.CoordinateSystem, rect26_6(f.Rect))
-	x += fixed.Int26_6(f.Xoff * 64)
-	y += fixed.Int26_6(f.Yoff * 64)
+	x += fixed.Int26_6(f.Xoff*64) + fixed.I(f.Z)
+	y += fixed.Int26_6(f.Yoff*64) - fixed.I(f.Z)
 	t := Text{X: int(x / 64), Y: int(y / 64), S: f.S, Align: f.Align}
 	return t
 }
@@ -505,6 +506,7 @@ func (f FloatText) Extent(p *Painter) (int, int, int, int) {
 // FloatCircles are many circles given in float point coordinates.
 type FloatCircles struct {
 	X, Y []float64 // center coordinates
+	Z    int
 	CoordinateSystem
 	Radius    int // circle radius in pixels
 	LineWidth int
@@ -514,6 +516,8 @@ type FloatCircles struct {
 func (f FloatCircles) Draw(p *Painter) {
 	for i := range f.X {
 		x, y := transform(f.X[i], f.Y[i], f.CoordinateSystem, rect26_6(p.im.Bounds()))
+		x += fixed.I(f.Z)
+		y -= fixed.I(f.Z)
 		path := circle{x, y, fixed.Int26_6(f.Radius * 64)}.getPath()
 		if f.Fill {
 			p.Fill(path)

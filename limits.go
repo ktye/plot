@@ -69,7 +69,7 @@ func (plts Plots) EqualLimits() (Limits, error) {
 // getXYLimits returns the set limits for an XY Plot
 // or calculates default limits, if no limits have been given by the user.
 func (p *Plot) getXYLimits() Limits {
-	limits := Limits{false, p.Xmin, p.Xmax, p.Ymin, p.Ymax, 0, 0}
+	limits := Limits{false, p.Xmin, p.Xmax, p.Ymin, p.Ymax, p.Zmin, p.Zmax}
 	if p.Xmin == p.Xmax {
 		a := autoscale{}
 		for _, l := range p.Lines {
@@ -91,6 +91,9 @@ func (p *Plot) getXYLimits() Limits {
 	if p.Type == Raster && len(p.Lines) > 0 {
 		limits.Zmin = p.Lines[0].ImageMin
 		limits.Zmax = p.Lines[0].ImageMax
+	} else if p.Zmin == p.Zmax {
+		limits.Zmin = 1
+		limits.Zmax = 1 + float64(len(p.Lines))
 	}
 	return limits
 }

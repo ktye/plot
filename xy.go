@@ -11,9 +11,9 @@ type xyPlot struct {
 	plot *Plot
 	Limits
 	xyDimension
-	xtics, ytics Tics
-	im           *image.RGBA
-	ax           *axes
+	xtics, ytics, ztics Tics
+	im                  *image.RGBA
+	ax                  *axes
 }
 
 // Vertical layout

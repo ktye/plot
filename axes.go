@@ -142,9 +142,21 @@ func (a axes) drawZaxis() {
 	p.SetColor(a.fg)
 	r := a.inside.Bounds()
 	w, h := r.Dx(), r.Dy()
-	x0, y0 := a.x, a.y
+	a0 := int(float64(a.plot.defaultTicLength()) / math.Sqrt2)
+	x0, y0 := a.x-a0, a.y-a0
+	x1, y1 := a.x+a0, a.y+a0
 	p.Add(vg.Line{LineCoords: vg.LineCoords{X: x0, Y: y0 + z, DX: z, DY: -z}, LineWidth: 1})
-	p.Add(vg.Line{LineCoords: vg.LineCoords{X: x0 + w - z, Y: y0 + h, DX: z, DY: -z}, LineWidth: 1})
+	p.Add(vg.Line{LineCoords: vg.LineCoords{X: x1 + w - z, Y: y1 + h, DX: z, DY: -z}, LineWidth: 1})
+
+	zt := getZTics(a.limits)
+	zp, zl := zt.Pos, zt.Labels
+	for i := range zp {
+		fmt.Println("z", i, zp[i], zl[i])
+	}
+
+	p.Add(vg.Text{X: x1 + w - z, Y: y1 + h, S: fmt.Sprintf("%v", a.limits.Zmax), Align: 6})
+	p.Add(vg.Text{X: x1 + w, Y: y1 + h - z, S: fmt.Sprintf("%v", a.limits.Zmin), Align: 6})
+
 	p.Paint()
 }
 
@@ -463,9 +475,9 @@ func (a axes) drawLine(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, z
 					Image: p.Image().(*image.RGBA),
 					Color: c,
 				}
-				raster.FloatLines(im, x, y, raster.CoordinateSystem(cs))
+				raster.FloatLines(im, x, y, z, raster.CoordinateSystem(cs))
 			} else {
-				if a.zSpace > 0 && len(x) > 1 && len(y) > 1 {
+				if a.zSpace > 0 && len(x) > 1 && len(y) > 1 && !isHighlight {
 					p.SetColor(a.bg)
 					xx, yy := reverse(x), reverse(y)
 					xx = append(xx, x[0], x[len(x)-1], x[len(x)-1])
@@ -559,7 +571,7 @@ func (a axes) drawPixel(x, y float64, cs vg.CoordinateSystem, c color.Color) {
 
 // drawPoint draws a highlighted point.
 // pointNumber does not count NaN's.
-func (a axes) drawPoint(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, pointNumber int) {
+func (a axes) drawPoint(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, z int, pointNumber int) {
 	x, y, isEnvelope := xy.XY(l)
 
 	// add number of NaNs leading pointNumber to pointNumber.
@@ -611,7 +623,7 @@ func (a axes) drawPoint(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, 
 		} else {
 			s = fmt.Sprintf("(%.4g, %.4g)", xp, yp)
 		}
-		labels[0] = vg.FloatText{X: xp, Y: yp, S: s, Align: 1}
+		labels[0] = vg.FloatText{X: xp, Y: yp, Z: z, S: s, Align: 1}
 		labels = labels[:1]
 	}
 
@@ -626,7 +638,7 @@ func (a axes) drawPoint(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, 
 	}
 	c := a.plot.Style.Order.Get(l.Style.Marker.Color, l.Id+1).Color()
 	p.SetColor(c)
-	p.Add(vg.FloatCircles{X: x, Y: y, CoordinateSystem: cs, Radius: size, Fill: true})
+	p.Add(vg.FloatCircles{X: x, Y: y, Z: z, CoordinateSystem: cs, Radius: size, Fill: true})
 	rect := a.inside.Bounds()
 	for _, l := range labels {
 		l.CoordinateSystem = cs
@@ -689,6 +701,9 @@ func (a axes) click(x, y int, xy xyer, snapToPoint bool) (PointInfo, bool) {
 	lim := a.limits
 	cs := vg.CoordinateSystem{lim.Xmin, lim.Ymax, lim.Xmax, lim.Ymin}
 	bounds := image.Rect(a.x, a.y, a.x+a.width, a.y+a.height)
+	if a.zSpace > 0 {
+		cs = scale3d(cs, bounds, float64(a.zSpace))
+	}
 
 	if snapToPoint == false {
 		px, py := cs.Point(x, y, bounds)
@@ -708,12 +723,19 @@ func (a axes) click(x, y int, xy xyer, snapToPoint bool) (PointInfo, bool) {
 	isEnvelope := false
 	maxSegment := 0
 	isSegment := false
+	z := 0
 	for i, l := range a.plot.Lines {
 		X, Y, isEnv := xy.XY(l)
 		nNotNaN := -1
 		segmentIdx := 0
+		if n := len(a.plot.Lines); n > 0 {
+			z = int(float64(a.zSpace) * (1.0 - float64(i)/float64(n-1)))
+		}
 		for n := range X {
 			xi, yi := cs.Pixel(X[n], Y[n], bounds)
+			xi += z
+			yi -= z
+
 			// We only increase the index, if the data point is valid.
 			nNotNaN++
 			if math.IsNaN(X[n]) || math.IsNaN(Y[n]) {
@@ -818,6 +840,9 @@ func (a *axes) highlight(ids []HighlightID, xy xyer) {
 	p := vg.NewPainter(a.inside)
 	lim := a.limits
 	cs := vg.CoordinateSystem{lim.Xmin, lim.Ymax, lim.Xmax, lim.Ymin} // upper left, lower right corner.
+	if a.zSpace > 0 {
+		cs = scale3d(cs, p.Image().Bounds(), float64(a.zSpace))
+	}
 
 	if a.plot.Type == Raster {
 		a.highlightImage(ids, xy, p)
@@ -842,15 +867,15 @@ func (a *axes) highlight(ids []HighlightID, xy xyer) {
 		for i, l := range a.plot.Lines {
 			for _, id := range ids {
 				if l.Id == -1 || l.Id == id.Line {
+					if n := len(a.plot.Lines); n > 0 {
+						z = int(float64(a.zSpace) * (1.0 - float64(i)/float64(n-1)))
+					}
 					if id.Point == -1 {
-						if n := len(a.plot.Lines); n > 0 {
-							z = int(float64(a.zSpace) * (1.0 - float64(i)/float64(n-1)))
-						}
 						a.drawLine(p, xy, cs, l, z, true)
 					} else if l.Segments == true {
 						a.drawSegment(p, xy, cs, l, id.Point)
 					} else {
-						a.drawPoint(p, xy, cs, l, id.Point)
+						a.drawPoint(p, xy, cs, l, z, id.Point)
 					}
 				}
 			}
