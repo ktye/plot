@@ -34,12 +34,12 @@ type Plot struct {
 	Type  PlotType
 	Style Style
 	Limits
-	Xlabel, Ylabel, Title string
-	Xunit, Yunit, Zunit   string
-	Lines                 []Line      // data lines
-	Foto                  string      // encoded Foto starting with "data:image/png;base64," or "data:image/jpeg;base64,"
-	Caption               *Caption    // linked caption for this plot
-	Data                  interface{} // custom userdata (unused)
+	Xlabel, Ylabel, Zlabel, Title string
+	Xunit, Yunit, Zunit           string
+	Lines                         []Line      // data lines
+	Foto                          string      // encoded Foto starting with "data:image/png;base64," or "data:image/jpeg;base64,"
+	Caption                       *Caption    // linked caption for this plot
+	Data                          interface{} // custom userdata (unused)
 }
 
 // Style definitions for the plot. All values have defaults if unset.
