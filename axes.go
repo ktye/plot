@@ -148,14 +148,21 @@ func (a axes) drawZaxis() {
 	p.Add(vg.Line{LineCoords: vg.LineCoords{X: x0, Y: y0 + z, DX: z, DY: -z}, LineWidth: 1})
 	p.Add(vg.Line{LineCoords: vg.LineCoords{X: x1 + w - z, Y: y1 + h, DX: z, DY: -z}, LineWidth: 1})
 
+	p.SetFont(font2)
 	zt := getZTics(a.limits)
-	zp, zl := zt.Pos, zt.Labels
-	for i := range zp {
-		fmt.Println("z", i, zp[i], zl[i])
+	for i, pi := range zt.Pos {
+		x0, x1 := float64(x1+w-z), float64(x1+w)
+		y0, y1 := float64(y1+h), float64(y1+h-z)
+		x := int(xmath.Scale(pi, a.limits.Zmax, a.limits.Zmin, x0, x1))
+		y := int(xmath.Scale(pi, a.limits.Zmax, a.limits.Zmin, y0, y1))
+		p.Add(vg.Text{X: 1 + x, Y: 1 + y, S: zt.Labels[i], Align: 6})
+		p.Add(vg.Line{LineCoords: vg.LineCoords{X: x, Y: y, DX: -a0, DY: -a0}, LineWidth: 1})
+		p.Add(vg.Line{LineCoords: vg.LineCoords{X: x - w + z - a0, Y: y - h + z - a0, DX: -a0, DY: -a0}, LineWidth: 1})
 	}
-
-	p.Add(vg.Text{X: x1 + w - z, Y: y1 + h, S: fmt.Sprintf("%v", a.limits.Zmax), Align: 6})
-	p.Add(vg.Text{X: x1 + w, Y: y1 + h - z, S: fmt.Sprintf("%v", a.limits.Zmin), Align: 6})
+	if s := a.plot.Zlabel; s != "" {
+		p.SetFont(font1)
+		p.Add(vg.Text{X: int((2*x0 + z - 2) / 2), Y: int((2*y0 + z - 2) / 2), S: s, Align: 2})
+	}
 
 	p.Paint()
 }
