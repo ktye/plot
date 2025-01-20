@@ -60,8 +60,9 @@ func (p *Plots) WriteFile(filename string) error {
 
 // Line is a collection of data from a Plot.
 type Line struct {
-	X                  []float64    // x axis vector
-	Y                  []float64    // y axis vector (for XY plots)
+	X                  []float64 // x axis vector
+	Y                  []float64 // y axis vector (for XY plots)
+	Z                  float64
 	C                  []complex128 // complex amplitude vector
 	V                  []float64    // x values for vertical lines
 	Image              [][]uint8    // image data: .Image[i][k] corresponds to axes values .X[i], .Y[i].

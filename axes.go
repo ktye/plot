@@ -151,8 +151,12 @@ func (a axes) drawZaxis() {
 	p.SetFont(font2)
 	zt := getZTics(a.limits)
 	for i, pi := range zt.Pos {
-		x0, x1 := float64(x1+w-z), float64(x1+w)
-		y0, y1 := float64(y1+h), float64(y1+h-z)
+		x0, x1 := float64(x1+w), float64(x1+w-z)
+		y0, y1 := float64(y1+h-z), float64(y1+h)
+		n := len(a.plot.Lines)
+		if l := a.plot.Lines; n > 1 && l[n-1].Z > l[0].Z {
+			x0, x1, y0, y1 = x1, x0, y1, y0
+		}
 		x := int(xmath.Scale(pi, a.limits.Zmax, a.limits.Zmin, x0, x1))
 		y := int(xmath.Scale(pi, a.limits.Zmax, a.limits.Zmin, y0, y1))
 		p.Add(vg.Text{X: 1 + x, Y: 1 + y, S: zt.Labels[i], Align: 6})
@@ -628,7 +632,11 @@ func (a axes) drawPoint(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, 
 				s = fmt.Sprintf("%.4g@%.1f", l.X[pointNumber], 180.0*l.Y[pointNumber]/math.Pi)
 			}
 		} else {
-			s = fmt.Sprintf("(%.4g, %.4g)", xp, yp)
+			if a.zSpace > 0 {
+				s = fmt.Sprintf("(%.4g, %.4g, %.4g)", xp, yp, l.Z)
+			} else {
+				s = fmt.Sprintf("(%.4g, %.4g)", xp, yp)
+			}
 		}
 		labels[0] = vg.FloatText{X: xp, Y: yp, Z: z, S: s, Align: 1}
 		labels = labels[:1]
@@ -799,6 +807,7 @@ func (a axes) click(x, y int, xy xyer, snapToPoint bool) (PointInfo, bool) {
 		IsEnvelope:  isEnvelope,
 		X:           px,
 		Y:           py,
+		Z:           l.Z,
 		C:           pc,
 	}, true
 }
