@@ -2,6 +2,14 @@ package xmath
 
 import "math/cmplx"
 
+func Iota(n int) []float64 {
+	f := make([]float64, n)
+	for i := 0; i < n; i++ {
+		f[i] = float64(i)
+	}
+	return f
+}
+
 // RealVector returns the real part of complex slices.
 func RealVector(v []complex128) (re []float64) {
 	re = make([]float64, len(v))

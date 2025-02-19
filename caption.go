@@ -16,6 +16,7 @@ import (
 const (
 	Numbers    uint = 1 << iota // Add '#' column (run numbers).
 	HtmlColors                  // Add a block character with the data color.
+	Uni                         // Unicode borders and right align of numbers
 )
 
 // Caption represents the caption table of a Plot.
@@ -201,12 +202,19 @@ func (c *Caption) WriteTable(w io.Writer, flags uint) (int, error) {
 
 	// Build the table.
 	var b bytes.Buffer
-	tw := tabwriter.NewWriter(&b, 0, 8, 2, ' ', 0)
+	var tw *tabwriter.Writer
+	if flags&Uni != 0 {
+		tw = tabwriter.NewWriter(&b, 0, 0, 0, ' ', tabwriter.Debug)
+	} else {
+		tw = tabwriter.NewWriter(&b, 0, 8, 2, ' ', 0)
+	}
 	c.SetEmptyColumns()
+	var numeric []bool
 
 	// Write header.
 	if flags&Numbers != 0 {
 		fmt.Fprintf(tw, "#\t")
+		numeric = append(numeric, true)
 	}
 	for i, column := range c.Columns {
 		ap := "\t"
@@ -220,6 +228,11 @@ func (c *Caption) WriteTable(w io.Writer, flags uint) (int, error) {
 			continue
 		}
 		fmt.Fprintf(tw, "%s", column.Name+ap)
+		if _, o := column.Data.([]string); o {
+			numeric = append(numeric, false)
+		} else {
+			numeric = append(numeric, true)
+		}
 	}
 	lineOffset++
 	dataOffset++
@@ -351,10 +364,87 @@ E:
 			}
 			fmt.Fprintf(w, "<span style=\"color:%s\">&#x25A0; </span>%s\n", color, s)
 		}
+	} else if flags&Uni != 0 {
+		u := 1
+		if noUnits {
+			u = 0
+		}
+		w.Write(unitab(b.Bytes(), u, numeric))
 	} else {
 		w.Write(b.Bytes())
 	}
 	return lineOffset, nil
+}
+
+func unitab(b []byte, units int, numeric []bool) []byte {
+	lines := bytes.Split(b, []byte("\n"))
+	if len(lines[len(lines)-1]) == 0 {
+		lines = lines[:len(lines)-1]
+	}
+	right := func(b []byte) []byte {
+		n := len(b)
+		b = bytes.TrimRight(b, " ")
+		return append(bytes.Repeat([]byte(" "), n-len(b)), b...)
+	}
+	var cw, lw []int
+	for i := range lines {
+		v := bytes.Split(lines[i], []byte("|"))
+		if i == 0 {
+			for j := range v {
+				cw = append(cw, len(v[j]))
+			}
+			lw = append(lw, cw[len(cw)-1])
+		} else {
+			if i > units {
+				for j := range v {
+					if numeric[j] {
+						v[j] = right(v[j])
+					}
+				}
+			}
+			n := len(v[len(v)-1])
+			lw = append(lw, n)
+			if n > cw[len(cw)-1] { //last col is not padded
+				cw[len(cw)-1] = n
+			}
+		}
+		lines[i] = append(append([]byte("│"), bytes.Join(v, []byte("│"))...), []byte("│")...)
+	}
+	for i := range lines { //pad last col
+		n := cw[len(cw)-1]
+		l := lw[i]
+		if l < n {
+			lines[i] = lines[i][:len(lines[i])-3]
+			lines[i] = append(lines[i], bytes.Repeat([]byte(" "), n-l)...)
+			lines[i] = append(lines[i], []byte("│")...)
+		}
+	}
+
+	l0 := []byte("┌")
+	l1 := []byte("├")
+	l2 := []byte("└")
+	for i := range cw {
+		l0 = append(l0, bytes.Repeat([]byte("─"), cw[i])...)
+		l1 = append(l1, bytes.Repeat([]byte("─"), cw[i])...)
+		l2 = append(l2, bytes.Repeat([]byte("─"), cw[i])...)
+		if i == len(cw)-1 {
+			l0 = append(l0, []byte("┐")...)
+			l1 = append(l1, []byte("┤")...)
+			l2 = append(l2, []byte("┘")...)
+		} else {
+			l0 = append(l0, []byte("┬")...)
+			l1 = append(l1, []byte("┼")...)
+			l2 = append(l2, []byte("┴")...)
+		}
+	}
+	r := [][]byte{l0, lines[0]}
+	lines = lines[1:]
+	if units > 0 {
+		r = append(r, lines[0])
+		lines = lines[1:]
+	}
+	r = append(append(append(r, l1), lines...), l2)
+	return append(bytes.Join(r, []byte("\n")), 10)
 }
 
 // MergeCaptions merges multiple captions to a single Caption table.
