@@ -293,11 +293,11 @@ func K(b []byte, x uint64, plts Plots, p int) (Plots, int, string) {
 	}
 	return plts, p, ""
 }
-func Kcaption(b []byte, x uint64, plts Plots, p int) (Plots, int, string) { // t(table) S(units) I(decimals) i(decimals) Ii(neg:angle) C(leadtext)
-	tp := func(x uint64) int { return int(x >> 59) }
-	if tp(x) != 25 {
-
+func Kcaption(b []byte, x uint64, plts Plots) (Plots, string) { // t(table) S(units) I(decimals) i(decimals) Ii(neg:angle) C(leadtext)
+	if len(plts) == 0 {
+		plts = append(plts, Plot{})
 	}
+	tp := func(x uint64) int { return int(x >> 59) }
 	br := func(x uint64, data interface{}) {
 		binary.Read(bytes.NewReader(b[int32(x):]), binary.LittleEndian, data)
 	}
@@ -345,7 +345,7 @@ func Kcaption(b []byte, x uint64, plts Plots, p int) (Plots, int, string) { // t
 				v = ZK(vi)
 				fm = "%.2f@%3.0f"
 			default:
-				return plts, p, "caption type is not allowed"
+				return plts, "caption type is not allowed"
 			}
 			c.Columns = append(c.Columns, CaptionColumn{
 				Class:  s,
@@ -357,7 +357,7 @@ func Kcaption(b []byte, x uint64, plts Plots, p int) (Plots, int, string) { // t
 		plts[0].Caption = &c
 	} else {
 		if plts[0].Caption == nil {
-			return plts, p, "plot has no caption"
+			return plts, "plot has no caption"
 		}
 		c := plts[0].Caption
 		colfmt := func(i int, d int) {
@@ -399,10 +399,10 @@ func Kcaption(b []byte, x uint64, plts Plots, p int) (Plots, int, string) { // t
 				}
 			}
 		} else {
-			return plts, p, "caption: unknown type (should be tiIS)"
+			return plts, "caption: unknown type (should be tiIS)"
 		}
 	}
-	return plts, p, ""
+	return plts, ""
 }
 
 /*
