@@ -369,6 +369,7 @@ E:
 		if noUnits {
 			u = 0
 		}
+		fmt.Println("numeric", numeric)
 		w.Write(unitab(b.Bytes(), u, numeric))
 	} else {
 		w.Write(b.Bytes())
@@ -386,14 +387,25 @@ func unitab(b []byte, units int, numeric []bool) []byte {
 		b = bytes.TrimRight(b, " ")
 		return append(bytes.Repeat([]byte(" "), n-len(b)), b...)
 	}
-	var cw, lw []int
+
+	{ //pad last column
+		n := 0
+		for i := range lines { //calculate last col width (which is not padded)
+			if len(lines[i]) > n {
+				n = len(lines[i])
+			}
+		}
+		for i, s := range lines {
+			lines[i] = append(s, bytes.Repeat([]byte(" "), n-len(s))...)
+		}
+	}
+	var cw []int
 	for i := range lines {
 		v := bytes.Split(lines[i], []byte("|"))
 		if i == 0 {
 			for j := range v {
 				cw = append(cw, len(v[j]))
 			}
-			lw = append(lw, cw[len(cw)-1])
 		} else {
 			if i > units {
 				for j := range v {
@@ -402,24 +414,9 @@ func unitab(b []byte, units int, numeric []bool) []byte {
 					}
 				}
 			}
-			n := len(v[len(v)-1])
-			lw = append(lw, n)
-			if n > cw[len(cw)-1] { //last col is not padded
-				cw[len(cw)-1] = n
-			}
 		}
 		lines[i] = append(append([]byte("│"), bytes.Join(v, []byte("│"))...), []byte("│")...)
 	}
-	for i := range lines { //pad last col
-		n := cw[len(cw)-1]
-		l := lw[i]
-		if l < n {
-			lines[i] = lines[i][:len(lines[i])-3]
-			lines[i] = append(lines[i], bytes.Repeat([]byte(" "), n-l)...)
-			lines[i] = append(lines[i], []byte("│")...)
-		}
-	}
-
 	l0 := []byte("┌")
 	l1 := []byte("├")
 	l2 := []byte("└")

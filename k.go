@@ -2,7 +2,6 @@ package plot
 
 import (
 	"bytes"
-	"fmt"
 	"math"
 	"math/rand/v2"
 	"strconv"
@@ -176,10 +175,20 @@ func K(b []byte, x uint64, plts Plots, p int) (Plots, int, string) {
 				for j := 0; j < len(g)-1; j++ {
 					pushline(Line{X: xx(g[j], g[1+j]), C: z[g[j]:g[1+j]]})
 				}
+				if x == nil {
+					plts[p].Type = Polar
+				} else {
+					plts[p].Type = AmpAng
+				}
 			} else {
 				for j := 0; j < len(g)-1; j++ {
-					pushline(Line{X: xx(g[j], g[1+j]), Y: y[g[j]:g[1+j]]})
+					x := xx(g[j], g[1+j])
+					if x == nil {
+						x = xmath.Iota(g[1+j] - g[j])
+					}
+					pushline(Line{X: x, Y: y[g[j]:g[1+j]]})
 				}
+				plts[p].Type = XY
 			}
 		}
 		return plts, p, ""
@@ -204,7 +213,6 @@ func K(b []byte, x uint64, plts Plots, p int) (Plots, int, string) {
 		}
 	case 4:
 		s := sK(x) //todo equal
-		fmt.Println("s?", len(s), s)
 		plts[p].Type = PlotType(s)
 	case 5:
 		n := int(fK(x))
@@ -241,7 +249,6 @@ func K(b []byte, x uint64, plts Plots, p int) (Plots, int, string) {
 		axis(s)
 	case 20:
 		v := SK(x)
-		fmt.Println("SK", v)
 		if len(v) == 1 {
 			plts[p].Title = v[0]
 		} else if len(v) == 2 {
@@ -281,7 +288,9 @@ func K(b []byte, x uint64, plts Plots, p int) (Plots, int, string) {
 			if tp(x) != 19 && tp(x) != 20 {
 				return plts, p, "plot: key table column type should be I or S"
 			}
-			g = IK(keys)
+			g = IK(x)
+		} else {
+			return plts, p, "plot: key table with unsupported key type"
 		}
 		return table(SK(ux(int32(vals))), UK(ux(int32(vals)+8)), g)
 	case 25:
