@@ -216,15 +216,19 @@ func (c *Caption) WriteTable(w io.Writer, flags uint) (int, error) {
 		fmt.Fprintf(tw, "#\t")
 		numeric = append(numeric, true)
 	}
+	lastCol := len(c.Columns) - 1
+	for lastCol >= 0 && c.Columns[lastCol].isEmpty {
+		lastCol--
+	}
 	for i, column := range c.Columns {
 		ap := "\t"
-		if i == len(c.Columns)-1 {
+		if i == lastCol {
 			ap = "\n"
 		}
 		if column.isEmpty {
-			if i == len(c.Columns)-1 {
-				fmt.Fprintf(tw, "\n")
-			}
+			//if i == len(c.Columns)-1 {
+			//	fmt.Fprintf(tw, "\n")
+			//}
 			continue
 		}
 		fmt.Fprintf(tw, "%s", column.Name+ap)
@@ -254,13 +258,13 @@ func (c *Caption) WriteTable(w io.Writer, flags uint) (int, error) {
 		}
 		for i, column := range c.Columns {
 			ap := "\t"
-			if i == len(c.Columns)-1 {
+			if i == lastCol {
 				ap = "\n"
 			}
 			if column.isEmpty {
-				if i == len(c.Columns)-1 {
-					fmt.Fprintf(tw, "\n")
-				}
+				//if i == len(c.Columns)-1 {
+				//	fmt.Fprintf(tw, "\n")
+				//}
 				continue
 			}
 			fmt.Fprintf(tw, "%s"+ap, string(column.Unit))
@@ -369,15 +373,14 @@ E:
 		if noUnits {
 			u = 0
 		}
-		fmt.Println("numeric", numeric)
-		w.Write(unitab(b.Bytes(), u, numeric))
+		w.Write(unitab(b.Bytes(), u, numeric, c.colors))
 	} else {
 		w.Write(b.Bytes())
 	}
 	return lineOffset, nil
 }
 
-func unitab(b []byte, units int, numeric []bool) []byte {
+func unitab(b []byte, units int, numeric []bool, colr []color.Color) []byte {
 	lines := bytes.Split(b, []byte("\n"))
 	if len(lines[len(lines)-1]) == 0 {
 		lines = lines[:len(lines)-1]
@@ -400,6 +403,14 @@ func unitab(b []byte, units int, numeric []bool) []byte {
 		}
 	}
 	var cw []int
+	var co [][]byte
+	if len(colr)+1+units == len(lines) {
+		co = make([][]byte, len(colr))
+		for i, c := range colr {
+			r, g, b, _ := c.RGBA()
+			co[i] = []byte(fmt.Sprintf("\x1b[38;2;%d;%d;%dm█\x1b[39;49m", r>>8, g>>8, b>>8))
+		}
+	}
 	for i := range lines {
 		v := bytes.Split(lines[i], []byte("|"))
 		if i == 0 {
@@ -415,11 +426,22 @@ func unitab(b []byte, units int, numeric []bool) []byte {
 				}
 			}
 		}
-		lines[i] = append(append([]byte("│"), bytes.Join(v, []byte("│"))...), []byte("│")...)
+		lines[i] = []byte("│")
+		if co != nil {
+			c := []byte{32}
+			if i-1-units >= 0 {
+				c = co[i-1-units]
+			}
+			lines[i] = append(c, lines[i]...)
+		}
+		lines[i] = append(append(lines[i], bytes.Join(v, []byte("│"))...), []byte("│")...)
 	}
-	l0 := []byte("┌")
-	l1 := []byte("├")
-	l2 := []byte("└")
+	l0 := []byte(" ┌")
+	l1 := []byte(" ├")
+	l2 := []byte(" └")
+	if co == nil {
+		l0, l1, l2 = l0[1:], l1[1:], l2[1:]
+	}
 	for i := range cw {
 		l0 = append(l0, bytes.Repeat([]byte("─"), cw[i])...)
 		l1 = append(l1, bytes.Repeat([]byte("─"), cw[i])...)
