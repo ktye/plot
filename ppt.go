@@ -1,10 +1,6 @@
 package plot
 
-import (
-	"fmt"
-	"image"
-	"io"
-)
+/*
 
 // Plot defines a type that can use the text representation of a plot within ktye/pptx.
 // It implements pptx.Raster without the need to import the pptx package.
@@ -56,3 +52,4 @@ type pptLineReader interface {
 	Peek() ([]byte, error)
 	LineNumber() int
 }
+*/
