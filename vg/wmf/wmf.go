@@ -9,26 +9,98 @@ import (
 	"encoding/binary"
 )
 
-func New(w, h int) *wf {
-	r := wf{
-		width:  int16(w),
-		height: int16(h),
-		inch:   1440,
+func New(w, h int) *File {
+	f := File{
+		Header: Header{
+			Key:     2596720087,
+			Right:   int16(w),
+			Bottom:  int16(h),
+			Type:    2, //1(in-mem) 2(on-disk)
+			HdrSize: 9,
+			Version: 0x0300,
+		},
 	}
-	return &r
+	return &f
 }
-func (w *wf) MoveTo(x, y int) {
-	b := []byte{5, 0, 0, 0, 0x14, 0x02, 0, 0, 0, 0} //2.3.5.4
-	binary.LittleEndian.PutUint16(b[6:], uint16(int16(y)))
-	binary.LittleEndian.PutUint16(b[8:], uint16(int16(x)))
-	w.push(b)
+
+type File struct {
+	Header
+	Records []Record
 }
-func (w *wf) LineTo(x, y int) {
-	b := []byte{5, 0, 0, 0, 0x13, 0x02, 0, 0, 0, 0} //2.3.3.10
-	binary.LittleEndian.PutUint16(b[6:], uint16(int16(y)))
-	binary.LittleEndian.PutUint16(b[8:], uint16(int16(x)))
-	w.push(b)
+type Header struct {
+	//meta placeable record
+	Key      uint32
+	Hwmf     uint16
+	Left     int16
+	Top      int16
+	Right    int16
+	Bottom   int16
+	Inch     int16
+	Reserved uint32
+	Checksum uint16
+
+	//header record
+	Type       uint16
+	HdrSize    uint16
+	Version    uint16
+	TotalSize  uint32
+	NumObjects uint16
+	MaxRecord  uint32
+	Unused     uint16
 }
+type Record struct {
+	Size uint32
+	Cmd  uint16
+	Data []uint16
+}
+
+func (f *File) MoveTo(x, y int) {
+	f.push(Record{5, 0x0214, []uint16{uint16(int16(y)), uint16(int16(x))}})
+}
+func (f *File) LineTo(x, y int) {
+	f.push(Record{5, 0x0213, []uint16{uint16(int16(y)), uint16(int16(x))}})
+}
+func (f *File) push(x Record) { x.Size = uint32(binary.Size(x) / 2); f.Records = append(f.Records, x) }
+func (f *File) setChecksum() { //of the leading 10words on the header
+	var b bytes.Buffer
+	fatal(binary.Write(&b, binary.LittleEndian, f.Header))
+	var v [10]uint16
+	fatal(binary.Read(bytes.NewReader(b.Bytes()), binary.LittleEndian, &v))
+	var s uint16
+	for _, x := range v {
+		s ^= x
+	}
+	f.Checksum = s
+}
+func (f *File) MarshallBinary() ([]byte, error) {
+	f.setChecksum()
+	f.push(Record{3, 0, nil}) //eof
+
+	m := 0
+	for _, r := range f.Records {
+		n := binary.Size(r)
+		if n > m {
+			m = n
+		}
+	}
+	f.MaxRecord = uint32(m / 2)
+	f.TotalSize = uint32((binary.Size(f) - 22) / 2)
+	//todo number of objects
+
+	var b bytes.Buffer
+	e := binary.Write(&b, binary.LittleEndian, f)
+	if e != nil {
+		return nil, e
+	}
+	return b.Bytes(), nil
+}
+func fatal(e error) {
+	if e != nil {
+		panic(e)
+	}
+}
+
+/*
 func (w *wf) Bytes() []byte {
 	var b bytes.Buffer
 	bw := func(x interface{}) { binary.Write(&b, binary.LittleEndian, x) }
@@ -86,17 +158,4 @@ type wf struct {
 	nobj          uint16   // number of graphics objects brushes, etc..)
 	obj           [][]byte //records
 }
-
-func (w *wf) push(b []byte) { w.obj = append(w.obj, b) }
-
-func checksum(b []byte) (r uint16) {
-	var v [10]uint16
-	e := binary.Read(bytes.NewReader(b), binary.LittleEndian, &v)
-	if e != nil {
-		panic(e)
-	}
-	for _, x := range v {
-		r ^= x
-	}
-	return r
-}
+*/

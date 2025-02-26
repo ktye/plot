@@ -7,7 +7,7 @@ import (
 )
 
 func Read(r io.Reader) error {
-	var h hdr
+	var h Header
 	e := binary.Read(r, binary.LittleEndian, &h)
 	if e != nil {
 		return e
@@ -26,24 +26,4 @@ func Read(r io.Reader) error {
 		}
 		fmt.Printf("0x%04x #%d\n", u[0], s)
 	}
-}
-
-type hdr struct {
-	Key      uint32
-	Hwmf     uint16
-	Left     int16
-	Top      int16
-	Bottom   int16
-	Right    int16
-	Inch     int16
-	Reserved uint32
-	Checksum uint16
-
-	Type       uint16
-	HdrSize    uint16
-	Version    uint16
-	TotalSize  uint32
-	NumObjects uint16
-	MaxRecord  uint32
-	Unused     uint16
 }
