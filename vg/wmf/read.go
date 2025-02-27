@@ -24,6 +24,6 @@ func Read(r io.Reader) error {
 		if e != nil {
 			return e
 		}
-		fmt.Printf("0x%04x #%d\n", u[0], s)
+		fmt.Printf("0x%04x #%d %v\n", u[0], s, u[1:])
 	}
 }
