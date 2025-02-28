@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/ktye/plot"
+	"github.com/ktye/plot/vg"
 )
 
 type i = int32
@@ -98,9 +99,10 @@ func pp(p plot.Plots) {
 		return
 	}
 	w, h := screensize()
-	ip, e := p.IPlots(w, h, 0)
+	d := vg.NewImage(w, h)
+	ip, e := p.IPlots(d, 0)
 	fatal(e)
-	m := plot.Image(ip, nil, w, h, 0).(*image.RGBA)
+	m := ip.Image(nil).(*image.RGBA)
 	switch dst {
 	case TERM:
 		draw(pngData(m))

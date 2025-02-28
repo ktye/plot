@@ -21,8 +21,8 @@ func NewImage(w, h int) *Image {
 	return &m
 }
 func (m *Image) Size() (int, int) { return m.w, m.h }
-func (m *Image) SubImage(x, y, w, h int) Drawer {
-	s := Image{w: w, h: h, RGBA: m.RGBA.SubImage(image.Rect(x, y, x+w, y+h)).(*image.RGBA)}
+func (m *Image) SubImage(r image.Rectangle) Drawer {
+	s := Image{w: r.Dx(), h: r.Dy(), RGBA: m.RGBA.SubImage(r).(*image.RGBA)}
 	s.p = NewPainter(s.RGBA)
 	return &s
 }

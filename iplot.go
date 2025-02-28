@@ -1,9 +1,11 @@
 package plot
 
 import (
+	"bytes"
 	"fmt"
 	"image"
 	"image/color"
+	"image/png"
 
 	"github.com/ktye/plot/vg"
 )
@@ -22,70 +24,107 @@ type IPlotter interface {
 	limits() Limits
 }
 
+type Iplots struct {
+	p []IPlotter
+	d vg.Drawer
+	g grid
+}
+
 // IPlots returns a slice of IPlotters, one for each plot.
 // The subplots are shown next to each other.
-func (p Plots) IPlots(width, height, columns int) ([]IPlotter, error) {
+func (p Plots) IPlots(d vg.Drawer, columns int) (Iplots, error) {
+	width, height := d.Size()
 	var err error
 	if len(p) == 0 {
-		return nil, fmt.Errorf("there are no plots.")
+		return Iplots{}, fmt.Errorf("there are no plots.")
 	}
-
-	m := vg.NewImage(width, height)
 	g := newGrid(len(p), width, height, columns)
-	w, h := g.w, g.h
-	x, y := 0, 0 //todo
-	plotters := make([]IPlotter, len(p))
+	r := Iplots{
+		p: make([]IPlotter, len(p)),
+		d: d,
+		g: g,
+	}
 	for i := 0; i < len(p); i++ {
+		rect := g.rect(i) //center?
 		switch p[i].Type {
 		case "":
-			plotters[i], err = p[i].NewEmpty(m.SubImage(x, y, w, h))
+			r.p[i], err = p[i].NewEmpty(d.SubImage(rect))
 		case XY, Raster:
-			plotters[i], err = p[i].NewXY(m.SubImage(x, y, w, h))
+			r.p[i], err = p[i].NewXY(d.SubImage(rect))
 		case Polar:
-			plotters[i], err = p[i].NewPolar(m.SubImage(x, y, w, h), false)
+			r.p[i], err = p[i].NewPolar(d.SubImage(rect), false)
 		case Ring:
-			plotters[i], err = p[i].NewPolar(m.SubImage(x, y, w, h), true)
+			r.p[i], err = p[i].NewPolar(d.SubImage(rect), true)
 		case AmpAng:
-			plotters[i], err = p[i].NewAmpAng(m.SubImage(x, y, w, h))
+			r.p[i], err = p[i].NewAmpAng(d.SubImage(rect))
 		case Waterfall:
-			plotters[i], err = p[i].NewWaterfall(m.SubImage(x, y, w, h))
+			r.p[i], err = p[i].NewWaterfall(d.SubImage(rect))
 		case Foto:
-			plotters[i], err = p[i].NewFoto(m.SubImage(x, y, w, h))
+			r.p[i], err = p[i].NewFoto(d.SubImage(rect))
 		case Text:
-			plotters[i], err = p[i].NewTextPlot(m.SubImage(x, y, w, h))
+			r.p[i], err = p[i].NewTextPlot(d.SubImage(rect))
 		default:
-			return plotters, fmt.Errorf("plot type: '%s' is not implemented.", p[i].Type)
+			return r, fmt.Errorf("plot type: '%s' is not implemented.", p[i].Type)
 		}
 		if err != nil {
-			return nil, err
+			return r, err
 		}
 	}
-	return plotters, nil
+	return r, nil
 }
 
-// Image creates an Image from a slice of iplotters.
-// If ids is nil, no lines will be highlighted.
-// The image dimensions may be differnt than the in the initial call to IPlots,
-// e.g. after a resize.
-func Image(h []IPlotter, ids []HighlightID, width, height, columns int) image.Image {
-	if len(h) < 1 {
+func (p Iplots) Image(idx []HighlightID) image.Image {
+	if len(p.p) < 1 {
 		return nil
 	}
-	/*
-		m := image.NewRGBA(image.Rect(0, 0, width, height))
-		draw.Draw(m, m.Bounds(), &image.Uniform{h[0].background()}, image.ZP, draw.Src)
-		g := newGrid(len(h), width, height, columns)
-		// w := width / len(h)
-		for i := range h {
-			im := h[i].image()
-			im = h[i].highlight(ids)
-			rect := g.center(g.rect(i), im)
-			draw.Draw(m, rect, im, image.Point{0, 0}, draw.Src)
-		}
-		return m
-	*/
-	return h[0].image() //todo..
+	im, ok := p.d.(*vg.Image)
+	if !ok {
+		return nil
+	}
+	//todo highlight
+
+	return im.RGBA
 }
+
+func (p Plots) Png(width, height, columns int, idx []HighlightID) ([]byte, error) {
+	ip, e := p.IPlots(vg.NewImage(width, height), columns)
+	if e != nil {
+		return nil, e
+	}
+	m := ip.Image(idx)
+	if m == nil {
+		return nil, fmt.Errorf("no image")
+	}
+	var b bytes.Buffer
+	e = png.Encode(&b, m)
+	return b.Bytes(), e
+}
+
+//func (p Plots) Wmf(with, height, columns int, idx []HighlightID) ([]byte, error)
+
+//// Image creates an Image from a slice of iplotters.
+//// If ids is nil, no lines will be highlighted.
+//// The image dimensions may be differnt than the in the initial call to IPlots,
+//// e.g. after a resize.
+//func Image(h []IPlotter, ids []HighlightID, width, height, columns int) image.Image {
+//	if len(h) < 1 {
+//		return nil
+//	}
+//	/*
+//		m := image.NewRGBA(image.Rect(0, 0, width, height))
+//		draw.Draw(m, m.Bounds(), &image.Uniform{h[0].background()}, image.ZP, draw.Src)
+//		g := newGrid(len(h), width, height, columns)
+//		// w := width / len(h)
+//		for i := range h {
+//			im := h[i].image()
+//			im = h[i].highlight(ids)
+//			rect := g.center(g.rect(i), im)
+//			draw.Draw(m, rect, im, image.Point{0, 0}, draw.Src)
+//		}
+//		return m
+//	*/
+//	return h[0].image() //todo..
+//}
 
 type imageResult struct {
 	im    *image.RGBA

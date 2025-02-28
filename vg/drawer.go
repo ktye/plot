@@ -1,6 +1,7 @@
 package vg
 
 import (
+	"image"
 	"image/color"
 
 	"golang.org/x/image/font"
@@ -8,7 +9,7 @@ import (
 
 type Drawer interface {
 	Size() (int, int)
-	SubImage(int, int, int, int) Drawer
+	SubImage(image.Rectangle) Drawer
 	Paint()
 	Clear(color.Color)
 	Color(color.Color)

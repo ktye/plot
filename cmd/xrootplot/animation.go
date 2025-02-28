@@ -1,3 +1,4 @@
+//go:build skip
 // +build skip
 
 // go run animation.go lines | xrootplot -al

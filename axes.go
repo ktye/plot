@@ -26,7 +26,7 @@ func (p *Plot) newAxes(x, y, width, height int, limits Limits, parent vg.Drawer)
 	a := axes{x: x, y: y, width: width, height: height}
 	a.limits = limits
 	//a.inside = image.NewRGBA(image.Rect(0, 0, width, height))
-	a.inside = parent.SubImage(x, y, width, height)
+	a.inside = parent.SubImage(image.Rect(x, y, x+width, y+height))
 	a.parent = parent
 	a.plot = p
 	a.fg = a.plot.defaultForegroundColor()
