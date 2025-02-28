@@ -1,19 +1,13 @@
 package plot
 
 import (
-	"fmt"
 	"image"
 	"image/color"
-	"image/draw"
 	"math"
 	"strconv"
 
-	"github.com/ktye/plot/raster"
 	"github.com/ktye/plot/vg"
 	"github.com/ktye/plot/xmath"
-
-	xdraw "golang.org/x/image/draw"
-	"golang.org/x/image/font"
 )
 
 // axes defines the position of the axes in the plot image.
@@ -22,15 +16,17 @@ type axes struct {
 	zSpace              int    // x,y axes are shorter by this amount for xyz axes(zSpace>0)
 	limits              Limits // axis limits.
 	fg, bg              color.Color
-	inside              *image.RGBA
-	parent              *image.RGBA
-	plot                *Plot
+	//inside              *image.RGBA
+	parent vg.Drawer
+	inside vg.Drawer
+	plot   *Plot
 }
 
-func (p *Plot) newAxes(x, y, width, height int, limits Limits, parent *image.RGBA) axes {
+func (p *Plot) newAxes(x, y, width, height int, limits Limits, parent vg.Drawer) axes {
 	a := axes{x: x, y: y, width: width, height: height}
 	a.limits = limits
-	a.inside = image.NewRGBA(image.Rect(0, 0, width, height))
+	//a.inside = image.NewRGBA(image.Rect(0, 0, width, height))
+	a.inside = parent.SubImage(x, y, width, height)
 	a.parent = parent
 	a.plot = p
 	a.fg = a.plot.defaultForegroundColor()
@@ -40,7 +36,8 @@ func (p *Plot) newAxes(x, y, width, height int, limits Limits, parent *image.RGB
 
 // Fill complete image background, not just the axis space.
 func (a axes) fillParentBackground() {
-	draw.Draw(a.parent, a.parent.Bounds(), image.NewUniform(a.bg), image.ZP, draw.Src)
+	//draw.Draw(a.parent, a.parent.Bounds(), image.NewUniform(a.bg), image.ZP, draw.Src)
+	a.parent.Clear(a.bg)
 }
 
 // DrawXY draws an xy coordinate system with data.
@@ -49,141 +46,153 @@ func (a axes) fillParentBackground() {
 func (a axes) drawXY(xy xyer) {
 	// Draw to inside image.
 	// Fill background color.
-	draw.Draw(a.inside, a.inside.Bounds(), image.NewUniform(a.bg), image.ZP, draw.Src)
+	//?draw.Draw(a.inside, a.inside.Bounds(), image.NewUniform(a.bg), image.ZP, draw.Src)
 
 	// Draw data.
-	p := vg.NewPainter(a.inside)
-	a.zbackground(p)
-	a.drawLines(p, xy)
-	a.zclip(p)
-	p.Paint()
+	//p := vg.NewPainter(a.inside)
+	//a.zbackground(p)
+	//a.drawLines(p, xy)
+	//a.zclip(p)
+	//p.Paint()
+	a.zbackground()
+	a.drawLines(xy)
+	a.zclip()
 
-	// Put the inside image to the parent, but keep it for highlighting.
-	draw.Draw(a.parent, image.Rect(a.x, a.y, a.x+a.width, a.y+a.height), a.inside, image.Point{0, 0}, draw.Src)
+	//// Put the inside image to the parent, but keep it for highlighting.
+	//draw.Draw(a.parent, image.Rect(a.x, a.y, a.x+a.width, a.y+a.height), a.inside, image.Point{0, 0}, draw.Src)
 	a.drawZaxis()
 
-	draw.Draw(a.inside, a.inside.Bounds(), a.parent, image.Point{a.x, a.y}, draw.Src) // save overlapping zaxis inside
+	//draw.Draw(a.inside, a.inside.Bounds(), a.parent, image.Point{a.x, a.y}, draw.Src) // save overlapping zaxis inside
 }
 
-func (a axes) drawImage() {
-	// Draw to inside image.
-	// Fill background color.
-	draw.Draw(a.inside, a.inside.Bounds(), image.NewUniform(a.bg), image.ZP, draw.Src)
+func (a axes) drawImage() { //todo
+	/*
+			// Draw to inside image.
+			// Fill background color.
+			draw.Draw(a.inside, a.inside.Bounds(), image.NewUniform(a.bg), image.ZP, draw.Src)
 
-	if len(a.plot.Lines) > 0 {
-		l := a.plot.Lines[0]
-		data := l.Image
-		cols := len(data)
-		if cols < 1 {
-			goto Noimage
-		}
-		rows := len(data[0])
-		if rows < 1 {
-			goto Noimage
-		}
-		// Build an image with the dimensions of the data
-		pal256 := a.plot.Style.Map.Palette()
-		palette := make(color.Palette, 256)
-		for i := 0; i < 256; i++ {
-			palette[i] = pal256[i]
-		}
-		im := image.NewPaletted(image.Rect(0, 0, cols, rows), palette)
-		for i := 0; i < cols; i++ {
-			for k := 0; k < rows; k++ {
-				im.SetColorIndex(i, k, data[i][rows-1-k])
+			if len(a.plot.Lines) > 0 {
+				l := a.plot.Lines[0]
+				data := l.Image
+				cols := len(data)
+				if cols < 1 {
+					goto Noimage
+				}
+				rows := len(data[0])
+				if rows < 1 {
+					goto Noimage
+				}
+				// Build an image with the dimensions of the data
+				pal256 := a.plot.Style.Map.Palette()
+				palette := make(color.Palette, 256)
+				for i := 0; i < 256; i++ {
+					palette[i] = pal256[i]
+				}
+				im := image.NewPaletted(image.Rect(0, 0, cols, rows), palette)
+				for i := 0; i < cols; i++ {
+					for k := 0; k < rows; k++ {
+						im.SetColorIndex(i, k, data[i][rows-1-k])
+					}
+				}
+				// Stretch data image to the inside image.
+				x0 := int(xmath.Scale(a.limits.Xmin, l.X[0], l.X[len(l.X)-1], 0.0, float64(cols)))
+				x1 := int(xmath.Scale(a.limits.Xmax, l.X[0], l.X[len(l.X)-1], 0.0, float64(cols)))
+				y1 := int(xmath.Scale(a.limits.Ymin, l.Y[0], l.Y[len(l.Y)-1], float64(rows), 0.0))
+				y0 := int(xmath.Scale(a.limits.Ymax, l.Y[0], l.Y[len(l.Y)-1], float64(rows), 0.0))
+				xdraw.NearestNeighbor.Scale(a.inside, a.inside.Bounds(), im, image.Rect(x0, y0, x1, y1), xdraw.Src, nil)
+				// draw.Draw(a.inside, a.inside.Bounds(), im, image.ZP, draw.Src)
 			}
+		Noimage:
+
+			// Put the inside image to the parent.
+			draw.Draw(a.parent, image.Rect(a.x, a.y, a.x+a.width, a.y+a.height), a.inside, image.Point{0, 0}, draw.Src)
+	*/
+}
+
+func (a axes) zbackground() { //p *vg.Painter) {
+	z := a.zSpace
+	if z == 0 {
+		return
+	}
+	//r := p.Image().Bounds()
+	//w, h := r.Dx(), r.Dy()
+	//p.SetColor(a.fg)
+	//p.Add(vg.NewLine(0, h, z, -z, 1))   //zaxis
+	//p.Add(vg.NewLine(z, h-z, 0, -h, 1)) //backplane vertical-0
+	//p.Add(vg.NewLine(z, h-z, w, 0, 1))  //backplane horizontal-0
+
+	w, h := a.width, a.height
+	a.inside.Color(a.fg)
+	a.inside.Line(vg.NewLine(0, h, z, -z, 1))   //zaxis
+	a.inside.Line(vg.NewLine(z, h-z, 0, -h, 1)) //backplane vertical-0
+	a.inside.Line(vg.NewLine(z, h-z, w, 0, 1))  //backplane horizontal-0
+}
+func (a axes) zclip() { // clip corners for waterfall
+	z := a.zSpace
+	if z == 0 {
+		return
+	}
+	w, h := a.width, a.height
+	a.inside.Color(a.bg)
+	a.inside.Triangle(vg.Triangle{X0: 0, Y0: z, X1: z, Y1: 0, X2: 0, Y2: 0})
+	a.inside.Triangle(vg.Triangle{X0: w - z, Y0: h, X1: w, Y1: h, X2: w, Y2: h - z})
+	a.inside.Color(a.fg)
+}
+func (a axes) drawZaxis() { //todo
+	/*
+		z := a.zSpace
+		if z == 0 {
+			return
 		}
-		// Stretch data image to the inside image.
-		x0 := int(xmath.Scale(a.limits.Xmin, l.X[0], l.X[len(l.X)-1], 0.0, float64(cols)))
-		x1 := int(xmath.Scale(a.limits.Xmax, l.X[0], l.X[len(l.X)-1], 0.0, float64(cols)))
-		y1 := int(xmath.Scale(a.limits.Ymin, l.Y[0], l.Y[len(l.Y)-1], float64(rows), 0.0))
-		y0 := int(xmath.Scale(a.limits.Ymax, l.Y[0], l.Y[len(l.Y)-1], float64(rows), 0.0))
-		xdraw.NearestNeighbor.Scale(a.inside, a.inside.Bounds(), im, image.Rect(x0, y0, x1, y1), xdraw.Src, nil)
-		// draw.Draw(a.inside, a.inside.Bounds(), im, image.ZP, draw.Src)
-	}
-Noimage:
+		p := vg.NewPainter(a.parent)
+		p.SetColor(a.fg)
+		r := a.inside.Bounds()
+		w, h := r.Dx(), r.Dy()
+		a0 := int(float64(a.plot.defaultTicLength()) / math.Sqrt2)
+		x0, y0 := a.x-a0, a.y-a0
+		x1, y1 := a.x+a0, a.y+a0
+		p.Add(vg.Line{LineCoords: vg.LineCoords{X: x0, Y: y0 + z, DX: z, DY: -z}, LineWidth: 1})
+		p.Add(vg.Line{LineCoords: vg.LineCoords{X: x1 + w - z, Y: y1 + h, DX: z, DY: -z}, LineWidth: 1})
 
-	// Put the inside image to the parent.
-	draw.Draw(a.parent, image.Rect(a.x, a.y, a.x+a.width, a.y+a.height), a.inside, image.Point{0, 0}, draw.Src)
-}
-
-func (a axes) zbackground(p *vg.Painter) {
-	z := a.zSpace
-	if z == 0 {
-		return
-	}
-	r := p.Image().Bounds()
-	w, h := r.Dx(), r.Dy()
-	p.SetColor(a.fg)
-	p.Add(vg.NewLine(0, h, z, -z, 1))   //zaxis
-	p.Add(vg.NewLine(z, h-z, 0, -h, 1)) //backplane vertical-0
-	p.Add(vg.NewLine(z, h-z, w, 0, 1))  //backplane horizontal-0
-}
-func (a axes) zclip(p *vg.Painter) { // clip corners for waterfall
-	z := a.zSpace
-	if z == 0 {
-		return
-	}
-	r := p.Image().Bounds()
-	w, h := r.Dx(), r.Dy()
-	p.SetColor(a.bg) //p.SetColor(color.RGBA{255, 0, 0, 255})
-	p.Add(vg.Triangle{X0: 0, Y0: z, X1: z, Y1: 0, X2: 0, Y2: 0})
-	p.Add(vg.Triangle{X0: w - z, Y0: h, X1: w, Y1: h, X2: w, Y2: h - z})
-	p.SetColor(a.fg)
-	//p.Add(vg.Line{LineCoords: vg.LineCoords{X: 0, Y: z, DX: z, DY: -z}, LineWidth: 1})
-	//p.Add(vg.Line{LineCoords: vg.LineCoords{X: 0, Y: h, DX: z, DY: -z}, LineWidth: 1})
-}
-func (a axes) drawZaxis() {
-	z := a.zSpace
-	if z == 0 {
-		return
-	}
-	p := vg.NewPainter(a.parent)
-	p.SetColor(a.fg)
-	r := a.inside.Bounds()
-	w, h := r.Dx(), r.Dy()
-	a0 := int(float64(a.plot.defaultTicLength()) / math.Sqrt2)
-	x0, y0 := a.x-a0, a.y-a0
-	x1, y1 := a.x+a0, a.y+a0
-	p.Add(vg.Line{LineCoords: vg.LineCoords{X: x0, Y: y0 + z, DX: z, DY: -z}, LineWidth: 1})
-	p.Add(vg.Line{LineCoords: vg.LineCoords{X: x1 + w - z, Y: y1 + h, DX: z, DY: -z}, LineWidth: 1})
-
-	p.SetFont(font2)
-	zt := getZTics(a.limits)
-	for i, pi := range zt.Pos {
-		x0, x1 := float64(x1+w), float64(x1+w-z)
-		y0, y1 := float64(y1+h-z), float64(y1+h)
-		n := len(a.plot.Lines)
-		if l := a.plot.Lines; n > 1 && l[n-1].Z > l[0].Z {
-			x0, x1, y0, y1 = x1, x0, y1, y0
+		p.SetFont(font2)
+		zt := getZTics(a.limits)
+		for i, pi := range zt.Pos {
+			x0, x1 := float64(x1+w), float64(x1+w-z)
+			y0, y1 := float64(y1+h-z), float64(y1+h)
+			n := len(a.plot.Lines)
+			if l := a.plot.Lines; n > 1 && l[n-1].Z > l[0].Z {
+				x0, x1, y0, y1 = x1, x0, y1, y0
+			}
+			x := int(xmath.Scale(pi, a.limits.Zmax, a.limits.Zmin, x0, x1))
+			y := int(xmath.Scale(pi, a.limits.Zmax, a.limits.Zmin, y0, y1))
+			p.Add(vg.Text{X: 1 + x, Y: 1 + y, S: zt.Labels[i], Align: 6})
+			p.Add(vg.Line{LineCoords: vg.LineCoords{X: x, Y: y, DX: -a0, DY: -a0}, LineWidth: 1})
+			p.Add(vg.Line{LineCoords: vg.LineCoords{X: x - w + z - a0, Y: y - h + z - a0, DX: -a0, DY: -a0}, LineWidth: 1})
 		}
-		x := int(xmath.Scale(pi, a.limits.Zmax, a.limits.Zmin, x0, x1))
-		y := int(xmath.Scale(pi, a.limits.Zmax, a.limits.Zmin, y0, y1))
-		p.Add(vg.Text{X: 1 + x, Y: 1 + y, S: zt.Labels[i], Align: 6})
-		p.Add(vg.Line{LineCoords: vg.LineCoords{X: x, Y: y, DX: -a0, DY: -a0}, LineWidth: 1})
-		p.Add(vg.Line{LineCoords: vg.LineCoords{X: x - w + z - a0, Y: y - h + z - a0, DX: -a0, DY: -a0}, LineWidth: 1})
-	}
-	if s := a.plot.Zlabel; s != "" {
-		p.SetFont(font1)
-		p.Add(vg.Text{X: int((2*x0 + z - 2) / 2), Y: int((2*y0 + z - 2) / 2), S: s, Align: 2})
-	}
+		if s := a.plot.Zlabel; s != "" {
+			p.SetFont(font1)
+			p.Add(vg.Text{X: int((2*x0 + z - 2) / 2), Y: int((2*y0 + z - 2) / 2), S: s, Align: 2})
+		}
 
-	p.Paint()
+		p.Paint()
+	*/
 }
 
 // DrawXYTics draws x and y tics with labels on the axes parent image.
 func (a axes) drawXYTics(X, Y []float64, xlabels, ylabels []string) {
-	p := vg.NewPainter(a.parent)
-	p.SetColor(a.fg)
+	d := a.parent
+	d.Color(a.fg)
+	//p := vg.NewPainter(a.parent)
+	//p.SetColor(a.fg)
 
 	// draw axis border lines
 	boxLw := a.plot.defaultAxesGridLineWidth()
 	aoff := a.plot.defaultTicLength()
 	zw := a.zSpace
-	p.Add(vg.Line{vg.LineCoords{a.x + zw, a.y - aoff, a.width - 1 - zw, 0}, boxLw, true})           //top
-	p.Add(vg.Line{vg.LineCoords{a.x, a.y + a.height + aoff, a.width - 1 - zw, 0}, boxLw, true})     //bottom
-	p.Add(vg.Line{vg.LineCoords{a.x - aoff, a.y + zw, 0, a.height - 1 - zw}, boxLw, true})          //left
-	p.Add(vg.Line{vg.LineCoords{a.x + a.width + aoff - 1, a.y, 0, a.height - 1 - zw}, boxLw, true}) //right
+	d.Line(vg.Line{vg.LineCoords{a.x + zw, a.y - aoff, a.width - 1 - zw, 0}, boxLw, true})           //top
+	d.Line(vg.Line{vg.LineCoords{a.x, a.y + a.height + aoff, a.width - 1 - zw, 0}, boxLw, true})     //bottom
+	d.Line(vg.Line{vg.LineCoords{a.x - aoff, a.y + zw, 0, a.height - 1 - zw}, boxLw, true})          //left
+	d.Line(vg.Line{vg.LineCoords{a.x + a.width + aoff - 1, a.y, 0, a.height - 1 - zw}, boxLw, true}) //right
 
 	// x and y tics on all 4 borders.
 	L := a.plot.defaultTicLength()
@@ -192,16 +201,16 @@ func (a axes) drawXYTics(X, Y []float64, xlabels, ylabels []string) {
 	cs := vg.CoordinateSystem{lim.Xmin, lim.Ymax, lim.Xmax, lim.Ymin}
 	rect0 := image.Rect(a.x, a.y+zw, a.x+a.width-zw, a.y+a.height) //lower right
 	rect1 := image.Rect(a.x+zw, a.y, a.x+a.width, a.y+a.height-zw) //upper left
-	p.Add(vg.FloatTics{P: X, Q: a.limits.Ymin, Horizontal: true, LeftTop: false, L: L, LineWidth: lw, CoordinateSystem: cs, Rect: rect0})
-	p.Add(vg.FloatTics{P: X, Q: a.limits.Ymax, Horizontal: true, LeftTop: true, L: L, LineWidth: lw, CoordinateSystem: cs, Rect: rect1})
-	p.Add(vg.FloatTics{P: Y, Q: a.limits.Xmin, Horizontal: false, LeftTop: true, L: L, LineWidth: lw, CoordinateSystem: cs, Rect: rect0})
-	p.Add(vg.FloatTics{P: Y, Q: a.limits.Xmax, Horizontal: false, LeftTop: false, L: L, LineWidth: lw, CoordinateSystem: cs, Rect: rect1})
+	d.FloatTics(vg.FloatTics{P: X, Q: a.limits.Ymin, Horizontal: true, LeftTop: false, L: L, LineWidth: lw, CoordinateSystem: cs, Rect: rect0})
+	d.FloatTics(vg.FloatTics{P: X, Q: a.limits.Ymax, Horizontal: true, LeftTop: true, L: L, LineWidth: lw, CoordinateSystem: cs, Rect: rect1})
+	d.FloatTics(vg.FloatTics{P: Y, Q: a.limits.Xmin, Horizontal: false, LeftTop: true, L: L, LineWidth: lw, CoordinateSystem: cs, Rect: rect0})
+	d.FloatTics(vg.FloatTics{P: Y, Q: a.limits.Xmax, Horizontal: false, LeftTop: false, L: L, LineWidth: lw, CoordinateSystem: cs, Rect: rect1})
 
 	// Draw x tic labels if requested (todo aoff)
 	textWidth := func(s string) int {
 		return 7 * len(s) // Hard-coded.
 	}
-	p.SetFont(font2)
+	d.Font(font2)
 	var stop int
 	for i, s := range xlabels {
 		// Skip label, if it does not fit.
@@ -215,16 +224,16 @@ func (a axes) drawXYTics(X, Y []float64, xlabels, ylabels []string) {
 		stop, _ = cs.Pixel(X[i], lim.Ymin, rect0)
 		stop += textWidth(s) / 2
 		yoff := font2.Metrics().Height.Ceil()
-		p.Add(vg.FloatText{X: X[i], Y: lim.Ymin, S: s, Yoff: yoff, Align: 5, CoordinateSystem: cs, Rect: rect0})
+		d.FloatText(vg.FloatText{X: X[i], Y: lim.Ymin, S: s, Yoff: yoff, Align: 5, CoordinateSystem: cs, Rect: rect0})
 	}
 
 	// Draw y tic labels if requested
 	xoff := -2 * L
 	for i, s := range ylabels {
-		p.Add(vg.FloatText{X: lim.Xmin, Y: Y[i], S: s, Yoff: 2, Xoff: xoff, Align: 3, CoordinateSystem: cs, Rect: rect0})
+		d.FloatText(vg.FloatText{X: lim.Xmin, Y: Y[i], S: s, Yoff: 2, Xoff: xoff, Align: 3, CoordinateSystem: cs, Rect: rect0})
 	}
 
-	p.Paint()
+	//p.Paint()
 }
 
 // DrawPolar draws the polar diagram background (x/y-lines), the data and the circle around.
@@ -232,21 +241,20 @@ func (a axes) drawXYTics(X, Y []float64, xlabels, ylabels []string) {
 func (a axes) drawPolar(ring, ccw, noTics bool) {
 	// Draw to inside image.
 	// Fill transparent background.
-	draw.Draw(a.inside, a.inside.Bounds(), image.NewUniform(a.bg), image.ZP, draw.Src)
+	//draw.Draw(a.inside, a.inside.Bounds(), image.NewUniform(a.bg), image.ZP, draw.Src) todo
 
 	// Draw data
-	p := vg.NewPainter(a.inside)
-	p.SetColor(a.fg)
-	a.drawLines(p, a.xyRing(ccw))
+	a.inside.Color(a.fg)
+	a.drawLines(a.xyRing(ccw))
 
-	p.Paint()
-
-	// Put the inside image to the parent, but keep it for highlighting.
-	draw.Draw(a.parent, image.Rect(a.x, a.y, a.x+a.width, a.y+a.height), a.inside, image.Point{0, 0}, draw.Src)
+	//p.Paint()
+	//
+	//// Put the inside image to the parent, but keep it for highlighting.
+	//draw.Draw(a.parent, image.Rect(a.x, a.y, a.x+a.width, a.y+a.height), a.inside, image.Point{0, 0}, draw.Src)
 	a.drawPolarCircle(ring)
 	a.drawPolarTics(ring, ccw, noTics)
-
-	draw.Draw(a.inside, a.inside.Bounds(), a.parent, image.Point{a.x, a.y}, draw.Src) //save grid/tics inside (for highlight)
+	//
+	//draw.Draw(a.inside, a.inside.Bounds(), a.parent, image.Point{a.x, a.y}, draw.Src) //save grid/tics inside (for highlight)
 }
 
 func (a axes) xyRing(ccw bool) xyPolar {
@@ -255,13 +263,14 @@ func (a axes) xyRing(ccw bool) xyPolar {
 
 func (a axes) drawPolarCircle(ring bool) {
 	// Draw x/y axis.
-	p := vg.NewPainter(a.parent)
-	p.SetColor(a.fg)
+	//p := vg.NewPainter(a.parent)
+	d := a.parent
+	d.Color(a.fg)
 	r := a.width / 2
 	lw := a.plot.defaultAxesGridLineWidth()
 	if ring == false { // grid lines
-		p.Add(vg.Line{vg.LineCoords{X: a.x + r, Y: a.y, DX: 0, DY: 2*r + 1}, lw, true})
-		p.Add(vg.Line{vg.LineCoords{X: a.x, Y: a.y + r, DX: 2*r + 1, DY: 0}, lw, true})
+		d.Line(vg.Line{vg.LineCoords{X: a.x + r, Y: a.y, DX: 0, DY: 2*r + 1}, lw, true})
+		d.Line(vg.Line{vg.LineCoords{X: a.x, Y: a.y + r, DX: 2*r + 1, DY: 0}, lw, true})
 	}
 
 	// Draw grid circles
@@ -271,7 +280,7 @@ func (a axes) drawPolarCircle(ring bool) {
 	}
 	as := autoscale{min: asmin, max: a.limits.Ymax}
 	min, _, spacing := as.niceLimits()
-	p.SetColor(color.Gray{128})
+	d.Color(color.Gray{128})
 	rr := min
 	if math.IsNaN(rr) == false { // rr may be NaN which results in an endless loop.
 		for {
@@ -281,59 +290,59 @@ func (a axes) drawPolarCircle(ring bool) {
 			if rr > 0 && ring == false {
 				w := int(float64(a.width) * rr / a.limits.Ymax)
 				off := (a.width - w) / 2
-				p.Add(vg.Circle{a.x + off, a.y + off, w, lw, false})
+				d.Circle(vg.Circle{a.x + off, a.y + off, w, lw, false})
 			} else if ring && rr > a.limits.Zmin {
 				rrr := xmath.Scale(rr, a.limits.Zmin, a.limits.Zmax, innerRing, 1.0)
 				w := int(float64(a.width) * rrr)
 				off := (a.width - w) / 2
-				p.Add(vg.Circle{a.x + off, a.y + off, w, lw, false})
+				d.Circle(vg.Circle{a.x + off, a.y + off, w, lw, false})
 			}
 			rr += spacing
 		}
 	}
 
-	p.SetColor(a.fg)
+	d.Color(a.fg)
 	lw = 2
-	p.Add(vg.Circle{a.x, a.y, a.width, lw, false})
+	d.Circle(vg.Circle{a.x, a.y, a.width, lw, false})
 	if ring {
 		off := int((float64(a.width) * innerRing) / 2.0)
-		p.Add(vg.Circle{a.x + off, a.y + off, int(float64(a.width) * innerRing), lw, false})
+		d.Circle(vg.Circle{a.x + off, a.y + off, int(float64(a.width) * innerRing), lw, false})
 	}
-	p.Paint()
+	//p.Paint()
 }
 
 // DrawPolarTics draws tics, tic labels and the polar scale and unit.
 func (a axes) drawPolarTics(ring, ccw, noTics bool) {
 	// Draw Tics.
-	p := vg.NewPainter(a.parent)
-	p.SetColor(a.fg)
+	d := a.parent
+	d.Color(a.fg)
 	r := a.width / 2
 	if 2*r < a.width {
 		r++ // Correct round off.
 	}
 	l := a.plot.defaultTicLength()
 	aligns := []int{1, 0, 0, 7, 6, 6, 5, 4, 4, 3, 2, 2}
-	p.SetFont(font2)
+	d.Font(font2)
 	phi0 := math.Pi / 2.0
 	if noTics == false {
 		for i := 0; i < 360; i += 30 {
 			phi := float64(i) * math.Pi / 180.0
-			p.Add(vg.Ray{a.x + r, a.y + r, r - l/2, l, phi, a.plot.defaultAxesGridLineWidth()})
+			d.Ray(vg.Ray{a.x + r, a.y + r, r - l/2, l, phi, a.plot.defaultAxesGridLineWidth()})
 			s := strconv.Itoa(i)
 			if ccw {
 				s = strconv.Itoa((360 + 90 - i) % 360)
 			}
 			tx := float64(a.x+r) + float64(r+l/2)*math.Cos(phi-phi0)
 			ty := float64(a.y+r) + float64(r+l/2)*math.Sin(phi-phi0)
-			p.Add(vg.Text{int(tx + 0.5), int(ty + 0.5), s, aligns[i/30]})
+			d.Text(vg.Text{int(tx + 0.5), int(ty + 0.5), s, aligns[i/30]})
 		}
 	}
 
 	// Draw scale/unit marker.
-	p.SetFont(font1)
+	d.Font(font1)
 	phi := 130.0 * math.Pi / 180.0
 	s := strconv.FormatFloat(a.limits.Ymax, 'g', 4, 64)
-	p.Add(vg.Ray{a.x + r, a.y + r, r, 3 * l, phi - phi0, a.plot.defaultAxesGridLineWidth()})
+	d.Ray(vg.Ray{a.x + r, a.y + r, r, 3 * l, phi - phi0, a.plot.defaultAxesGridLineWidth()})
 	x0 := -float64(2 * l)
 	switch {
 	case len(s) == 1:
@@ -350,79 +359,83 @@ func (a axes) drawPolarTics(ring, ccw, noTics bool) {
 		singleLine = true
 		s = ls
 	}
-	p.Add(vg.Text{int(tx + 0.5), int(ty + 0.5), s, 6})
+	d.Text(vg.Text{int(tx + 0.5), int(ty + 0.5), s, 6})
 	if singleLine == false {
 		ty += float64(3 + font2.Metrics().Height.Ceil()) // 3 should be line gap
-		p.Add(vg.Text{int(tx + 0.5), int(ty + 0.5), string(a.plot.Yunit), 6})
+		d.Text(vg.Text{int(tx + 0.5), int(ty + 0.5), string(a.plot.Yunit), 6})
 	}
 	if ring {
 		s = strconv.FormatFloat(a.limits.Zmin, 'g', 4, 64)
 		rmin := int(innerRing*float64(r)) - 3*l - 1
-		p.Add(vg.Ray{a.x + r, a.y + r, rmin, 3 * l, phi - phi0, a.plot.defaultAxesGridLineWidth()})
+		d.Ray(vg.Ray{a.x + r, a.y + r, rmin, 3 * l, phi - phi0, a.plot.defaultAxesGridLineWidth()})
 		tx := float64(a.x+r) + float64(rmin)*math.Cos(phi-phi0)
 		ty := float64(a.y+r) + float64(rmin)*math.Sin(phi-phi0)
-		p.Add(vg.Text{int(tx - 0.5), int(ty - 0.5), s, 2})
+		d.Text(vg.Text{int(tx - 0.5), int(ty - 0.5), s, 2})
 	}
-	p.Paint()
+	//p.Paint()
 }
 
 // drawTitle draws the title centered over the axes.
 // between the axes top and the title bottom, the space is vSpace, which
 // is usually 0 but needed for polar coordinate angle labels.
 func (a axes) drawTitle(vSpace int) {
-	p := vg.NewPainter(a.parent)
-	p.SetColor(a.fg)
-	p.SetFont(font1)
+	//p := vg.NewPainter(a.parent)
+	d := a.parent
+	d.Color(a.fg)
+	d.Font(font1)
 	// Center the label
 	x := a.x + a.width/2
 	y := a.y - vSpace - 1 // vSpace is defaultTicLength and more for polar.
-	p.Add(vg.Text{x, y, a.plot.Title, 1})
-	p.Paint()
+	d.Text(vg.Text{x, y, a.plot.Title, 1})
+	//p.Paint()
 }
 
 // drawXLabel draws the x axis label.
 func (a axes) drawXlabel() {
-	p := vg.NewPainter(a.parent)
-	p.SetColor(a.fg)
-	p.SetFont(font1)
+	//p := vg.NewPainter(a.parent)
+	d := a.parent
+	d.Color(a.fg)
+	d.Font(font1)
 	x := a.x + a.width/2
 	y := a.y + a.height + a.plot.defaultTicLabelHeight() //+ 3
 	t := a.plot.Xlabel
 	if a.plot.Xunit != "" {
 		t += " " + string(a.plot.Xunit)
 	}
-	p.Add(vg.Text{x, y, t, 5})
-	p.Paint()
+	d.Text(vg.Text{x, y, t, 5})
+	//p.Paint()
 }
 
 // drawYLabel draws the rotated y axis label.
-func (a axes) drawYlabel() {
-	// Draw title to temporary image.
-	f := font1
-	t := a.plot.Ylabel
-	if a.plot.Yunit != "" {
-		t += " " + string(a.plot.Yunit)
-	}
+func (a axes) drawYlabel() { //todo
+	/*
+		// Draw title to temporary image.
+		f := font1
+		t := a.plot.Ylabel
+		if a.plot.Yunit != "" {
+			t += " " + string(a.plot.Yunit)
+		}
 
-	bounds, _ := font.BoundString(f, t)
-	d := bounds.Max.Sub(bounds.Min)
-	width := d.X.Ceil() + 2
-	metrics := f.Metrics()
-	height := (metrics.Ascent + metrics.Descent).Ceil()
+		bounds, _ := font.BoundString(f, t)
+		d := bounds.Max.Sub(bounds.Min)
+		width := d.X.Ceil() + 2
+		metrics := f.Metrics()
+		height := (metrics.Ascent + metrics.Descent).Ceil()
 
-	tmp := image.NewRGBA(image.Rect(0, 0, width, height))
-	draw.Draw(tmp, tmp.Bounds(), image.NewUniform(a.bg), image.ZP, draw.Src)
-	p := vg.NewPainter(tmp)
-	p.SetColor(a.fg)
-	p.SetFont(f)
-	p.Add(vg.Text{1, height, t, 0})
-	p.Paint()
+		tmp := image.NewRGBA(image.Rect(0, 0, width, height))
+		draw.Draw(tmp, tmp.Bounds(), image.NewUniform(a.bg), image.ZP, draw.Src)
+		p := vg.NewPainter(tmp)
+		p.SetColor(a.fg)
+		p.SetFont(f)
+		p.Add(vg.Text{1, height, t, 0})
+		p.Paint()
 
-	tmp = rotate(tmp)
+		tmp = rotate(tmp)
 
-	// Draw the temporary image into the parent.
-	yoff := a.y + a.height/2 - width/2
-	draw.Draw(a.parent, image.Rect(0, yoff, height, yoff+width), tmp, image.Point{0, 0}, draw.Src)
+		// Draw the temporary image into the parent.
+		yoff := a.y + a.height/2 - width/2
+		draw.Draw(a.parent, image.Rect(0, yoff, height, yoff+width), tmp, image.Point{0, 0}, draw.Src)
+	*/
 }
 
 func scale3d(cs vg.CoordinateSystem, r image.Rectangle, z float64) vg.CoordinateSystem {
@@ -434,11 +447,12 @@ func scale3d(cs vg.CoordinateSystem, r image.Rectangle, z float64) vg.Coordinate
 
 // drawLines draws plot's line data to the axes.
 // It uses default styles, if no styles are defined.
-func (a axes) drawLines(p *vg.Painter, xy xyer) {
+func (a axes) drawLines(xy xyer) {
 	lim := a.limits
 	cs := vg.CoordinateSystem{lim.Xmin, lim.Ymax, lim.Xmax, lim.Ymin} // upper left, lower right corner.
 	if a.zSpace > 0 {
-		cs = scale3d(cs, p.Image().Bounds(), float64(a.zSpace))
+		//cs = scale3d(cs, p.Image().Bounds(), float64(a.zSpace))
+		cs = scale3d(cs, image.Rect(0, 0, a.width, a.height), float64(a.zSpace))
 	}
 	z := 0
 	for i, l := range a.plot.Lines {
@@ -450,11 +464,12 @@ func (a axes) drawLines(p *vg.Painter, xy xyer) {
 		if n := len(a.plot.Lines); n > 0 {
 			z = int(float64(a.zSpace) * (1.0 - float64(i)/float64(n-1)))
 		}
-		a.drawLine(p, xy, cs, l, z, false)
+		a.drawLine(xy, cs, l, z, false)
 	}
 }
 
-func (a axes) drawLine(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, z int, isHighlight bool) {
+func (a axes) drawLine(xy xyer, cs vg.CoordinateSystem, l Line, z int, isHighlight bool) {
+	d := a.inside
 	x, y, isEnvelope := xy.XY(l)
 
 	// Set default style if unset.
@@ -472,11 +487,11 @@ func (a axes) drawLine(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, z
 		if isHighlight {
 			size *= 3
 		}
-		p.SetColor(c)
+		d.Color(c)
 		if l.Style.Marker.Marker == Bar {
-			p.Add(vg.FloatBars{X: x, Y: y, CoordinateSystem: cs})
+			d.FloatBars(vg.FloatBars{X: x, Y: y, CoordinateSystem: cs})
 		} else {
-			p.Add(vg.FloatCircles{X: x, Y: y, CoordinateSystem: cs, Radius: size, Fill: true})
+			d.FloatCircles(vg.FloatCircles{X: x, Y: y, CoordinateSystem: cs, Radius: size, Fill: true})
 		}
 	}
 	if width := l.Style.Line.Width; width > 0.0 {
@@ -485,31 +500,33 @@ func (a axes) drawLine(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, z
 			width *= 3
 		}
 		if isEnvelope {
-			p.SetColor(c)
-			p.Add(vg.FloatEnvelope{X: x, Y: y, CoordinateSystem: cs, LineWidth: width})
+			d.Color(c)
+			d.FloatEnvelope(vg.FloatEnvelope{X: x, Y: y, CoordinateSystem: cs, LineWidth: width})
 		} else {
-			if len(x) > 1024 {
-				// Use a fast (non-antialiased) version if
-				// there many points.
-				im := raster.Image{
-					Image: p.Image().(*image.RGBA),
-					Color: c,
-				}
-				raster.FloatLines(im, x, y, z, raster.CoordinateSystem(cs))
-			} else {
-				if a.zSpace > 0 && len(x) > 1 && len(y) > 1 && !isHighlight {
-					p.SetColor(a.bg)
-					xx, yy := reverse(x), reverse(y)
-					xx = append(xx, x[0], x[len(x)-1], x[len(x)-1])
-					yy = append(yy, a.limits.Ymin, a.limits.Ymin, y[len(y)-1])
-					p.Add(vg.FloatEnvelope{X: xx, Y: yy, Z: z, CoordinateSystem: cs})
-				}
-				p.SetColor(c)
-				p.Add(vg.FloatPath{X: x, Y: y, Z: z, CoordinateSystem: cs, LineWidth: width})
-				if l.Style.Line.Arrow != 0 {
-					p.Add(vg.ArrowHead{X: x, Y: y, CoordinateSystem: cs, LineWidth: width, Arrow: l.Style.Line.Arrow})
-				}
+			/*
+				if len(x) > 1024 {
+					// Use a fast (non-antialiased) version if
+					// there many points.
+					im := raster.Image{
+						Image: p.Image().(*image.RGBA),
+						Color: c,
+					}
+					raster.FloatLines(im, x, y, z, raster.CoordinateSystem(cs))
+				} else {
+			*/
+			if a.zSpace > 0 && len(x) > 1 && len(y) > 1 && !isHighlight {
+				d.Color(a.bg)
+				xx, yy := reverse(x), reverse(y)
+				xx = append(xx, x[0], x[len(x)-1], x[len(x)-1])
+				yy = append(yy, a.limits.Ymin, a.limits.Ymin, y[len(y)-1])
+				d.FloatEnvelope(vg.FloatEnvelope{X: xx, Y: yy, Z: z, CoordinateSystem: cs})
 			}
+			d.Color(c)
+			d.FloatPath(vg.FloatPath{X: x, Y: y, Z: z, CoordinateSystem: cs, LineWidth: width})
+			if l.Style.Line.Arrow != 0 {
+				d.ArrowHead(vg.ArrowHead{X: x, Y: y, CoordinateSystem: cs, LineWidth: width, Arrow: l.Style.Line.Arrow})
+			}
+			//}
 		}
 	}
 }
@@ -523,64 +540,69 @@ func reverse(x []float64) []float64 {
 }
 
 // drawSegment draws the given line segment.
-func (a axes) drawSegment(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, segment int) {
-	// we modify l.X, and l.Y and restore it later.
-	saveX := l.X
-	saveY := l.Y
-	saveC := l.C
-	defer func() {
-		l.X = saveX
-		l.Y = saveY
-		l.C = saveC
-	}()
+func (a axes) drawSegment(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, segment int) { //todo
+	/*
+		// we modify l.X, and l.Y and restore it later.
+		saveX := l.X
+		saveY := l.Y
+		saveC := l.C
+		defer func() {
+			l.X = saveX
+			l.Y = saveY
+			l.C = saveC
+		}()
 
-	// Get slice range for the given segment.
-	x, _, _ := xy.XY(l)
-	start, stop := 0, len(x)
-	n := 0
-	for i, f := range x {
-		if math.IsNaN(f) {
-			n++
-			if n == segment {
-				start = i + 1
-			} else if n == segment+1 {
-				stop = i
+		// Get slice range for the given segment.
+		x, _, _ := xy.XY(l)
+		start, stop := 0, len(x)
+		n := 0
+		for i, f := range x {
+			if math.IsNaN(f) {
+				n++
+				if n == segment {
+					start = i + 1
+				} else if n == segment+1 {
+					stop = i
+				}
 			}
 		}
-	}
 
-	// What we acutally need to cut depends on the xyer.
-	if start < len(l.X) && stop <= len(l.X) {
-		l.X = l.X[start:stop]
-	}
-	if start < len(l.Y) && stop <= len(l.Y) {
-		l.Y = l.Y[start:stop]
-	}
-	if start < len(l.C) && stop <= len(l.C) {
-		l.C = l.C[start:stop]
-	}
+		// What we acutally need to cut depends on the xyer.
+		if start < len(l.X) && stop <= len(l.X) {
+			l.X = l.X[start:stop]
+		}
+		if start < len(l.Y) && stop <= len(l.Y) {
+			l.Y = l.Y[start:stop]
+		}
+		if start < len(l.C) && stop <= len(l.C) {
+			l.C = l.C[start:stop]
+		}
 
-	a.drawLine(p, xy, cs, l, 0, false)
+		a.drawLine(p, xy, cs, l, 0, false)
+	*/
 }
 
+/* is this needed?
 // drawDirectLine draws a single line directly on the axes parent image.
 // It is used by StreamPlotter.
 func (a axes) drawDirectLine(l Line, xy xyer, cs vg.CoordinateSystem) {
 	r := image.Rectangle{image.Point{a.x, a.y}, image.Point{a.x + a.width, a.y + a.height}}
 	im := a.parent.SubImage(r)
-	/*
-		m := raster.Image{
-			Image: im.(*image.RGBA),
-			Color: a.plot.Style.Color.Order.Get(l.Style.Line.Color, l.Id+1).Color(),
-		}
-		x, y, _ := xy.XY(l)
-		raster.FloatLines(m, x, y, raster.CoordinateSystem(cs))
-	*/
+	//
+	//	m := raster.Image{
+	//		Image: im.(*image.RGBA),
+	//		Color: a.plot.Style.Color.Order.Get(l.Style.Line.Color, l.Id+1).Color(),
+	//	}
+	//	x, y, _ := xy.XY(l)
+	//	raster.FloatLines(m, x, y, raster.CoordinateSystem(cs))
+	//
 	p := vg.NewPainter(im.(*image.RGBA))
 	a.drawLine(p, xy, cs, l, 0, false)
 	p.Paint()
 }
+*/
 
+/*?
 // drawPixel draws a single pixel directly on the parent image.
 // It is used by StreamPlotter.
 func (a axes) drawPixel(x, y float64, cs vg.CoordinateSystem, c color.Color) {
@@ -588,122 +610,125 @@ func (a axes) drawPixel(x, y float64, cs vg.CoordinateSystem, c color.Color) {
 	xp, yp := cs.Pixel(x, y, r)
 	a.parent.Set(xp, yp, c)
 }
+*/
 
 // drawPoint draws a highlighted point.
 // pointNumber does not count NaN's.
-func (a axes) drawPoint(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, z int, pointNumber int) {
-	x, y, isEnvelope := xy.XY(l)
+func (a axes) drawPoint(p *vg.Painter, xy xyer, cs vg.CoordinateSystem, l Line, z int, pointNumber int) { //todo
+	/*
+		x, y, isEnvelope := xy.XY(l)
 
-	// add number of NaNs leading pointNumber to pointNumber.
-	targetNumber := pointNumber
-	for i, v := range x {
-		if i > targetNumber {
-			break
+		// add number of NaNs leading pointNumber to pointNumber.
+		targetNumber := pointNumber
+		for i, v := range x {
+			if i > targetNumber {
+				break
+			}
+			if math.IsNaN(v) {
+				pointNumber++
+			}
 		}
-		if math.IsNaN(v) {
-			pointNumber++
-		}
-	}
 
-	if len(x) <= pointNumber || len(y) <= pointNumber || pointNumber < 0 {
-		return
-	}
-	p.SetFont(font1)
-	labels := make([]vg.FloatText, 2)
-	if isEnvelope {
-		if n := len(x); n != len(y) || pointNumber+2 > n {
+		if len(x) <= pointNumber || len(y) <= pointNumber || pointNumber < 0 {
 			return
+		}
+		p.SetFont(font1)
+		labels := make([]vg.FloatText, 2)
+		if isEnvelope {
+			if n := len(x); n != len(y) || pointNumber+2 > n {
+				return
+			} else {
+				xp, yp := x[pointNumber], y[pointNumber]
+				xp2, yp2 := x[n-pointNumber-2], y[n-pointNumber-2]
+				x = []float64{xp, xp2}
+				y = []float64{yp, yp2}
+				labels[0] = vg.FloatText{X: xp, Y: yp, S: fmt.Sprintf("(%.4g, %.4g)", xp, yp), Align: 5}
+				labels[1] = vg.FloatText{X: xp2, Y: yp2, S: fmt.Sprintf("(%.4g, %.4g)", xp2, yp2), Align: 1}
+			}
 		} else {
 			xp, yp := x[pointNumber], y[pointNumber]
-			xp2, yp2 := x[n-pointNumber-2], y[n-pointNumber-2]
-			x = []float64{xp, xp2}
-			y = []float64{yp, yp2}
-			labels[0] = vg.FloatText{X: xp, Y: yp, S: fmt.Sprintf("(%.4g, %.4g)", xp, yp), Align: 5}
-			labels[1] = vg.FloatText{X: xp2, Y: yp2, S: fmt.Sprintf("(%.4g, %.4g)", xp2, yp2), Align: 1}
-		}
-	} else {
-		xp, yp := x[pointNumber], y[pointNumber]
-		x = []float64{xp}
-		y = []float64{yp}
-		var s string
-		if xyp, ok := xy.(xyPolar); ok {
-			xstr := ""
-			if xyp.rmin == 0 && xyp.rmax == 0 { // polar
-				if len(l.X) > pointNumber && pointNumber >= 0 {
-					xstr = fmt.Sprintf("%.4g, ", l.X[pointNumber])
+			x = []float64{xp}
+			y = []float64{yp}
+			var s string
+			if xyp, ok := xy.(xyPolar); ok {
+				xstr := ""
+				if xyp.rmin == 0 && xyp.rmax == 0 { // polar
+					if len(l.X) > pointNumber && pointNumber >= 0 {
+						xstr = fmt.Sprintf("%.4g, ", l.X[pointNumber])
+					}
+					z := complex(yp, xp)
+					if xyp.ccw {
+						z = complex(xp, yp)
+					}
+					s = xstr + xmath.Absang(z, "%.4g@%.0f")
+				} else { // ring
+					s = fmt.Sprintf("%.4g@%.1f", l.X[pointNumber], 180.0*l.Y[pointNumber]/math.Pi)
 				}
-				z := complex(yp, xp)
-				if xyp.ccw {
-					z = complex(xp, yp)
-				}
-				s = xstr + xmath.Absang(z, "%.4g@%.0f")
-			} else { // ring
-				s = fmt.Sprintf("%.4g@%.1f", l.X[pointNumber], 180.0*l.Y[pointNumber]/math.Pi)
-			}
-		} else {
-			if a.zSpace > 0 {
-				s = fmt.Sprintf("(%.4g, %.4g, %.4g)", xp, yp, l.Z)
 			} else {
-				s = fmt.Sprintf("(%.4g, %.4g)", xp, yp)
+				if a.zSpace > 0 {
+					s = fmt.Sprintf("(%.4g, %.4g, %.4g)", xp, yp, l.Z)
+				} else {
+					s = fmt.Sprintf("(%.4g, %.4g)", xp, yp)
+				}
 			}
+			labels[0] = vg.FloatText{X: xp, Y: yp, Z: z, S: s, Align: 1}
+			labels = labels[:1]
 		}
-		labels[0] = vg.FloatText{X: xp, Y: yp, Z: z, S: s, Align: 1}
-		labels = labels[:1]
-	}
 
-	size := l.Style.Marker.Size
-	if size == 0 {
-		size = l.Style.Line.Width
-	}
-	if size == 0 {
-		size = 9
-	} else {
-		size *= 3
-	}
-	c := a.plot.Style.Order.Get(l.Style.Marker.Color, l.Id+1).Color()
-	p.SetColor(c)
-	p.Add(vg.FloatCircles{X: x, Y: y, Z: z, CoordinateSystem: cs, Radius: size, Fill: true})
-	rect := a.inside.Bounds()
-	for _, l := range labels {
-		l.CoordinateSystem = cs
-		l.Rect = rect
-
-		// Change the alignment, if the label would be placed at a picture boundary.
-		x0, y0 := cs.Pixel(l.X, l.Y, rect)
-		if l.Align == 1 && y0 < 30 {
-			l.Align = 5
-		} else if l.Align == 5 && y0 > rect.Max.Y-30 {
-			l.Align = 1
+		size := l.Style.Marker.Size
+		if size == 0 {
+			size = l.Style.Line.Width
 		}
-		if x0 < 50 {
-			if l.Align == 1 {
-				l.Align = 0
-			} else if l.Align == 5 {
-				l.Align = 6
+		if size == 0 {
+			size = 9
+		} else {
+			size *= 3
+		}
+		c := a.plot.Style.Order.Get(l.Style.Marker.Color, l.Id+1).Color()
+		p.SetColor(c)
+		p.Add(vg.FloatCircles{X: x, Y: y, Z: z, CoordinateSystem: cs, Radius: size, Fill: true})
+		rect := a.inside.Bounds()
+		for _, l := range labels {
+			l.CoordinateSystem = cs
+			l.Rect = rect
+
+			// Change the alignment, if the label would be placed at a picture boundary.
+			x0, y0 := cs.Pixel(l.X, l.Y, rect)
+			if l.Align == 1 && y0 < 30 {
+				l.Align = 5
+			} else if l.Align == 5 && y0 > rect.Max.Y-30 {
+				l.Align = 1
 			}
-		} else if x0 > rect.Max.X-50 {
-			if l.Align == 1 {
-				l.Align = 2
-			} else if l.Align == 5 {
-				l.Align = 4
+			if x0 < 50 {
+				if l.Align == 1 {
+					l.Align = 0
+				} else if l.Align == 5 {
+					l.Align = 6
+				}
+			} else if x0 > rect.Max.X-50 {
+				if l.Align == 1 {
+					l.Align = 2
+				} else if l.Align == 5 {
+					l.Align = 4
+				}
 			}
-		}
 
-		// Place the label above or below with the offset of the marker's radius.
-		if l.Align <= 2 { // Label is above point.
-			l.Yoff = -size
-		} else if l.Align >= 4 { // Label is below point
-			l.Yoff = size
-		}
+			// Place the label above or below with the offset of the marker's radius.
+			if l.Align <= 2 { // Label is above point.
+				l.Yoff = -size
+			} else if l.Align >= 4 { // Label is below point
+				l.Yoff = size
+			}
 
-		// Fill background rectangle of the label.
-		x, y, w, h := l.Extent(p)
-		saveColor := p.GetColor()
-		p.SetColor(a.bg)
-		p.Add(vg.Rectangle{X: x, Y: y, W: w, H: h, Fill: true})
-		p.SetColor(saveColor)
-		p.Add(l)
-	}
+			// Fill background rectangle of the label.
+			x, y, w, h := l.Extent(p)
+			saveColor := p.GetColor()
+			p.SetColor(a.bg)
+			p.Add(vg.Rectangle{X: x, Y: y, W: w, H: h, Fill: true})
+			p.SetColor(saveColor)
+			p.Add(l)
+		}
+	*/
 }
 
 // line converts the line endpoints to coordinates.
@@ -856,7 +881,7 @@ func (a axes) toFloats(x, y int) (X float64, Y float64) {
 // highlight copies the initial inside image,
 // plots over the original inside image with a highlighted line or data point.
 // draws it over the parent and restores the inside image.
-func (a *axes) highlight(ids []HighlightID, xy xyer) {
+func (a *axes) highlight(ids []HighlightID, xy xyer) { /* todo
 	// Backup axis inside image.
 	backup := image.NewRGBA(a.inside.Bounds())
 	draw.Draw(backup, a.inside.Bounds(), a.inside, image.Point{0, 0}, draw.Src)
@@ -866,7 +891,8 @@ func (a *axes) highlight(ids []HighlightID, xy xyer) {
 	lim := a.limits
 	cs := vg.CoordinateSystem{lim.Xmin, lim.Ymax, lim.Xmax, lim.Ymin} // upper left, lower right corner.
 	if a.zSpace > 0 {
-		cs = scale3d(cs, p.Image().Bounds(), float64(a.zSpace))
+		//cs = scale3d(cs, p.Image().Bounds(), float64(a.zSpace))
+		cs = scale3d(cs, image.Rect(0, 0, a.width, a.height), float64(a.zSpace))
 	}
 
 	if a.plot.Type == Raster {
@@ -913,62 +939,65 @@ func (a *axes) highlight(ids []HighlightID, xy xyer) {
 
 	// Restore the non-highlighted inside image from the backup.
 	a.inside = backup
+	*/
 }
 
-func (a *axes) highlightImage(ids []HighlightID, xy xyer, ptr *vg.Painter) {
-	if len(ids) != 1 {
-		return
-	}
-	if len(a.plot.Lines) != 1 {
-		return
-	}
-	if len(a.plot.Lines[0].Image) < 2 {
-		return
-	}
+func (a *axes) highlightImage(ids []HighlightID, xy xyer, ptr *vg.Painter) { //todo
+	/*
+		if len(ids) != 1 {
+			return
+		}
+		if len(a.plot.Lines) != 1 {
+			return
+		}
+		if len(a.plot.Lines[0].Image) < 2 {
+			return
+		}
 
-	id := ids[0]
-	lim := a.limits
-	cs := vg.CoordinateSystem{lim.Xmin, lim.Ymax, lim.Xmax, lim.Ymin} // upper left, lower right corner.
-	line0 := a.plot.Lines[0]
-	xf, yf := id.XImage, id.YImage
-	xi, yi, _ := line0.imageValueAt(xf, yf)
-	if xi < 0 || xi >= len(line0.Image) {
-		return
-	}
-	if yi < 0 || yi >= len(line0.Image[0]) {
-		return
-	}
-	l := Line{
-		X: line0.X,
-	}
-	for i := 0; i < len(line0.Image); i++ {
-		l.Y = append(l.Y, xmath.Scale(float64(line0.Image[i][yi]), 0, 255, lim.Ymin, 0.5*(lim.Ymin+lim.Ymax)))
-	}
+		id := ids[0]
+		lim := a.limits
+		cs := vg.CoordinateSystem{lim.Xmin, lim.Ymax, lim.Xmax, lim.Ymin} // upper left, lower right corner.
+		line0 := a.plot.Lines[0]
+		xf, yf := id.XImage, id.YImage
+		xi, yi, _ := line0.imageValueAt(xf, yf)
+		if xi < 0 || xi >= len(line0.Image) {
+			return
+		}
+		if yi < 0 || yi >= len(line0.Image[0]) {
+			return
+		}
+		l := Line{
+			X: line0.X,
+		}
+		for i := 0; i < len(line0.Image); i++ {
+			l.Y = append(l.Y, xmath.Scale(float64(line0.Image[i][yi]), 0, 255, lim.Ymin, 0.5*(lim.Ymin+lim.Ymax)))
+		}
 
-	// Draw horizontal line throught selection.
-	a.drawLine(ptr, xy, cs, Line{
-		X: []float64{lim.Xmin, lim.Xmax},
-		Y: []float64{yf, yf},
-	}, 0, false)
+		// Draw horizontal line throught selection.
+		a.drawLine(ptr, xy, cs, Line{
+			X: []float64{lim.Xmin, lim.Xmax},
+			Y: []float64{yf, yf},
+		}, 0, false)
 
-	// Draw vertical line throught selection.
-	style2 := DataStyle{Line: LineStyle{Color: 2}}
-	a.drawLine(ptr, xy, cs, Line{
-		X:     []float64{xf, xf},
-		Y:     []float64{lim.Ymin, lim.Ymax},
-		Style: style2,
-	}, 0, false)
+		// Draw vertical line throught selection.
+		style2 := DataStyle{Line: LineStyle{Color: 2}}
+		a.drawLine(ptr, xy, cs, Line{
+			X:     []float64{xf, xf},
+			Y:     []float64{lim.Ymin, lim.Ymax},
+			Style: style2,
+		}, 0, false)
 
-	// Draw horizontal spectral line from the bottom to half the height.
-	a.drawLine(ptr, xy, cs, l, 0, false)
+		// Draw horizontal spectral line from the bottom to half the height.
+		a.drawLine(ptr, xy, cs, l, 0, false)
 
-	// Draw vertical spectral line from the right edge to half the width.
-	l = Line{
-		Y:     line0.Y,
-		Style: style2,
-	}
-	for i := 0; i < len(line0.Image[xi]); i++ {
-		l.X = append(l.X, xmath.Scale(float64(line0.Image[xi][i]), 0, 255, lim.Xmax, 0.5*(lim.Xmin+lim.Xmax)))
-	}
-	a.drawLine(ptr, xy, cs, l, 0, false)
+		// Draw vertical spectral line from the right edge to half the width.
+		l = Line{
+			Y:     line0.Y,
+			Style: style2,
+		}
+		for i := 0; i < len(line0.Image[xi]); i++ {
+			l.X = append(l.X, xmath.Scale(float64(line0.Image[xi][i]), 0, 255, lim.Xmax, 0.5*(lim.Xmin+lim.Xmax)))
+		}
+		a.drawLine(ptr, xy, cs, l, 0, false)
+	*/
 }

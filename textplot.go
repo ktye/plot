@@ -25,7 +25,8 @@ func ErrorPlot(err error) Plots {
 }
 
 // Create a new text plot in the subimage.
-func (plt *Plot) NewTextPlot(width, height int) (p textPlot, err error) {
+func (plt *Plot) NewTextPlot(d vg.Drawer) (p textPlot, err error) {
+	width, height := d.Size()
 	p.plot = plt
 
 	p.im = image.NewRGBA(image.Rect(0, 0, width, height))

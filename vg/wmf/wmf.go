@@ -10,8 +10,10 @@ import (
 	"fmt"
 )
 
-func New() *File {
+func New(w, h int) *File {
 	f := File{
+		width:  w,
+		height: h,
 		Header: Header{
 			//Key:     2596720087,
 			//Right:   int16(w),
@@ -27,7 +29,8 @@ func New() *File {
 
 type File struct {
 	Header
-	Records []Record
+	Records       []Record
+	width, height int
 }
 type Header struct {
 	/*
@@ -196,7 +199,8 @@ func (f *File) CreateBrush(b Brush) { //createbrushindirect
 func (f *File) SetMapMode(mode uint16) { //mode: 1(text:pixels) 2(1u=.1mm) 3(1u=.01mm) 4(1u=.01in) 5(1u=.001in) 6(twip 1/20th of a point which is 1/1440 of an inch) 2.1.1.16
 	f.push(Record{4, 0x0103, []uint16{mode}})
 }
-func (f *File) SetViewportExt(w, h int16) { f.push(Record{5, 0x020e, []uint16{uint16(w), uint16(h)}}) }
+
+// func (f *File) SetWindowExt(w, h int16) { f.push(Record{5, 0x020c, []uint16{uint16(h), uint16(w)}}) }
 func (f *File) Select(i int) { //selectobject
 	if i < 0 {
 		i = int(f.NumObjects - 1)
@@ -235,10 +239,17 @@ func (f *File) setChecksum() { //of the leading 10words on the header
 */
 func (f *File) MarshallBinary() []byte {
 	//	f.setChecksum()
-	f.push(Record{3, 0, nil}) //eof
+
+	r := make([]Record, 3+len(f.Records))
+	r[0] = Record{5, 0x020c, []uint16{uint16(f.height), uint16(f.width)}} //SetWindowExt
+	r[1] = Record{4, 0x0103, []uint16{1}}                                 //setmapmode 1(pixel) 2(1unit=0.1mm) 4(1u=0.01in)
+	for i, x := range f.Records {
+		r[2+i] = x
+	}
+	r[len(r)-1] = Record{3, 0, nil} //eof
 
 	m, total := 0, 0
-	for _, r := range f.Records {
+	for _, r := range r {
 		n := r.size()
 		total += n
 		if n > m {
@@ -250,10 +261,10 @@ func (f *File) MarshallBinary() []byte {
 
 	var b bytes.Buffer
 	fatal(binary.Write(&b, binary.LittleEndian, f.Header))
-	for _, r := range f.Records {
-		fatal(binary.Write(&b, binary.LittleEndian, r.Size))
-		fatal(binary.Write(&b, binary.LittleEndian, r.Cmd))
-		for _, d := range r.Data {
+	for _, x := range r {
+		fatal(binary.Write(&b, binary.LittleEndian, x.Size))
+		fatal(binary.Write(&b, binary.LittleEndian, x.Cmd))
+		for _, d := range x.Data {
 			fatal(binary.Write(&b, binary.LittleEndian, d))
 		}
 	}

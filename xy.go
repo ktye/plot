@@ -3,6 +3,8 @@ package plot
 import (
 	"image"
 	"image/color"
+
+	"github.com/ktye/plot/vg"
 )
 
 // xyPlot is a standard rectangular x-y plot.
@@ -53,7 +55,8 @@ type xyDimension struct {
 
 // Create a new xy plot.
 // Width, height is the available space, the image will be smaller.
-func (plt *Plot) NewXY(width, height int) (p xyPlot, err error) {
+func (plt *Plot) NewXY(d vg.Drawer) (p xyPlot, err error) {
+	width, height := d.Size()
 	p.plot = plt
 	p.Limits = plt.getXYLimits()
 	xtics := getXTics(p.Limits)
@@ -100,7 +103,7 @@ func (plt *Plot) NewXY(width, height int) (p xyPlot, err error) {
 		p.plotAreaWidth,
 		p.plotAreaHeight,
 		p.Limits,
-		p.im,
+		d,
 	)
 	p.ax = &ax
 

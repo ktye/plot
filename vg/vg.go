@@ -33,7 +33,7 @@ import (
 // Some types which implement the interface are defined in this package, but
 // others may be defined by the package clients.
 // Drawers should only call painters methods: SetColor, Fill and Stroke.
-type Drawer interface {
+type drawer interface {
 	Draw(*Painter)
 }
 
@@ -44,12 +44,12 @@ type Painter struct {
 	currentColor color.Color
 	currentFace  font.Face
 	fontDrawer   font.Drawer
-	drawers      []Drawer
+	drawers      []drawer
 	colors       []color.Color
 	faces        []font.Face
 }
 
-func (p *Painter) Add(d Drawer) {
+func (p *Painter) Add(d drawer) {
 	p.drawers = append(p.drawers, d)
 	p.colors = append(p.colors, p.currentColor)
 	p.faces = append(p.faces, p.currentFace)

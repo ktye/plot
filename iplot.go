@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/draw"
+
+	"github.com/ktye/plot/vg"
 )
 
 // IPlotter is an interactive plotter, that is a plot
@@ -29,28 +30,29 @@ func (p Plots) IPlots(width, height, columns int) ([]IPlotter, error) {
 		return nil, fmt.Errorf("there are no plots.")
 	}
 
+	m := vg.NewImage(width, height)
 	g := newGrid(len(p), width, height, columns)
 	w, h := g.w, g.h
-
+	x, y := 0, 0 //todo
 	plotters := make([]IPlotter, len(p))
 	for i := 0; i < len(p); i++ {
 		switch p[i].Type {
 		case "":
-			plotters[i], err = p[i].NewEmpty(w, h)
+			plotters[i], err = p[i].NewEmpty(m.SubImage(x, y, w, h))
 		case XY, Raster:
-			plotters[i], err = p[i].NewXY(w, h)
+			plotters[i], err = p[i].NewXY(m.SubImage(x, y, w, h))
 		case Polar:
-			plotters[i], err = p[i].NewPolar(w, h, false)
+			plotters[i], err = p[i].NewPolar(m.SubImage(x, y, w, h), false)
 		case Ring:
-			plotters[i], err = p[i].NewPolar(w, h, true)
+			plotters[i], err = p[i].NewPolar(m.SubImage(x, y, w, h), true)
 		case AmpAng:
-			plotters[i], err = p[i].NewAmpAng(w, h)
+			plotters[i], err = p[i].NewAmpAng(m.SubImage(x, y, w, h))
 		case Waterfall:
-			plotters[i], err = p[i].NewWaterfall(w, h)
+			plotters[i], err = p[i].NewWaterfall(m.SubImage(x, y, w, h))
 		case Foto:
-			plotters[i], err = p[i].NewFoto(w, h)
+			plotters[i], err = p[i].NewFoto(m.SubImage(x, y, w, h))
 		case Text:
-			plotters[i], err = p[i].NewTextPlot(w, h)
+			plotters[i], err = p[i].NewTextPlot(m.SubImage(x, y, w, h))
 		default:
 			return plotters, fmt.Errorf("plot type: '%s' is not implemented.", p[i].Type)
 		}
@@ -69,17 +71,20 @@ func Image(h []IPlotter, ids []HighlightID, width, height, columns int) image.Im
 	if len(h) < 1 {
 		return nil
 	}
-	m := image.NewRGBA(image.Rect(0, 0, width, height))
-	draw.Draw(m, m.Bounds(), &image.Uniform{h[0].background()}, image.ZP, draw.Src)
-	g := newGrid(len(h), width, height, columns)
-	// w := width / len(h)
-	for i := range h {
-		im := h[i].image()
-		im = h[i].highlight(ids)
-		rect := g.center(g.rect(i), im)
-		draw.Draw(m, rect, im, image.Point{0, 0}, draw.Src)
-	}
-	return m
+	/*
+		m := image.NewRGBA(image.Rect(0, 0, width, height))
+		draw.Draw(m, m.Bounds(), &image.Uniform{h[0].background()}, image.ZP, draw.Src)
+		g := newGrid(len(h), width, height, columns)
+		// w := width / len(h)
+		for i := range h {
+			im := h[i].image()
+			im = h[i].highlight(ids)
+			rect := g.center(g.rect(i), im)
+			draw.Draw(m, rect, im, image.Point{0, 0}, draw.Src)
+		}
+		return m
+	*/
+	return h[0].image() //todo..
 }
 
 type imageResult struct {

@@ -3,13 +3,16 @@ package plot
 import (
 	"image"
 	"math"
+
+	"github.com/ktye/plot/vg"
 )
 
 type waterfallPlot struct {
 	xyPlot
 }
 
-func (plt *Plot) NewWaterfall(width, height int) (p waterfallPlot, err error) {
+func (plt *Plot) NewWaterfall(d vg.Drawer) (p waterfallPlot, err error) {
+	width, height := d.Size()
 	p.plot = plt
 	p.Limits = plt.getXYLimits()
 	xtics := getXTics(p.Limits)
@@ -48,7 +51,7 @@ func (plt *Plot) NewWaterfall(width, height int) (p waterfallPlot, err error) {
 		p.plotAreaWidth,
 		p.plotAreaHeight,
 		p.Limits,
-		p.im,
+		d,
 	)
 	ax.zSpace = zSpace
 	p.ax = &ax

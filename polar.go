@@ -5,6 +5,8 @@ import (
 	"image"
 	"image/color"
 	"math"
+
+	"github.com/ktye/plot/vg"
 )
 
 // polarPlot is an implementation of the HiPlotter interface.
@@ -13,8 +15,8 @@ type polarPlot struct {
 	Limits       // computed axis limits
 	ring   bool
 	polarDimension
-	im   *image.RGBA
-	axes *axes
+	axes   *axes
+	drawer vg.Drawer
 }
 
 // Vertical layout
@@ -44,7 +46,9 @@ type polarDimension struct {
 
 // Create a new polar coordinate system in the subimage.
 // Width and height are available areas on input, the image (p.im) will be smaller.
-func (plt *Plot) NewPolar(width, height int, isRing bool) (p polarPlot, err error) {
+func (plt *Plot) NewPolar(d vg.Drawer, isRing bool) (p polarPlot, err error) {
+	width, height := d.Size()
+	p.drawer = d
 	p.plot = plt
 	p.ring = isRing
 	p.Limits = plt.getPolarLimits(p.ring)
@@ -89,14 +93,14 @@ func (plt *Plot) NewPolar(width, height int, isRing bool) (p polarPlot, err erro
 	height = vFix() + p.polarDiameter // p.titleHeight + 2*p.ticLabelHeight + 2*p.ticLength + p.polarDiameter
 
 	// Create Image.
-	p.im = image.NewRGBA(image.Rect(0, 0, width, height))
+	//p.im = image.NewRGBA(image.Rect(0, 0, width, height))
 	ax := plt.newAxes(
 		p.ticLabelWidth+border,
 		p.titleHeight+p.ticLabelHeight+border,
 		p.polarDiameter,
 		p.polarDiameter,
 		p.Limits,
-		p.im,
+		d,
 	)
 	p.axes = &ax
 
@@ -109,6 +113,8 @@ func (p polarPlot) draw(noTics bool) {
 	p.axes.fillParentBackground()
 	p.axes.drawPolar(p.ring, ccw, noTics)
 	p.axes.drawTitle(p.ticLabelHeight)
+	p.axes.inside.Paint()
+	p.drawer.Paint()
 }
 
 func (p polarPlot) background() color.Color {
@@ -116,7 +122,7 @@ func (p polarPlot) background() color.Color {
 }
 
 func (p polarPlot) image() *image.RGBA {
-	return p.im
+	return p.drawer.(*vg.Image).RGBA
 }
 
 func (p polarPlot) zoom(x, y, dx, dy int) bool {
@@ -231,5 +237,5 @@ func (p polarPlot) highlight(id []HighlightID) *image.RGBA {
 		//a.drawPolarTics(p.ring, ccw, a.limits.isPolarLimits() == false)
 		//a.drawPolarCircle(p.ring)
 	}
-	return p.im
+	return p.drawer.(*vg.Image).RGBA
 }

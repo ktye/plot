@@ -3,6 +3,8 @@ package plot
 import (
 	"image"
 	"image/color"
+
+	"github.com/ktye/plot/vg"
 )
 
 // ampAngPlot is an implementation of the HiPlotter interface.
@@ -54,7 +56,8 @@ type ampAngDimension struct {
 
 // Create a new ampang plot.
 // width height is the available space, the image will be smaller.
-func (plt *Plot) NewAmpAng(width, height int) (p ampAngPlot, err error) {
+func (plt *Plot) NewAmpAng(d vg.Drawer) (p ampAngPlot, err error) {
+	width, height := d.Size()
 	p.plot = plt
 	p.Limits = plt.getAmpAngLimits()
 	xtics := getXTics(p.Limits)
@@ -111,7 +114,7 @@ func (plt *Plot) NewAmpAng(width, height int) (p ampAngPlot, err error) {
 		p.plotAreaWidth,
 		p.ampAreaHeight,
 		p.Limits,
-		p.im,
+		d,
 	)
 	p.amp = &amp
 
@@ -121,7 +124,7 @@ func (plt *Plot) NewAmpAng(width, height int) (p ampAngPlot, err error) {
 		p.plotAreaWidth,
 		p.angAreaHeight,
 		Limits{false, p.Limits.Xmin, p.Limits.Xmax, -180.0, 180.0, 0, 0},
-		p.im,
+		d,
 	)
 	p.ang = &ang
 

@@ -10,6 +10,7 @@ import (
 	"image/png"
 	"strings"
 
+	"github.com/ktye/plot/vg"
 	"golang.org/x/image/draw"
 )
 
@@ -32,7 +33,8 @@ func EncodeToPng(m image.Image) (string, error) {
 }
 
 // Create a new foto plot in the subimage.
-func (plt *Plot) NewFoto(width, height int) (p fotoPlot, err error) {
+func (plt *Plot) NewFoto(d vg.Drawer) (p fotoPlot, err error) {
+	width, height := d.Size()
 	p.plot = plt
 	border := plt.defaultBorder()
 

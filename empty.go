@@ -4,6 +4,8 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+
+	"github.com/ktye/plot/vg"
 )
 
 // emptyPlot implements an IPlotter that returns an empty image.
@@ -15,7 +17,8 @@ type emptyPlot struct {
 	im            *image.RGBA
 }
 
-func (plt *Plot) NewEmpty(w, h int) (p *emptyPlot, err error) {
+func (plt *Plot) NewEmpty(d vg.Drawer) (p *emptyPlot, err error) {
+	w, h := d.Size()
 	return &emptyPlot{plot: plt, width: w, height: h}, nil
 }
 
