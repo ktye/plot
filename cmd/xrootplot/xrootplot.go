@@ -35,8 +35,7 @@ ktye/plot/cmd/xrootplot/xrootplot.go
  -c   console output (default iterm2 image)
  -p   convert to plt format
  -wWIDTH -hHEIGHT (also from env)
-  0.. plot number
-`
+  0.. plot number`
 
 var dst, dat, tab, sgl, plt, wid, hei, out = TERM, false, false, false, false, 0, 0, ""
 var idx []int
@@ -100,7 +99,7 @@ func pp(p plot.Plots) {
 	}
 	w, h := screensize()
 	d := vg.NewImage(w, h)
-	ip, e := p.IPlots(d, 0)
+	ip, e := p.Iplots(d, 0)
 	fatal(e)
 	m := ip.Image(nil).(*image.RGBA)
 	switch dst {

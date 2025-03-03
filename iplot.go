@@ -13,7 +13,7 @@ import (
 // IPlotter is an interactive plotter, that is a plot
 // which can highlight a specific data series and
 // has zoom and pan methods.
-type IPlotter interface {
+type Iplotter interface {
 	image() *image.RGBA
 	highlight([]HighlightID) *image.RGBA
 	background() color.Color
@@ -25,14 +25,14 @@ type IPlotter interface {
 }
 
 type Iplots struct {
-	p []IPlotter
+	p []Iplotter
 	d vg.Drawer
 	g grid
 }
 
 // IPlots returns a slice of IPlotters, one for each plot.
 // The subplots are shown next to each other.
-func (p Plots) IPlots(d vg.Drawer, columns int) (Iplots, error) {
+func (p Plots) Iplots(d vg.Drawer, columns int) (Iplots, error) {
 	width, height := d.Size()
 	var err error
 	if len(p) == 0 {
@@ -40,12 +40,13 @@ func (p Plots) IPlots(d vg.Drawer, columns int) (Iplots, error) {
 	}
 	g := newGrid(len(p), width, height, columns)
 	r := Iplots{
-		p: make([]IPlotter, len(p)),
+		p: make([]Iplotter, len(p)),
 		d: d,
 		g: g,
 	}
 	for i := 0; i < len(p); i++ {
 		rect := g.rect(i) //center?
+		fmt.Println("Iplots rect:", rect)
 		switch p[i].Type {
 		case "":
 			r.p[i], err = p[i].NewEmpty(d.SubImage(rect))
@@ -73,10 +74,24 @@ func (p Plots) IPlots(d vg.Drawer, columns int) (Iplots, error) {
 	return r, nil
 }
 
-func (p Iplots) Image(idx []HighlightID) image.Image {
+func (p Iplots) Image(ids []HighlightID) image.Image {
 	if len(p.p) < 1 {
 		return nil
 	}
+
+	//m := image.NewRGBA(image.Rect(0, 0, width, height))
+	//draw.Draw(m, m.Bounds(), &image.Uniform{h[0].background()}, image.ZP, draw.Src)
+	//		g := newGrid(len(h), width, height, columns)
+	//		// w := width / len(h)
+
+	for i := range p.p {
+		//im := p.p[i].image()
+		//im = h[i].highlight(ids)
+		p.p[i].highlight(ids)
+		//rect := g.center(g.rect(i), im)
+		//draw.Draw(m, rect, im, image.Point{0, 0}, draw.Src)
+	}
+
 	im, ok := p.d.(*vg.Image)
 	if !ok {
 		return nil
@@ -84,10 +99,11 @@ func (p Iplots) Image(idx []HighlightID) image.Image {
 	//todo highlight
 
 	return im.RGBA
+
 }
 
 func (p Plots) Png(width, height, columns int, idx []HighlightID) ([]byte, error) {
-	ip, e := p.IPlots(vg.NewImage(width, height), columns)
+	ip, e := p.Iplots(vg.NewImage(width, height), columns)
 	if e != nil {
 		return nil, e
 	}

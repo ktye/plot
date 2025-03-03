@@ -105,10 +105,12 @@ func (plt *Plot) NewPolar(d vg.Drawer, isRing bool) (p polarPlot, err error) {
 	p.axes = &ax
 
 	p.draw(false)
+	p.axes.store()
 	return p, nil
 }
 
 func (p polarPlot) draw(noTics bool) {
+	p.axes.reset()
 	ccw := p.plot.Style.Counterclockwise
 	p.axes.fillParentBackground()
 	p.axes.drawPolar(p.ring, ccw, noTics)
@@ -139,7 +141,9 @@ func (p polarPlot) zoom(x, y, dx, dy int) bool {
 	p.axes.limits.Ymin = Y0
 	p.axes.limits.Ymax = Y1
 	//p.axes.drawPolarDataOnly(p.plot.Style.Counterclockwise)
+	p.axes.reset()
 	p.draw(true)
+	p.axes.store()
 	return true
 }
 
@@ -152,7 +156,9 @@ func (p polarPlot) pan(x, y, dx, dy int) bool {
 	p.axes.limits.Xmax -= DX
 	p.axes.limits.Ymin += DY
 	p.axes.limits.Ymax += DY
+	p.axes.reset()
 	p.draw(true)
+	p.axes.store()
 	return true
 }
 
@@ -233,6 +239,7 @@ func (p polarPlot) highlight(id []HighlightID) *image.RGBA {
 	if id != nil {
 		ccw := p.plot.Style.Counterclockwise
 		a := p.axes
+		a.restore()
 		a.highlight(id, a.xyRing(ccw))
 		//a.drawPolarTics(p.ring, ccw, a.limits.isPolarLimits() == false)
 		//a.drawPolarCircle(p.ring)

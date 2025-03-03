@@ -5,7 +5,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
 	"math"
 	"math/cmplx"
 	"strings"
@@ -17,22 +16,10 @@ import (
 func TestPlot(t *testing.T) {
 	p := Plots{xy, polar, ampang, heatmap}
 	w, h := 800, 400
-	ip, err := p.IPlots(w, h, 0)
-	if err != nil {
-		t.Fatal(err)
+	_, e := p.Png(w, h, 0, nil)
+	if e != nil {
+		t.Fatal(e)
 	}
-	im := Image(ip, nil, w, h, 0)
-
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, im); err != nil {
-		t.Fatal(err)
-	}
-
-	/*
-		if err := ioutil.WriteFile("out.png", buf.Bytes(), 0644); err != nil {
-			t.Fatal(err)
-		}
-	*/
 }
 func TestEncDec(t *testing.T) {
 	var buf bytes.Buffer

@@ -47,6 +47,7 @@ type Painter struct {
 	drawers      []drawer
 	colors       []color.Color
 	faces        []font.Face
+	x0, y0       int
 }
 
 func (p *Painter) Add(d drawer) {
@@ -67,6 +68,8 @@ func (p *Painter) Paint() {
 		d.Draw(p)
 	}
 }
+
+//func (p *Painter) x0(x int) {p.
 
 func (p *Painter) SetColor(c color.Color) {
 	p.currentColor = c
@@ -111,6 +114,8 @@ func NewPainter(im *image.RGBA) *Painter {
 		currentColor: color.Black,
 		currentFace:  fd.Face,
 		fontDrawer:   fd,
+		x0:           im.Bounds().Min.X,
+		y0:           im.Bounds().Min.Y,
 	}
 }
 
@@ -127,17 +132,17 @@ type Text struct {
 func (t Text) Draw(p *Painter) {
 	bounds, _ := font.BoundString(p.fontDrawer.Face, t.S)
 	metrics := p.fontDrawer.Face.Metrics()
-	x, y, _, _ := t.Extent(p)
+	x, y, _, _ := p.Extent(t)
 	ascent := metrics.Ascent.Ceil()
 	y += ascent
 	x -= bounds.Min.X.Ceil()
-	p.fontDrawer.Dot = fixed.P(x, y)
+	p.fontDrawer.Dot = fixed.P(x+p.x0, y+p.y0)
 	p.fontDrawer.DrawString(t.S)
 }
 
 // Extent returns the Rectangle values which covers the text.
 // x, y is the top left corner.
-func (t Text) Extent(p *Painter) (x, y, width, height int) {
+func (p *Painter) Extent(t Text) (x, y, width, height int) {
 	x, y = t.X, t.Y
 	bounds, _ := font.BoundString(p.fontDrawer.Face, t.S)
 	d := bounds.Max.Sub(bounds.Min)
@@ -167,7 +172,7 @@ type Pixel struct {
 }
 
 func (x Pixel) Draw(p *Painter) {
-	p.im.Set(x.X, x.Y, p.currentColor)
+	p.im.Set(x.X+p.x0, x.Y+p.y0, p.currentColor)
 }
 
 // Rectangle within these limits.
@@ -182,7 +187,7 @@ type Rectangle struct {
 }
 
 func (r Rectangle) Draw(p *Painter) {
-	rect := image.Rect(r.X, r.Y, r.X+r.W+1, r.Y+r.H+1)
+	rect := image.Rect(r.X+p.x0, r.Y+p.y0, r.X+p.x0+r.W+1, r.Y+p.y0+r.H+1)
 	if r.Fill {
 		draw.Draw(p.im, rect, image.NewUniform(p.currentColor), image.ZP, draw.Src)
 	} else {
@@ -192,6 +197,7 @@ func (r Rectangle) Draw(p *Painter) {
 		draw.Draw(frame, frame.Bounds(), image.NewUniform(color.Opaque), image.ZP, draw.Src)
 		innerRect := image.Rect(r.LineWidth, r.LineWidth, r.W-r.LineWidth, r.H-r.LineWidth)
 		draw.Draw(frame, innerRect, image.NewUniform(color.Transparent), image.ZP, draw.Src)
+		//todo add p.x0 p.y0 ..........vv...vv?
 		draw.DrawMask(p.im, image.Rect(r.X, r.Y, r.W+1, r.H+1), image.NewUniform(p.currentColor), image.ZP, frame, image.ZP, draw.Over)
 	}
 }
@@ -204,10 +210,10 @@ type Triangle struct {
 
 func (t Triangle) Draw(p *Painter) {
 	var path raster.Path
-	path = append(path, 0, fixed.I(t.X0), fixed.I(t.Y0), 0)
-	path = append(path, 1, fixed.I(t.X1), fixed.I(t.Y1), 1)
-	path = append(path, 1, fixed.I(t.X2), fixed.I(t.Y2), 1)
-	path = append(path, 1, fixed.I(t.X0), fixed.I(t.Y0), 1)
+	path = append(path, 0, fixed.I(t.X0+p.x0), fixed.I(t.Y0+p.y0), 0)
+	path = append(path, 1, fixed.I(t.X1+p.x0), fixed.I(t.Y1+p.y0), 1)
+	path = append(path, 1, fixed.I(t.X2+p.x0), fixed.I(t.Y2+p.y0), 1)
+	path = append(path, 1, fixed.I(t.X0+p.x0), fixed.I(t.Y0+p.y0), 1)
 	if t.LineWidth > 0 {
 		p.Stroke(path, t.LineWidth)
 	} else {
@@ -238,7 +244,7 @@ func (c Circle) Draw(p *Painter) {
 		r -= fixed.Int26_6(c.LineWidth * 32) // substract half the linewidth.
 	}
 	c26_6 := circle{x, y, r}
-	path := c26_6.getPath()
+	path := c26_6.getPath(p.x0, p.y0)
 	if c.Fill {
 		p.Fill(path)
 	} else {
@@ -253,8 +259,8 @@ type circle struct {
 }
 
 // getPath approximates a circle by 8 quadrativ curve segments.
-func (c circle) getPath() raster.Path {
-	d := fixed.Point26_6{c.x, c.y}
+func (c circle) getPath(x0, y0 int) raster.Path {
+	d := fixed.Point26_6{c.x + fixed.I(x0), c.y + fixed.I(y0)}
 	r := c.r
 	s := fixed.Int26_6(float64(c.r) * math.Sqrt(2.0) / 2.0)
 	t := fixed.Int26_6(float64(c.r) * math.Tan(math.Pi/8))
@@ -286,7 +292,7 @@ type Line struct {
 }
 
 func (l Line) Draw(p *Painter) {
-	x0, y0, x1, y1 := fixed.I(l.X), fixed.I(l.Y), fixed.I(l.X+l.DX), fixed.I(l.Y+l.DY)
+	x0, y0, x1, y1 := fixed.I(l.X+p.x0), fixed.I(l.Y+p.y0), fixed.I(l.X+p.x0+l.DX), fixed.I(l.Y+p.y0+l.DY)
 	hp := fixed.Int26_6(32) // half a pixel, this makes sure, a 1px line is not shared between 2 pixels.
 	if l.Floor && l.LineWidth%2 == 0 {
 		hp = 0
@@ -308,10 +314,10 @@ type Ray struct {
 }
 
 func (r Ray) Draw(p *Painter) {
-	x0 := float64(r.X) + float64(r.R)*math.Cos(r.Phi) - 0.5
-	y0 := float64(r.Y) + float64(r.R)*math.Sin(r.Phi) - 0.5
-	x1 := float64(r.X) + float64(r.R+r.L)*math.Cos(r.Phi) - 0.5
-	y1 := float64(r.Y) + float64(r.R+r.L)*math.Sin(r.Phi) - 0.5
+	x0 := float64(r.X+p.x0) + float64(r.R)*math.Cos(r.Phi) - 0.5
+	y0 := float64(r.Y+p.y0) + float64(r.R)*math.Sin(r.Phi) - 0.5
+	x1 := float64(r.X+p.x0) + float64(r.R+r.L)*math.Cos(r.Phi) - 0.5
+	y1 := float64(r.Y+p.y0) + float64(r.R+r.L)*math.Sin(r.Phi) - 0.5
 	path := raster.Path{
 		0, fixed.Int26_6(int(x0 * 64.0)), fixed.Int26_6(int(y0 * 64.0)), 0,
 		1, fixed.Int26_6(int(x1 * 64.0)), fixed.Int26_6(int(y1 * 64.0)), 1,
@@ -328,7 +334,7 @@ type Lines struct {
 func (l Lines) Draw(p *Painter) {
 	var path raster.Path
 	for _, c := range l.Coords {
-		x0, y0, x1, y1 := fixed.I(c.X), fixed.I(c.Y), fixed.I(c.X+c.DX), fixed.I(c.Y+c.DY)
+		x0, y0, x1, y1 := fixed.I(c.X+p.x0), fixed.I(c.Y+p.y0), fixed.I(c.X+p.x0+c.DX), fixed.I(c.Y+p.y0+c.DY)
 		path = append(path, 0, x0, y0, 0, 1, x1, y1, 1)
 	}
 	p.Stroke(path, l.LineWidth)
@@ -362,6 +368,8 @@ func (f FloatTics) Draw(p *Painter) {
 		}
 		rect := rect26_6(f.Rect)
 		x, y := transform(X, Y, f.CoordinateSystem, rect)
+		x += fixed.I(p.x0)
+		y += fixed.I(p.y0)
 		// round to pixel
 		x /= 64
 		x *= 64
@@ -409,9 +417,11 @@ func (a ArrowHead) Draw(p *Painter) {
 	dx, dy = transformDirection(dx, dy, a.CoordinateSystem, rect26_6(p.im.Bounds())) // unit vector in pixels (float64)
 	A := float64(a.LineWidth * 12)                                                   // arrow head length (pixels)
 	B := A / 5.0                                                                     // short cathetus length
-	xa, ya := float64(x)/64.0-A*dx, float64(y)/64.0-A*dy                             // arrow base point on the line
-	xb, yb := xa-B*dy, ya+B*dx                                                       // corner points
-	xc, yc := xa+B*dy, ya-B*dx                                                       //
+	x += fixed.I(p.x0)
+	y += fixed.I(p.y0)
+	xa, ya := float64(x)/64.0-A*dx, float64(y)/64.0-A*dy // arrow base point on the line
+	xb, yb := xa-B*dy, ya+B*dx                           // corner points
+	xc, yc := xa+B*dy, ya-B*dx                           //
 	f := func(p float64) fixed.Int26_6 { return fixed.Int26_6(int(64.0 * p)) }
 	path := raster.Path{0, x, y, 0, 1, f(xb), f(yb), 1, 1, f(xa), f(ya), 1, 1, f(xc), f(yc), 1, 1, x, y, 1}
 	p.Fill(path)
@@ -436,6 +446,8 @@ func (f FloatPath) Draw(p *Painter) {
 			continue
 		}
 		x, y := transform(f.X[i], f.Y[i], f.CoordinateSystem, rect26_6(p.im.Bounds()))
+		x += fixed.I(p.x0)
+		y += fixed.I(p.y0)
 		z := fixed.I(f.Z)
 		x += z
 		y -= z
@@ -464,6 +476,8 @@ func (f FloatEnvelope) Draw(p *Painter) {
 	z := fixed.I(f.Z)
 	for i := range f.X {
 		x, y := transform(f.X[i], f.Y[i], f.CoordinateSystem, bounds)
+		x += fixed.I(p.x0)
+		y += fixed.I(p.y0)
 		x += z
 		y -= z
 		if i == 0 {
@@ -494,14 +508,8 @@ func (f FloatText) toText() Text {
 	t := Text{X: int(x / 64), Y: int(y / 64), S: f.S, Align: f.Align}
 	return t
 }
-
-func (f FloatText) Draw(p *Painter) {
-	f.toText().Draw(p)
-}
-
-func (f FloatText) Extent(p *Painter) (int, int, int, int) {
-	return f.toText().Extent(p)
-}
+func (f FloatText) Draw(p *Painter)                                 { f.toText().Draw(p) }
+func (p *Painter) FloatTextExtent(f FloatText) (int, int, int, int) { return p.Extent(f.toText()) }
 
 // FloatCircles are many circles given in float point coordinates.
 type FloatCircles struct {
@@ -518,7 +526,7 @@ func (f FloatCircles) Draw(p *Painter) {
 		x, y := transform(f.X[i], f.Y[i], f.CoordinateSystem, rect26_6(p.im.Bounds()))
 		x += fixed.I(f.Z)
 		y -= fixed.I(f.Z)
-		path := circle{x, y, fixed.Int26_6(f.Radius * 64)}.getPath()
+		path := circle{x, y, fixed.Int26_6(f.Radius * 64)}.getPath(p.x0, p.y0)
 		if f.Fill {
 			p.Fill(path)
 		} else {
@@ -536,7 +544,11 @@ type FloatBars struct {
 func (f FloatBars) Draw(p *Painter) {
 	for i := 0; i < len(f.X); i += 2 {
 		x0, y0 := transform(f.X[i], f.Y[i], f.CoordinateSystem, rect26_6(p.im.Bounds()))
+		x0 += fixed.I(p.x0)
+		y0 += fixed.I(p.y0)
 		x1, y1 := transform(f.X[i+1], f.Y[i+1], f.CoordinateSystem, rect26_6(p.im.Bounds()))
+		x1 += fixed.I(p.x0)
+		y1 += fixed.I(p.y0)
 		path := raster.Path{0, x0, y0, 0, 1, x0, y1, 1, 1, x1, y1, 1, 1, x1, y0, 1, 1, x0, y0, 1}
 		p.Fill(path)
 	}

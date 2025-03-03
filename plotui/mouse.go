@@ -65,14 +65,14 @@ func (ui *Plot) mouseUp(x, y int, button walk.MouseButton) {
 	elapsed := time.Since(ui.mouse.time)
 	dx := x - ui.mouse.x
 	dy := y - ui.mouse.y
-	bounds := ui.canvas.ClientBoundsPixels()
+	//bounds := ui.canvas.ClientBoundsPixels()
 	if dx*dx+dy*dy > 100 {
 		// Click and Move (zoom, pan or draw line)
 		if ui.mouse.modifier == walk.ModShift || ui.mouse.modifier == walk.ModAlt {
 			if ui.mouse.modifier == walk.ModAlt {
 				x, y = ui.toHorOrVer(x, y)
 			}
-			if vec, ok := plot.LineIPlotters(ui.iplots, ui.mouse.x, ui.mouse.y, x, y, bounds.Width, bounds.Height, ui.Columns); ok {
+			if vec, ok := plot.LineIPlotters(ui.iplots, ui.mouse.x, ui.mouse.y, x, y); ok {
 				log.Print("vector: ", xmath.Absang(vec, "%v@%.0f"))
 				ui.update(nil)
 			}
@@ -91,7 +91,7 @@ func (ui *Plot) mouseUp(x, y int, button walk.MouseButton) {
 					Y = y
 					dy = -dy
 				}
-				if ok, n := plot.ZoomIPlotters(ui.iplots, X, Y, dx, dy, bounds.Width, bounds.Height, ui.Columns); ok {
+				if ok, n := plot.ZoomIPlotters(ui.iplots, X, Y, dx, dy); ok {
 					ui.update(nil)
 					if ui.ReplotEnvelope != nil {
 						ui.ReplotEnvelope(n, ui.plots)
@@ -99,7 +99,7 @@ func (ui *Plot) mouseUp(x, y int, button walk.MouseButton) {
 				}
 			} else if ui.mouse.button == walk.RightButton {
 				// Right Click and move: pan
-				if ok, n := plot.PanIPlotters(ui.iplots, X, Y, dx, dy, bounds.Width, bounds.Height, ui.Columns); ok {
+				if ok, n := plot.PanIPlotters(ui.iplots, X, Y, dx, dy); ok {
 					ui.update(nil)
 					if ui.ReplotEnvelope != nil {
 						ui.ReplotEnvelope(n, ui.plots)
@@ -119,7 +119,7 @@ func (ui *Plot) mouseUp(x, y int, button walk.MouseButton) {
 				deleteLine = true
 				snapToPoint = false
 			}
-			if callback, ok := plot.ClickIPlotters(ui.iplots, x, y, bounds.Width, bounds.Height, ui.Columns, snapToPoint, deleteLine); ok {
+			if callback, ok := plot.ClickIPlotters(ui.iplots, x, y, snapToPoint, deleteLine); ok {
 				if callback.Type == plot.PointInfoCallback {
 					pointInfo := callback.PointInfo
 					hi := []plot.HighlightID{plot.HighlightID{

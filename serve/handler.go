@@ -22,7 +22,7 @@ import (
 type t struct {
 	sync.Mutex
 	p       plot.Plots
-	hp      []plot.IPlotter
+	hp      plot.Iplots
 	hi      []plot.HighlightID
 	pi      plot.PointInfo
 	e       error
@@ -35,7 +35,6 @@ func SetPlots(plots plot.Plots, e error) {
 	p.Lock()
 	defer p.Unlock()
 	p.p = plots
-	p.hp = nil
 	p.hi = nil
 	p.e = e
 	p.w, p.h, p.c = 0, 0, 0
@@ -52,7 +51,7 @@ type Option struct {
 
 func setSize(width, height, columns int) {
 	p.w, p.h, p.c = width, height, columns
-	p.hp, _ = p.p.IPlots(width, height, columns)
+	p.hp, _ = p.p.Iplots(vg.NewImage(width, height), columns)
 }
 
 func Plot(w http.ResponseWriter, r *http.Request) {
@@ -87,13 +86,10 @@ func Plot(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	if p.hp == nil || p.w != wi || p.h != hi {
+	if p.w != wi || p.h != hi {
 		setSize(wi, hi, 4)
 	}
-	if p.hp == nil {
-		http.Error(w, "no plot (bad size?)", 400)
-		return
-	}
+
 	if s := q.Get("pt"); s != "" { // slider
 		pt := atoi(s)
 		if len(p.hi) == 0 {
@@ -112,16 +108,16 @@ func Plot(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(z) == 4 {
 		if q.Get("draw") != "" {
-			v, ok := plot.LineIPlotters(p.hp, z[0], z[1], z[2]+z[0], z[3]+z[1], p.w, p.h, p.c)
+			v, ok := plot.LineIPlotters(p.hp, z[0], z[1], z[2]+z[0], z[3]+z[1])
 			fmt.Println("draw vector", v, ok)
 		} else {
-			ok, n := plot.ZoomIPlotters(p.hp, z[0], z[1], z[2], z[3], p.w, p.h, p.c)
+			ok, n := plot.ZoomIPlotters(p.hp, z[0], z[1], z[2], z[3])
 			fmt.Println("zoom", ok, n)
 		}
 	}
 	if x != 0 && y != 0 {
 		snapToPoint := true
-		if callback, ok := plot.ClickIPlotters(p.hp, x, y, p.w, p.h, p.c, snapToPoint, false); ok {
+		if callback, ok := plot.ClickIPlotters(p.hp, x, y, snapToPoint, false); ok {
 			if callback.Type == plot.PointInfoCallback {
 				p.pi = callback.PointInfo
 				p.hi = []plot.HighlightID{plot.HighlightID{
@@ -137,7 +133,7 @@ func Plot(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	im := plot.Image(p.hp, p.hi, p.w, p.h, p.c)
+	im := p.hp.Image(p.hi)
 	if im == nil {
 		errImage(w, wi, hi, fmt.Errorf("plot area is too small"))
 		return

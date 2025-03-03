@@ -9,6 +9,7 @@ import (
 
 	"github.com/golang/freetype/truetype"
 	"github.com/ktye/plot"
+	"github.com/ktye/plot/vg"
 	"github.com/lxn/walk"
 	"github.com/lxn/walk/declarative"
 )
@@ -28,7 +29,7 @@ type Plot struct {
 	ignore      bool
 	caption     *plot.Caption
 	plots       *plot.Plots
-	iplots      []plot.IPlotter
+	iplots      plot.Iplots
 	hi          []plot.HighlightID
 	mouse       mouseState
 	ttf         []byte
@@ -177,9 +178,6 @@ func (ui *Plot) setImage() error {
 		return err
 	} else {
 		ui.iplots = ip
-		if len(ui.iplots) == 0 {
-			return nil
-		}
 		if bm, err := walk.NewBitmapFromImage(im); err != nil {
 			return err
 		} else {
@@ -194,15 +192,15 @@ func (ui *Plot) setImage() error {
 	return nil
 }
 
-func (ui *Plot) image(width, height int) (image.Image, []plot.IPlotter, error) {
-	if hp, err := ui.plots.IPlots(width, height, ui.Columns); err != nil {
-		return nil, nil, err
+func (ui *Plot) image(width, height int) (image.Image, plot.Iplots, error) {
+	if hp, err := ui.plots.Iplots(vg.NewImage(width, height), ui.Columns); err != nil {
+		return nil, hp, err
 	} else {
-		if im := plot.Image(hp, ui.hi, width, height, ui.Columns); im == nil {
-			return nil, nil, fmt.Errorf("could not make image (area too small?)")
-		} else {
-			return im, hp, nil
+		im := hp.Image(ui.hi)
+		if im == nil {
+			err = fmt.Errorf("could not make image (area too small?)")
 		}
+		return im, hp, err
 	}
 }
 
@@ -238,11 +236,8 @@ func (ui *Plot) paint(canvas *walk.Canvas, updateBounds walk.Rectangle) error {
 
 // Update updates the plot from the currentIPlots, it is used after zooming or line clicks.
 func (ui *Plot) update(hiIDs []plot.HighlightID) {
-	if len(ui.iplots) == 0 {
-		return
-	}
-	bounds := ui.canvas.ClientBoundsPixels()
-	if im := plot.Image(ui.iplots, hiIDs, bounds.Width, bounds.Height, ui.Columns); im == nil {
+	//bounds := ui.canvas.ClientBoundsPixels()
+	if im := ui.iplots.Image(hiIDs); im == nil {
 		log.Println("could not make image: ", hiIDs)
 	} else {
 		if bm, err := walk.NewBitmapFromImage(im); err != nil {
