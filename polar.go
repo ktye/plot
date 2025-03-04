@@ -89,14 +89,13 @@ func (plt *Plot) NewPolar(d vg.Drawer, isRing bool) (p polarPlot, err error) {
 	}
 
 	// Calculate (smaller) image dimensions.
-	width = hFix() + p.polarDiameter
-	height = vFix() + p.polarDiameter // p.titleHeight + 2*p.ticLabelHeight + 2*p.ticLength + p.polarDiameter
-
-	// Create Image.
-	//p.im = image.NewRGBA(image.Rect(0, 0, width, height))
+	swidth := hFix() + p.polarDiameter
+	sheight := vFix() + p.polarDiameter // p.titleHeight + 2*p.ticLabelHeight + 2*p.ticLength + p.polarDiameter
+	x0 := (width - swidth) / 2
+	y0 := (height - sheight) / 2
 	ax := plt.newAxes(
-		p.ticLabelWidth+border,
-		p.titleHeight+p.ticLabelHeight+border,
+		x0+p.ticLabelWidth+border,
+		y0+p.titleHeight+p.ticLabelHeight+border,
 		p.polarDiameter,
 		p.polarDiameter,
 		p.Limits,
@@ -118,18 +117,10 @@ func (p polarPlot) draw(noTics bool) {
 	p.axes.inside.Paint()
 	p.drawer.Paint()
 }
-
-func (p polarPlot) background() color.Color {
-	return p.plot.defaultBackgroundColor()
-}
-
-func (p polarPlot) image() *image.RGBA {
-	return p.drawer.(*vg.Image).RGBA
-}
-
+func (p polarPlot) background() color.Color { return p.plot.defaultBackgroundColor() }
+func (p polarPlot) image() *image.RGBA      { return p.drawer.(*vg.Image).RGBA }
 func (p polarPlot) zoom(x, y, dx, dy int) bool {
-	// Keep it square.
-	if dx > dy {
+	if dx > dy { // Keep it square.
 		dy = dx
 	} else {
 		dx = dy
@@ -140,7 +131,6 @@ func (p polarPlot) zoom(x, y, dx, dy int) bool {
 	p.axes.limits.Xmax = X1
 	p.axes.limits.Ymin = Y0
 	p.axes.limits.Ymax = Y1
-	//p.axes.drawPolarDataOnly(p.plot.Style.Counterclockwise)
 	p.axes.reset()
 	p.draw(true)
 	p.axes.store()

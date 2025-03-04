@@ -16,9 +16,10 @@ import (
 
 // fotoPlot is an implementation of the HiPlotter interface.
 type fotoPlot struct {
-	plot *Plot
-	im   *image.RGBA     // complete available sub image
-	rect image.Rectangle // destination rectangle for scaled foto keeping ratio
+	plot   *Plot
+	im     *image.RGBA     // complete available sub image
+	rect   image.Rectangle // destination rectangle for scaled foto keeping ratio
+	drawer vg.Drawer
 }
 
 const PngPrefix = "data:image/png;base64,"
@@ -35,6 +36,7 @@ func EncodeToPng(m image.Image) (string, error) {
 // Create a new foto plot in the subimage.
 func (plt *Plot) NewFoto(d vg.Drawer) (p fotoPlot, err error) {
 	width, height := d.Size()
+	p.drawer = d
 	p.plot = plt
 	border := plt.defaultBorder()
 
@@ -60,9 +62,6 @@ func (plt *Plot) NewFoto(d vg.Drawer) (p fotoPlot, err error) {
 		return p, fmt.Errorf("cannot decode foto: %s", err)
 	}
 
-	p.im = image.NewRGBA(image.Rect(0, 0, width, height))
-	draw.Draw(p.im, p.im.Bounds(), image.NewUniform(p.plot.defaultBackgroundColor()), image.ZP, draw.Src)
-
 	// Available space for plotArea.
 	widthAvail := width - 2*border
 	heightAvail := height - 2*border
@@ -83,42 +82,25 @@ func (plt *Plot) NewFoto(d vg.Drawer) (p fotoPlot, err error) {
 		y1 := y0 + heightAvail
 		p.rect = image.Rect(x0, y0, x1, y1)
 	}
+	p.rect = p.rect.Add(d.Bounds().Min)
 	p.draw(foto)
 	return p, nil
 }
-
 func (p fotoPlot) draw(foto image.Image) {
-	draw.ApproxBiLinear.Scale(p.im, p.rect, foto, foto.Bounds(), draw.Src, nil)
+	m, o := p.drawer.(*vg.Image)
+	if o == false {
+		return
+	}
+	draw.Draw(m.RGBA, m.RGBA.Bounds(), image.NewUniform(p.plot.defaultBackgroundColor()), m.RGBA.Bounds().Min, draw.Src)
+	draw.ApproxBiLinear.Scale(m.RGBA, p.rect, foto, foto.Bounds(), draw.Src, nil)
 }
-
-func (p fotoPlot) background() color.Color {
-	return p.plot.defaultBackgroundColor()
-}
-
-func (p fotoPlot) image() *image.RGBA {
-	return p.im
-}
-
-func (p fotoPlot) zoom(x, y, dx, dy int) bool {
-	return false
-}
-
-func (p fotoPlot) pan(x, y, dx, dy int) bool {
-	return false
-}
-
-func (p fotoPlot) limits() Limits {
-	return Limits{}
-}
-
-func (p fotoPlot) line(x0, y0, x1, y1 int) (complex128, bool) {
-	return complex(0, 0), false
-}
-
+func (p fotoPlot) background() color.Color                    { return p.plot.defaultBackgroundColor() }
+func (p fotoPlot) image() *image.RGBA                         { return p.drawer.(*vg.Image).RGBA }
+func (p fotoPlot) zoom(x, y, dx, dy int) bool                 { return false }
+func (p fotoPlot) pan(x, y, dx, dy int) bool                  { return false }
+func (p fotoPlot) limits() Limits                             { return Limits{} }
+func (p fotoPlot) line(x0, y0, x1, y1 int) (complex128, bool) { return complex(0, 0), false }
 func (p fotoPlot) click(x, y int, snapToPoint, deleteLine bool) (Callback, bool) {
 	return Callback{}, false
 }
-
-func (p fotoPlot) highlight(id []HighlightID) *image.RGBA {
-	return p.im
-}
+func (p fotoPlot) highlight(id []HighlightID) *image.RGBA { return p.drawer.(*vg.Image).RGBA }

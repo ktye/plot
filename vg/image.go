@@ -25,6 +25,7 @@ func (m *Image) Reset()                  { m.p = NewPainter(m.RGBA) }
 func (m *Image) Size() (int, int)        { return m.w, m.h }
 func (m *Image) Bounds() image.Rectangle { return m.RGBA.Bounds() }
 func (m *Image) SubImage(r image.Rectangle) Drawer {
+	r = r.Add(m.RGBA.Bounds().Min) //move relative to old rectangle
 	s := Image{w: r.Dx(), h: r.Dy(), RGBA: m.RGBA.SubImage(r).(*image.RGBA)}
 	s.p = NewPainter(s.RGBA)
 	return &s

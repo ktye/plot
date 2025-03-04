@@ -12,7 +12,7 @@ type ampAngPlot struct {
 	plot *Plot
 	Limits
 	ampAngDimension
-	im       *image.RGBA
+	drawer   vg.Drawer
 	amp, ang *axes
 }
 
@@ -58,6 +58,7 @@ type ampAngDimension struct {
 // width height is the available space, the image will be smaller.
 func (plt *Plot) NewAmpAng(d vg.Drawer) (p ampAngPlot, err error) {
 	width, height := d.Size()
+	p.drawer = d
 	p.plot = plt
 	p.Limits = plt.getAmpAngLimits()
 	xtics := getXTics(p.Limits)
@@ -102,36 +103,35 @@ func (plt *Plot) NewAmpAng(d vg.Drawer) (p ampAngPlot, err error) {
 	}
 
 	// Calculate (smaller) image dimensions.
-	width = hFix() + p.plotAreaWidth
-	height = vFix() + p.ampAreaHeight + p.angAreaHeight
-
-	// Create the image.
-	p.im = image.NewRGBA(image.Rect(0, 0, width, height))
+	swidth := hFix() + p.plotAreaWidth
+	sheight := vFix() + p.ampAreaHeight + p.angAreaHeight
+	x0, y0 := (width-swidth)/2, (height-sheight)/2
 
 	amp := plt.newAxes(
-		p.ylabelWidth+p.ticLabelWidth+2*p.ticLength+border,
-		p.titleHeight+p.ticLength+border,
+		x0+p.ylabelWidth+p.ticLabelWidth+2*p.ticLength+border,
+		y0+p.titleHeight+p.ticLength+border,
 		p.plotAreaWidth,
 		p.ampAreaHeight,
 		p.Limits,
 		d,
 	)
+	amp.x0 = x0
 	p.amp = &amp
 
 	ang := plt.newAxes(
-		p.ylabelWidth+p.ticLabelWidth+2*p.ticLength+border,
-		p.titleHeight+p.ticLength+border+p.ampAreaHeight+p.ampAngSpace,
+		x0+p.ylabelWidth+p.ticLabelWidth+2*p.ticLength+border,
+		y0+p.titleHeight+p.ticLength+border+p.ampAreaHeight+p.ampAngSpace,
 		p.plotAreaWidth,
 		p.angAreaHeight,
 		Limits{false, p.Limits.Xmin, p.Limits.Xmax, -180.0, 180.0, 0, 0},
 		d,
 	)
+	ang.x0 = x0
 	p.ang = &ang
 
 	p.draw()
 	return p, nil
 }
-
 func (p ampAngPlot) draw() {
 	xtics := getXTics(p.Limits)
 	ytics := getYTics(p.Limits)
@@ -144,12 +144,13 @@ func (p ampAngPlot) draw() {
 	p.amp.drawTitle(p.plot.defaultTicLength())
 	p.ang.drawXlabel()
 	p.amp.drawYlabel()
+	p.ang.inside.Paint()
+	p.amp.inside.Paint()
+	//p.amp.reset()
+	p.drawer.Paint()
+	p.amp.store()
 }
-
-func (p ampAngPlot) background() color.Color {
-	return p.plot.defaultBackgroundColor()
-}
-
+func (p ampAngPlot) background() color.Color { return p.plot.defaultBackgroundColor() }
 func (p ampAngPlot) zoom(x, y, dx, dy int) bool {
 	if p.ang.isInside(x, y) {
 		X0, _ := p.ang.toFloats(x, y+dy)
@@ -168,10 +169,11 @@ func (p ampAngPlot) zoom(x, y, dx, dy int) bool {
 		p.ang.limits.Xmin = X0
 		p.ang.limits.Xmax = X1
 	}
+	p.amp.reset()
+	p.ang.reset()
 	p.draw()
 	return true
 }
-
 func (p ampAngPlot) pan(x, y, dx, dy int) bool {
 	if p.ang.isInside(x, y) {
 		X0, _ := p.ang.toFloats(x, y+dy)
@@ -193,18 +195,13 @@ func (p ampAngPlot) pan(x, y, dx, dy int) bool {
 		p.ang.limits.Xmin -= DX
 		p.ang.limits.Xmax -= DX
 	}
+	p.amp.reset()
+	p.ang.reset()
 	p.draw()
 	return true
 }
-
-func (p ampAngPlot) limits() Limits {
-	return p.amp.limits
-}
-
-func (p ampAngPlot) image() *image.RGBA {
-	return p.im
-}
-
+func (p ampAngPlot) limits() Limits     { return p.amp.limits }
+func (p ampAngPlot) image() *image.RGBA { return p.drawer.(*vg.Image).RGBA }
 func (p ampAngPlot) line(x0, y0, x1, y1 int) (complex128, bool) {
 	if !p.amp.isInside(x0, y0) {
 		return complex(0, 0), false
@@ -220,7 +217,6 @@ func (p ampAngPlot) line(x0, y0, x1, y1 int) (complex128, bool) {
 	p.draw()
 	return vec, true
 }
-
 func (p ampAngPlot) click(x, y int, snapToPoint, deleteLine bool) (Callback, bool) {
 	if p.amp.isInside(x, y) {
 		pi, ok := p.amp.click(x, y, xyAmp{}, snapToPoint)
@@ -266,9 +262,9 @@ func (p ampAngPlot) click(x, y int, snapToPoint, deleteLine bool) (Callback, boo
 
 	return Callback{}, false
 }
-
 func (p ampAngPlot) highlight(id []HighlightID) *image.RGBA {
+	p.amp.restore()
 	p.amp.highlight(id, xyAmp{})
 	p.ang.highlight(id, xyAng{})
-	return p.im
+	return p.drawer.(*vg.Image).RGBA
 }

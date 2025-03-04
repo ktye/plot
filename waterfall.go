@@ -1,7 +1,6 @@
 package plot
 
 import (
-	"image"
 	"math"
 
 	"github.com/ktye/plot/vg"
@@ -13,6 +12,7 @@ type waterfallPlot struct {
 
 func (plt *Plot) NewWaterfall(d vg.Drawer) (p waterfallPlot, err error) {
 	width, height := d.Size()
+	p.drawer = d
 	p.plot = plt
 	p.Limits = plt.getXYLimits()
 	xtics := getXTics(p.Limits)
@@ -44,7 +44,6 @@ func (plt *Plot) NewWaterfall(d vg.Drawer) (p waterfallPlot, err error) {
 	width = hFix() + p.plotAreaWidth
 	height = vFix() + p.plotAreaHeight
 
-	p.im = image.NewRGBA(image.Rect(0, 0, width, height))
 	ax := plt.newAxes(
 		p.ylabelWidth+p.ticLabelWidth+2*p.ticLength+border,
 		p.titleHeight+p.ticLength+border,

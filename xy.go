@@ -14,7 +14,7 @@ type xyPlot struct {
 	Limits
 	xyDimension
 	xtics, ytics, ztics Tics
-	im                  *image.RGBA
+	drawer              vg.Drawer
 	ax                  *axes
 }
 
@@ -57,6 +57,7 @@ type xyDimension struct {
 // Width, height is the available space, the image will be smaller.
 func (plt *Plot) NewXY(d vg.Drawer) (p xyPlot, err error) {
 	width, height := d.Size()
+	p.drawer = d
 	p.plot = plt
 	p.Limits = plt.getXYLimits()
 	xtics := getXTics(p.Limits)
@@ -91,20 +92,19 @@ func (plt *Plot) NewXY(d vg.Drawer) (p xyPlot, err error) {
 	p.plotAreaHeight = vSpace
 
 	// Calculate (smaller) image dimensions.
-	width = hFix() + p.plotAreaWidth
-	height = vFix() + p.plotAreaHeight
-
-	// Create the image.
-	p.im = image.NewRGBA(image.Rect(0, 0, width, height))
+	swidth := hFix() + p.plotAreaWidth
+	sheight := vFix() + p.plotAreaHeight
+	x0, y0 := (width-swidth)/2, (height-sheight)/2
 
 	ax := plt.newAxes(
-		p.ylabelWidth+p.ticLabelWidth+2*p.ticLength+border,
-		p.titleHeight+p.ticLength+border,
+		x0+p.ylabelWidth+p.ticLabelWidth+2*p.ticLength+border,
+		y0+p.titleHeight+p.ticLength+border,
 		p.plotAreaWidth,
 		p.plotAreaHeight,
 		p.Limits,
 		d,
 	)
+	ax.x0 = x0
 	p.ax = &ax
 
 	p.xtics = xtics
@@ -125,12 +125,11 @@ func (p xyPlot) draw() {
 	p.ax.drawTitle(p.plot.defaultTicLength())
 	p.ax.drawXlabel()
 	p.ax.drawYlabel()
+	p.ax.inside.Paint()
+	p.drawer.Paint()
+	p.ax.store()
 }
-
-func (p xyPlot) background() color.Color {
-	return p.plot.defaultBackgroundColor()
-}
-
+func (p xyPlot) background() color.Color { return p.plot.defaultBackgroundColor() }
 func (p xyPlot) zoom(x, y, dx, dy int) bool {
 	X0, Y0 := p.ax.toFloats(x, y+dy)
 	X1, Y1 := p.ax.toFloats(x+dx, y)
@@ -140,10 +139,11 @@ func (p xyPlot) zoom(x, y, dx, dy int) bool {
 	p.ax.limits.Ymax = Y1
 	p.xtics = getXTics(p.ax.limits)
 	p.ytics = getYTics(p.ax.limits)
+	p.ax.reset()
 	p.draw()
+	p.ax.store()
 	return true
 }
-
 func (p xyPlot) pan(x, y, dx, dy int) bool {
 	X0, Y0 := p.ax.toFloats(x, y+dy)
 	X1, Y1 := p.ax.toFloats(x+dx, y)
@@ -158,15 +158,8 @@ func (p xyPlot) pan(x, y, dx, dy int) bool {
 	p.draw()
 	return true
 }
-
-func (p xyPlot) limits() Limits {
-	return p.ax.limits
-}
-
-func (p xyPlot) image() *image.RGBA {
-	return p.im
-}
-
+func (p xyPlot) limits() Limits     { return p.ax.limits }
+func (p xyPlot) image() *image.RGBA { return p.drawer.(*vg.Image).RGBA }
 func (p xyPlot) line(x0, y0, x1, y1 int) (complex128, bool) {
 	if !p.ax.isInside(x0, y0) {
 		return complex(0, 0), false
@@ -181,7 +174,6 @@ func (p xyPlot) line(x0, y0, x1, y1 int) (complex128, bool) {
 	p.draw()
 	return vec, true
 }
-
 func (p xyPlot) click(x, y int, snapToPoint, deleteLine bool) (Callback, bool) {
 	if !p.ax.isInside(x, y) {
 		limits := p.ax.limits
@@ -226,8 +218,8 @@ func (p xyPlot) click(x, y int, snapToPoint, deleteLine bool) (Callback, bool) {
 		return Callback{PointInfo: pi}, ok
 	}
 }
-
 func (p xyPlot) highlight(id []HighlightID) *image.RGBA {
+	p.ax.restore()
 	p.ax.highlight(id, xyXY{})
-	return p.im
+	return p.drawer.(*vg.Image).RGBA
 }

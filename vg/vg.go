@@ -55,7 +55,6 @@ func (p *Painter) Add(d drawer) {
 	p.colors = append(p.colors, p.currentColor)
 	p.faces = append(p.faces, p.currentFace)
 }
-
 func (p *Painter) Paint() {
 	for i, d := range p.drawers {
 		switch p.p.(type) {
@@ -68,39 +67,30 @@ func (p *Painter) Paint() {
 		d.Draw(p)
 	}
 }
-
-//func (p *Painter) x0(x int) {p.
-
 func (p *Painter) SetColor(c color.Color) {
 	p.currentColor = c
 }
-
 func (p *Painter) GetColor() color.Color {
 	return p.currentColor
 }
-
 func (p *Painter) SetFont(f font.Face) {
 	p.fontDrawer.Face = f // to calculate extent, before Paint.
 	p.currentFace = f
 }
-
 func (p *Painter) Stroke(path raster.Path, lineWidth int) {
 	p.r.UseNonZeroWinding = true
 	p.r.AddStroke(path, fixed.I(lineWidth), raster.SquareCapper, raster.BevelJoiner)
 	p.r.Rasterize(p.p)
 	p.r.Clear()
 }
-
 func (p *Painter) Fill(path raster.Path) {
 	p.r.AddPath(path)
 	p.r.Rasterize(p.p)
 	p.r.Clear()
 }
-
 func (p *Painter) Image() image.Image {
 	return p.im
 }
-
 func NewPainter(im *image.RGBA) *Painter {
 	fd := font.Drawer{
 		Dst:  im,
@@ -124,20 +114,65 @@ func NewPainter(im *image.RGBA) *Painter {
 // 7tex8tex3
 // 0---1---2
 type Text struct {
-	X, Y  int
-	S     string
-	Align int
+	X, Y     int
+	S        string
+	Align    int
+	Vertical bool
 }
 
 func (t Text) Draw(p *Painter) {
 	bounds, _ := font.BoundString(p.fontDrawer.Face, t.S)
 	metrics := p.fontDrawer.Face.Metrics()
-	x, y, _, _ := p.Extent(t)
+	x, y, w, h := p.Extent(t)
 	ascent := metrics.Ascent.Ceil()
 	y += ascent
 	x -= bounds.Min.X.Ceil()
-	p.fontDrawer.Dot = fixed.P(x+p.x0, y+p.y0)
-	p.fontDrawer.DrawString(t.S)
+	if t.Vertical {
+		x, y := t.X, t.Y
+		if a := t.Align; a == 1 || a == 5 { //x-correction nyi
+			y -= w / 2
+		} else if a == 2 || a == 3 || a == 4 {
+			y -= w
+		}
+		vp := NewPainter(image.NewRGBA(image.Rect(0, 0, 1+w, h)))
+		r, g, b, _ := p.currentColor.RGBA() //assume black or white
+		bg := color.RGBA{255 - uint8(r>>8), 255 - uint8(g>>8), 255 - uint8(b>>8), 255}
+		draw.Draw(vp.im, vp.im.Bounds(), image.NewUniform(bg), image.Point{0, 0}, draw.Src) //assume black on white
+		vp.SetFont(p.currentFace)
+		vp.SetColor(p.currentColor)
+		t.Vertical = false
+		t.X = 1
+		t.Y = 0
+		t.Align = 6
+		vp.Add(t)
+		vp.Paint()
+		src := rotate(vp.im)
+		draw.Draw(p.im, p.im.Bounds(), src, image.Point{-x, -y}, draw.Src)
+	} else {
+		p.fontDrawer.Dot = fixed.P(x+p.x0, y+p.y0)
+		p.fontDrawer.DrawString(t.S)
+	}
+}
+func rotate(src *image.RGBA) *image.RGBA {
+	srcW := src.Bounds().Max.X
+	srcH := src.Bounds().Max.Y
+	dstW := srcH
+	dstH := srcW
+	dst := image.NewRGBA(image.Rect(0, 0, dstW, dstH))
+
+	for dstY := 0; dstY < dstH; dstY++ {
+		for dstX := 0; dstX < dstW; dstX++ {
+			srcX := dstH - dstY - 1
+			srcY := dstX
+
+			srcOff := srcY*src.Stride + srcX*4
+			dstOff := dstY*dst.Stride + dstX*4
+
+			copy(dst.Pix[dstOff:dstOff+4], src.Pix[srcOff:srcOff+4])
+		}
+	}
+
+	return dst
 }
 
 // Extent returns the Rectangle values which covers the text.
@@ -243,8 +278,8 @@ func (c Circle) Draw(p *Painter) {
 	if c.Fill == false {
 		r -= fixed.Int26_6(c.LineWidth * 32) // substract half the linewidth.
 	}
-	c26_6 := circle{x, y, r}
-	path := c26_6.getPath(p.x0, p.y0)
+	c26_6 := circle{x + fixed.I(p.x0), y + fixed.I(p.y0), r}
+	path := c26_6.getPath()
 	if c.Fill {
 		p.Fill(path)
 	} else {
@@ -259,8 +294,8 @@ type circle struct {
 }
 
 // getPath approximates a circle by 8 quadrativ curve segments.
-func (c circle) getPath(x0, y0 int) raster.Path {
-	d := fixed.Point26_6{c.x + fixed.I(x0), c.y + fixed.I(y0)}
+func (c circle) getPath() raster.Path {
+	d := fixed.Point26_6{c.x, c.y}
 	r := c.r
 	s := fixed.Int26_6(float64(c.r) * math.Sqrt(2.0) / 2.0)
 	t := fixed.Int26_6(float64(c.r) * math.Tan(math.Pi/8))
@@ -300,7 +335,6 @@ func (l Line) Draw(p *Painter) {
 	path := raster.Path{0, x0 + hp, y0 + hp, 0, 1, x1 + hp, y1 + hp, 1}
 	p.Stroke(path, l.LineWidth)
 }
-
 func NewLine(x, y, dx, dy, lw int) Line {
 	return Line{LineCoords{x, y, dx, dy}, lw, false}
 }
@@ -368,8 +402,6 @@ func (f FloatTics) Draw(p *Painter) {
 		}
 		rect := rect26_6(f.Rect)
 		x, y := transform(X, Y, f.CoordinateSystem, rect)
-		x += fixed.I(p.x0)
-		y += fixed.I(p.y0)
 		// round to pixel
 		x /= 64
 		x *= 64
@@ -417,8 +449,8 @@ func (a ArrowHead) Draw(p *Painter) {
 	dx, dy = transformDirection(dx, dy, a.CoordinateSystem, rect26_6(p.im.Bounds())) // unit vector in pixels (float64)
 	A := float64(a.LineWidth * 12)                                                   // arrow head length (pixels)
 	B := A / 5.0                                                                     // short cathetus length
-	x += fixed.I(p.x0)
-	y += fixed.I(p.y0)
+	//x += fixed.I(p.x0)
+	//y += fixed.I(p.y0)
 	xa, ya := float64(x)/64.0-A*dx, float64(y)/64.0-A*dy // arrow base point on the line
 	xb, yb := xa-B*dy, ya+B*dx                           // corner points
 	xc, yc := xa+B*dy, ya-B*dx                           //
@@ -446,8 +478,6 @@ func (f FloatPath) Draw(p *Painter) {
 			continue
 		}
 		x, y := transform(f.X[i], f.Y[i], f.CoordinateSystem, rect26_6(p.im.Bounds()))
-		x += fixed.I(p.x0)
-		y += fixed.I(p.y0)
 		z := fixed.I(f.Z)
 		x += z
 		y -= z
@@ -476,8 +506,8 @@ func (f FloatEnvelope) Draw(p *Painter) {
 	z := fixed.I(f.Z)
 	for i := range f.X {
 		x, y := transform(f.X[i], f.Y[i], f.CoordinateSystem, bounds)
-		x += fixed.I(p.x0)
-		y += fixed.I(p.y0)
+		//x += fixed.I(p.x0)
+		//y += fixed.I(p.y0)
 		x += z
 		y -= z
 		if i == 0 {
@@ -501,15 +531,17 @@ type FloatText struct {
 	Rect image.Rectangle // Rectangle of the coordinate system.
 }
 
-func (f FloatText) toText() Text {
+func (f FloatText) toText(x0, y0 int) Text {
 	x, y := transform(f.X, f.Y, f.CoordinateSystem, rect26_6(f.Rect))
-	x += fixed.Int26_6(f.Xoff*64) + fixed.I(f.Z)
-	y += fixed.Int26_6(f.Yoff*64) - fixed.I(f.Z)
+	x += fixed.Int26_6(f.Xoff*64) + fixed.I(f.Z) - fixed.I(x0) //x0,y0 is already applied by transform, but again in Text.Draw
+	y += fixed.Int26_6(f.Yoff*64) - fixed.I(f.Z) - fixed.I(y0)
 	t := Text{X: int(x / 64), Y: int(y / 64), S: f.S, Align: f.Align}
 	return t
 }
-func (f FloatText) Draw(p *Painter)                                 { f.toText().Draw(p) }
-func (p *Painter) FloatTextExtent(f FloatText) (int, int, int, int) { return p.Extent(f.toText()) }
+func (f FloatText) Draw(p *Painter) { f.toText(p.x0, p.y0).Draw(p) }
+func (p *Painter) FloatTextExtent(f FloatText) (int, int, int, int) {
+	return p.Extent(f.toText(p.x0, p.y0))
+}
 
 // FloatCircles are many circles given in float point coordinates.
 type FloatCircles struct {
@@ -526,7 +558,7 @@ func (f FloatCircles) Draw(p *Painter) {
 		x, y := transform(f.X[i], f.Y[i], f.CoordinateSystem, rect26_6(p.im.Bounds()))
 		x += fixed.I(f.Z)
 		y -= fixed.I(f.Z)
-		path := circle{x, y, fixed.Int26_6(f.Radius * 64)}.getPath(p.x0, p.y0)
+		path := circle{x, y, fixed.Int26_6(f.Radius * 64)}.getPath()
 		if f.Fill {
 			p.Fill(path)
 		} else {
@@ -544,11 +576,11 @@ type FloatBars struct {
 func (f FloatBars) Draw(p *Painter) {
 	for i := 0; i < len(f.X); i += 2 {
 		x0, y0 := transform(f.X[i], f.Y[i], f.CoordinateSystem, rect26_6(p.im.Bounds()))
-		x0 += fixed.I(p.x0)
-		y0 += fixed.I(p.y0)
+		//x0 += fixed.I(p.x0)
+		//y0 += fixed.I(p.y0)
 		x1, y1 := transform(f.X[i+1], f.Y[i+1], f.CoordinateSystem, rect26_6(p.im.Bounds()))
-		x1 += fixed.I(p.x0)
-		y1 += fixed.I(p.y0)
+		//x1 += fixed.I(p.x0)
+		//y1 += fixed.I(p.y0)
 		path := raster.Path{0, x0, y0, 0, 1, x0, y1, 1, 1, x1, y1, 1, 1, x1, y0, 1, 1, x0, y0, 1}
 		p.Fill(path)
 	}

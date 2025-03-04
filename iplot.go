@@ -44,9 +44,11 @@ func (p Plots) Iplots(d vg.Drawer, columns int) (Iplots, error) {
 		d: d,
 		g: g,
 	}
+	if len(p) > 0 {
+		d.Clear(p[0].defaultBackgroundColor())
+	}
 	for i := 0; i < len(p); i++ {
-		rect := g.rect(i) //center?
-		fmt.Println("Iplots rect:", rect)
+		rect := g.rect(i)
 		switch p[i].Type {
 		case "":
 			r.p[i], err = p[i].NewEmpty(d.SubImage(rect))
