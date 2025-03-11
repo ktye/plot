@@ -24,14 +24,15 @@ type f = float64
 const (
 	TERM    = 0
 	CONSOLE = 1
-	FILE    = 2
+	PNG     = 2
+	WMF     = 3
 )
 const use = `|plot [-dtcw:h:o:] [-plt] [0 2 ..]
 ktye/plot/cmd/xrootplot/xrootplot.go
  -d   print (uniform) plot data [csv]
  -t   print table(caption) data [csv]
  -1   single axes
- FILE.png (to file as png instead of stdout)
+ FILE.png/wmf   (to file instead of stdout)
  -c   console output (default iterm2 image)
  -p   convert to plt format
  -wWIDTH -hHEIGHT (also from env)
@@ -59,8 +60,11 @@ func main() {
 		} else if pre(s, "-h") {
 			hei = atoi(s[2:])
 		} else if suf(s, ".png") {
-			dst = FILE
-			out = s[1:]
+			dst = PNG
+			out = s
+		} else if suf(s, ".wmf") {
+			dst = WMF
+			out = s
 		} else if pre(s, "-p") {
 			plt = true
 		} else {
@@ -107,8 +111,12 @@ func pp(p plot.Plots) {
 		draw(pngData(m))
 	case CONSOLE:
 		drawConsole(w, h, m.Pix)
-	case FILE:
+	case PNG:
 		fatal(ioutil.WriteFile(out, pngData(m), 0644))
+	case WMF:
+		b, e := p.Wmf(w, h, 0, nil)
+		fatal(e)
+		fatal(ioutil.WriteFile(out, b, 0644))
 	default:
 		fatal(fmt.Errorf("unknown dst: %d", dst))
 	}
@@ -146,8 +154,8 @@ func at(p plot.Plots) plot.Plots {
 		return r
 	}
 }
-func dark(p plot.Plots) plot.Plots { // console is always dark, file or plt not so.
-	if dst != FILE { // && plt == false {
+func dark(p plot.Plots) plot.Plots {
+	if dst == TERM || dst == CONSOLE {
 		for i := range p {
 			p[i].Style.Dark = true
 			p[i].Style.Order = "green"

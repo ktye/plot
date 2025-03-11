@@ -68,7 +68,7 @@ type Pen struct {
 	Color   Color
 }
 type Brush struct {
-	Style uint16 // 0(solid) 2.1.1.4
+	Style uint16 // 0(solid) 1(null/hollow) 2.1.1.4
 	Color Color
 	Hatch uint16 //2.1.1.12
 }

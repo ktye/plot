@@ -80,28 +80,15 @@ func (p Iplots) Image(ids []HighlightID) image.Image {
 	if len(p.p) < 1 {
 		return nil
 	}
-
-	//m := image.NewRGBA(image.Rect(0, 0, width, height))
-	//draw.Draw(m, m.Bounds(), &image.Uniform{h[0].background()}, image.ZP, draw.Src)
-	//		g := newGrid(len(h), width, height, columns)
-	//		// w := width / len(h)
-
 	for i := range p.p {
-		//im := p.p[i].image()
-		//im = h[i].highlight(ids)
 		p.p[i].highlight(ids)
-		//rect := g.center(g.rect(i), im)
-		//draw.Draw(m, rect, im, image.Point{0, 0}, draw.Src)
 	}
 
 	im, ok := p.d.(*vg.Image)
 	if !ok {
 		return nil
 	}
-	//todo highlight
-
 	return im.RGBA
-
 }
 
 func (p Plots) Png(width, height, columns int, idx []HighlightID) ([]byte, error) {
@@ -117,8 +104,14 @@ func (p Plots) Png(width, height, columns int, idx []HighlightID) ([]byte, error
 	e = png.Encode(&b, m)
 	return b.Bytes(), e
 }
-
-//func (p Plots) Wmf(with, height, columns int, idx []HighlightID) ([]byte, error)
+func (p Plots) Wmf(width, height, columns int, idx []HighlightID) ([]byte, error) {
+	ip, e := p.Iplots(vg.NewWmf(width, height), columns)
+	if e != nil {
+		return nil, e
+	}
+	//todo: for i := range p.p { p.p[i].highlight(ids) }
+	return ip.d.(*vg.Wmf).MarshallBinary(), nil
+}
 
 //// Image creates an Image from a slice of iplotters.
 //// If ids is nil, no lines will be highlighted.
