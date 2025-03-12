@@ -1,6 +1,7 @@
 package vg
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -21,11 +22,15 @@ func NewImage(w, h int) *Image {
 	m.Reset()
 	return &m
 }
-func (m *Image) Reset()                  { m.p = NewPainter(m.RGBA) }
+func (m *Image) Reset() {
+	fmt.Println("Reset!")
+	m.p = NewPainter(m.RGBA)
+}
 func (m *Image) Size() (int, int)        { return m.w, m.h }
 func (m *Image) Bounds() image.Rectangle { return m.RGBA.Bounds() }
 func (m *Image) SubImage(r image.Rectangle) Drawer {
 	r = r.Add(m.RGBA.Bounds().Min) //move relative to old rectangle
+	fmt.Println("SubImage", r, "oldMin", m.RGBA.Bounds().Min)
 	s := Image{w: r.Dx(), h: r.Dy(), RGBA: m.RGBA.SubImage(r).(*image.RGBA)}
 	s.p = NewPainter(s.RGBA)
 	return &s

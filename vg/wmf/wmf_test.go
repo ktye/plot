@@ -41,6 +41,11 @@ func ax(t *testing.T) {
 	f.Text(10, 10, "abc A B C")
 	f.write(t, "ax.wmf")
 }
+func circ(t *testing.T) {
+	f := New(800, 600)
+	f.Ellipse(0, 0, 600, 600)
+	f.write(t, "circ.wmf")
+}
 func ell(t *testing.T) {
 	f := New(200, 100)
 	f.CreatePen(Pen{Width: 5, Color: Red})
@@ -110,6 +115,7 @@ func TestWmf(t *testing.T) {
 	line(t)
 	text(t)
 	ax(t)
+	circ(t)
 	ell(t)
 	poly(t)
 	font(t)

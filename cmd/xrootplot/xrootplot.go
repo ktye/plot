@@ -102,17 +102,18 @@ func pp(p plot.Plots) {
 		return
 	}
 	w, h := screensize()
-	d := vg.NewImage(w, h)
-	ip, e := p.Iplots(d, 0)
-	fatal(e)
-	m := ip.Image(nil).(*image.RGBA)
+	m := func() *image.RGBA {
+		ip, e := p.Iplots(vg.NewImage(w, h), 0)
+		fatal(e)
+		return ip.Image(nil).(*image.RGBA)
+	}
 	switch dst {
 	case TERM:
-		draw(pngData(m))
+		draw(pngData(m()))
 	case CONSOLE:
-		drawConsole(w, h, m.Pix)
+		drawConsole(w, h, m().Pix)
 	case PNG:
-		fatal(ioutil.WriteFile(out, pngData(m), 0644))
+		fatal(ioutil.WriteFile(out, pngData(m()), 0644))
 	case WMF:
 		b, e := p.Wmf(w, h, 0, nil)
 		fatal(e)

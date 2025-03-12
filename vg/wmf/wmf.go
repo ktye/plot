@@ -223,26 +223,11 @@ func (f *File) push(x Record) {
 	f.Records = append(f.Records, x)
 }
 
-/*
-func (f *File) setChecksum() { //of the leading 10words on the header
-
-		var b bytes.Buffer
-		fatal(binary.Write(&b, binary.LittleEndian, f.Header))
-		var v [10]uint16
-		fatal(binary.Read(bytes.NewReader(b.Bytes()), binary.LittleEndian, &v))
-		var s uint16
-		for _, x := range v {
-			s ^= x
-		}
-		f.Checksum = s
-	}
-*/
 func (f *File) MarshallBinary() []byte {
-	//	f.setChecksum()
 
 	r := make([]Record, 3+len(f.Records))
 	r[0] = Record{5, 0x020c, []uint16{uint16(f.height), uint16(f.width)}} //SetWindowExt
-	r[1] = Record{4, 0x0103, []uint16{1}}                                 //setmapmode 1(pixel) 2(1unit=0.1mm) 4(1u=0.01in)
+	r[1] = Record{4, 0x0103, []uint16{1}}                                 //setmapmode 1(pixel) 2(1unit=0.1mm) 4(1u=0.01in) 7(isotropic)
 	for i, x := range f.Records {
 		r[2+i] = x
 	}
@@ -260,6 +245,7 @@ func (f *File) MarshallBinary() []byte {
 	f.TotalSize = uint32(9 + total/2) //meta-placeable header does not count
 
 	var b bytes.Buffer
+	//b.Write(f.placeableHeader())
 	fatal(binary.Write(&b, binary.LittleEndian, f.Header))
 	for _, x := range r {
 		fatal(binary.Write(&b, binary.LittleEndian, x.Size))
@@ -275,6 +261,30 @@ func fatal(e error) {
 	if e != nil {
 		panic(e)
 	}
+}
+func (f *File) placeableHeader() []byte {
+	checksum := func(b []byte) uint16 {
+		var v [10]uint16
+		binary.Read(bytes.NewReader(b), binary.LittleEndian, &v)
+		var s uint16
+		for _, x := range v {
+			s ^= x
+		}
+		return s
+	}
+
+	var b bytes.Buffer
+	bw := func(x interface{}) { binary.Write(&b, binary.LittleEndian, x) }
+	b.Write([]byte{0xd7, 0xcd, 0xc6, 0x9a}) //key
+	b.Write([]byte{0, 0})                   //hwmf (on-disk)
+	bw(uint16(0))                           //bbox left
+	bw(uint16(0))                           //bbox right
+	bw(uint16(f.width))                     //bbox right
+	bw(uint16(f.height))                    //bbox bottom
+	bw(uint16(96))                          //units per inch
+	b.Write([]byte{0, 0, 0, 0})             //reserved
+	bw(checksum(b.Bytes()))                 //checksum (xor of 10 previous 16bit words)
+	return b.Bytes()
 }
 
 /*
