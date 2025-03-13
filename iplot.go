@@ -92,7 +92,7 @@ func (p Iplots) Image(ids []HighlightID) image.Image {
 }
 
 func (p Plots) Png(width, height, columns int, idx []HighlightID) ([]byte, error) {
-	ip, e := p.Iplots(vg.NewImage(width, height), columns)
+	ip, e := p.Iplots(vg.NewImage(width, height, font1, font2), columns)
 	if e != nil {
 		return nil, e
 	}

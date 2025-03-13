@@ -46,6 +46,18 @@ func circ(t *testing.T) {
 	f.Ellipse(0, 0, 600, 600)
 	f.write(t, "circ.wmf")
 }
+func circ1(t *testing.T, scale int) {
+	f := New(100*scale, 100*scale)
+	f.CreatePen(Pen{Width: 2 * uint16(scale)})
+	f.Select(0)
+	f.Ellipse(0, 0, 100*int16(scale), 100*int16(scale))
+	f.CreateFont(Font{Height: -20 * int16(scale), Face: "Arial", OutPrecision: 7, Quality: 4})
+	f.Select(1)
+	f.SetTextAlign(6)
+	f.Text(50*int16(scale), 30*int16(scale), "123-abc")
+	file := fmt.Sprintf("circ%d.wmf", scale)
+	f.write(t, file)
+}
 func ell(t *testing.T) {
 	f := New(200, 100)
 	f.CreatePen(Pen{Width: 5, Color: Red})
@@ -116,6 +128,7 @@ func TestWmf(t *testing.T) {
 	text(t)
 	ax(t)
 	circ(t)
+	circ1(t, 1)
 	ell(t)
 	poly(t)
 	font(t)

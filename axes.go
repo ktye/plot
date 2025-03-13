@@ -140,7 +140,7 @@ func (a axes) drawZaxis() { //todo
 	d.Line(vg.Line{LineCoords: vg.LineCoords{X: x0, Y: y0 + z, DX: z, DY: -z}, LineWidth: 1})
 	d.Line(vg.Line{LineCoords: vg.LineCoords{X: x1 + w - z, Y: y1 + h, DX: z, DY: -z}, LineWidth: 1})
 
-	d.Font(font2)
+	d.Font(false)
 	zt := getZTics(a.limits)
 	for i, pi := range zt.Pos {
 		x0, x1 := float64(x1+w), float64(x1+w-z)
@@ -156,7 +156,7 @@ func (a axes) drawZaxis() { //todo
 		d.Line(vg.Line{LineCoords: vg.LineCoords{X: x - w + z - a0, Y: y - h + z - a0, DX: -a0, DY: -a0}, LineWidth: 1})
 	}
 	if s := a.plot.Zlabel; s != "" {
-		d.Font(font1)
+		d.Font(true)
 		d.Text(vg.Text{X: int((2*x0 + z - 2) / 2), Y: int((2*y0 + z - 2) / 2), S: s, Align: 2})
 	}
 }
@@ -187,7 +187,7 @@ func (a axes) drawXYTics(X, Y []float64, xlabels, ylabels []string) {
 	d.FloatTics(vg.FloatTics{P: Y, Q: a.limits.Xmin, Horizontal: false, LeftTop: true, L: L, LineWidth: lw, CoordinateSystem: cs, Rect: rect0})
 	d.FloatTics(vg.FloatTics{P: Y, Q: a.limits.Xmax, Horizontal: false, LeftTop: false, L: L, LineWidth: lw, CoordinateSystem: cs, Rect: rect1})
 	textWidth := func(s string) int { return 7 * len(s) }
-	d.Font(font2)
+	d.Font(false)
 	var stop int
 	for i, s := range xlabels {
 		if i > 0 { // Skip label, if it does not fit.
@@ -271,7 +271,7 @@ func (a axes) drawPolarTics(ring, ccw, noTics bool) {
 	}
 	l := a.plot.defaultTicLength()
 	aligns := []int{1, 0, 0, 7, 6, 6, 5, 4, 4, 3, 2, 2}
-	d.Font(font2)
+	d.Font(false)
 	phi0 := math.Pi / 2.0
 	if noTics == false {
 		for i := 0; i < 360; i += 30 {
@@ -286,7 +286,7 @@ func (a axes) drawPolarTics(ring, ccw, noTics bool) {
 			d.Text(vg.Text{int(tx + 0.5), int(ty + 0.5), s, aligns[i/30], false})
 		}
 	}
-	d.Font(font1)
+	d.Font(true)
 	phi := 130.0 * math.Pi / 180.0
 	s := strconv.FormatFloat(a.limits.Ymax, 'g', 4, 64)
 	d.Ray(vg.Ray{a.x + r, a.y + r, r, 3 * l, phi - phi0, a.plot.defaultAxesGridLineWidth()})
@@ -323,7 +323,7 @@ func (a axes) drawPolarTics(ring, ccw, noTics bool) {
 func (a axes) drawTitle(vSpace int) {
 	d := a.parent
 	d.Color(a.fg)
-	d.Font(font1)
+	d.Font(true)
 	x := a.x + a.width/2
 	y := a.y - vSpace - 1
 	d.Text(vg.Text{x, y, a.plot.Title, 1, false})
@@ -331,7 +331,7 @@ func (a axes) drawTitle(vSpace int) {
 func (a axes) drawXlabel() {
 	d := a.parent
 	d.Color(a.fg)
-	d.Font(font1)
+	d.Font(true)
 	x := a.x + a.width/2
 	y := a.y + a.height + a.plot.defaultTicLabelHeight() //+ 3
 	t := a.plot.Xlabel
@@ -342,13 +342,12 @@ func (a axes) drawXlabel() {
 }
 func (a axes) drawYlabel() {
 	d := a.parent
-	f := font1
 	t := a.plot.Ylabel
 	if a.plot.Yunit != "" {
 		t += " " + string(a.plot.Yunit)
 	}
 	d.Color(a.fg)
-	d.Font(f)
+	d.Font(true)
 	yoff := a.y + a.height/2
 	d.Text(vg.Text{a.x0, yoff, t, 5, true}) //rotated
 }
@@ -537,7 +536,7 @@ func (a axes) drawPoint(xy xyer, cs vg.CoordinateSystem, l Line, z int, pointNum
 	if len(x) <= pointNumber || len(y) <= pointNumber || pointNumber < 0 {
 		return
 	}
-	d.Font(font1)
+	d.Font(true)
 	labels := make([]vg.FloatText, 2)
 	if isEnvelope {
 		if n := len(x); n != len(y) || pointNumber+2 > n {

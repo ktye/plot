@@ -29,7 +29,7 @@ func (plt *Plot) NewTextPlot(d vg.Drawer) (p textPlot, err error) {
 	p.drawer = d
 	d.Clear(p.plot.defaultBackgroundColor())
 	lines := strings.Split(plt.Foto, "\n")
-	d.Font(font1)
+	d.Font(false)
 	d.Color(p.plot.defaultForegroundColor())
 	x, y := 10, 10
 	dy := font1.Metrics().Height.Ceil()

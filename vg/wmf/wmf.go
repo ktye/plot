@@ -111,11 +111,11 @@ func (f Font) Value() []uint16 {
 
 func (r Record) size() int { return 6 + 2*len(r.Data) }
 
-func (f *File) MoveTo(x, y int) {
-	f.push(Record{5, 0x0214, []uint16{uint16(int16(y)), uint16(int16(x))}})
+func (f *File) MoveTo(x, y int16) {
+	f.push(Record{5, 0x0214, []uint16{uint16(y), uint16(x)}})
 }
-func (f *File) LineTo(x, y int) {
-	f.push(Record{5, 0x0213, []uint16{uint16(int16(y)), uint16(int16(x))}})
+func (f *File) LineTo(x, y int16) {
+	f.push(Record{5, 0x0213, []uint16{uint16(y), uint16(x)}})
 }
 func (f *File) Rectangle(left, top, right, bottom int16) {
 	f.push(Record{7, 0x041b, []uint16{uint16(bottom), uint16(right), uint16(top), uint16(left)}})
@@ -223,11 +223,60 @@ func (f *File) push(x Record) {
 	f.Records = append(f.Records, x)
 }
 
-func (f *File) MarshallBinary() []byte {
+/*
+	type Emf struct {
+		Type, Size                         uint32
+		Bounds1, Bounds2, Bounds3, Bounds4 int32
+		Frame1, Frame2, Frame3, Frame4     int32
+		Signature, Version, Bytes, Records uint32
+		Handles, Reserved                  uint16
+		NDesc, OffDesc, NPals              uint32
+		DevWidth, DevHeight                uint32
+		MilliX, MilliY                     uint32
+	}
 
+	type EmfPlus struct {
+		Type, Flags                                    uint16
+		Size, DataSize, Version, PlusFlags, DpiX, DpiY uint32
+	}
+
+	func (f *File) MarshallBinary() []byte {
+		b, recs := f.wmfbytes()
+		eof := []byte{0x0e, 0, 0, 0, 0x14, 0, 0, 0, 0, 0, 0, 0, 0x10, 0, 0, 0, 0x14, 0, 0, 0}
+		h := Emf{
+			Type:      1,
+			Size:      88,
+			Bounds3:   int32(f.width),
+			Bounds4:   int32(f.height),
+			Frame3:    int32(f.width),
+			Frame4:    int32(f.height),
+			Signature: 1179469088,
+			Version:   65536,
+			Bytes:     uint32(88 + 28 + 8 + len(b) + len(eof)),
+			Records:   uint32(recs),
+			Handles:   uint16(f.NumObjects),
+			DevWidth:  1920, DevHeight: 1200, MilliX: 677, MilliY: 423,
+		}
+		p := EmfPlus{
+			Type: 0x4001, Flags: 1, Size: 0x1c, DataSize: 0x10, Version: 0xDBC01002, PlusFlags: 1, DpiX: 0x66, DpiY: 0x6c,
+		}
+		var buf bytes.Buffer
+		fatal(binary.Write(&buf, binary.LittleEndian, h))
+		fatal(binary.Write(&buf, binary.LittleEndian, p))
+
+		fatal(binary.Write(&buf, binary.LittleEndian, uint32()))
+		fatal(binary.Write(&buf, binary.LittleEndian, uint32(len(b))))
+
+		buf.Write(b)
+		buf.Write(eof)
+		return buf.Bytes()
+	}
+*/
+func (f *File) MarshallBinary() []byte { b, _ := f.wmfbytes(); return b }
+func (f *File) wmfbytes() ([]byte, int) {
 	r := make([]Record, 3+len(f.Records))
 	r[0] = Record{5, 0x020c, []uint16{uint16(f.height), uint16(f.width)}} //SetWindowExt
-	r[1] = Record{4, 0x0103, []uint16{1}}                                 //setmapmode 1(pixel) 2(1unit=0.1mm) 4(1u=0.01in) 7(isotropic)
+	r[1] = Record{4, 0x0103, []uint16{8}}                                 //setmapmode 1(pixel) 2(1unit=0.1mm) 4(1u=0.01in) 7(isotropic)
 	for i, x := range f.Records {
 		r[2+i] = x
 	}
@@ -255,7 +304,7 @@ func (f *File) MarshallBinary() []byte {
 		}
 	}
 
-	return b.Bytes()
+	return b.Bytes(), len(r)
 }
 func fatal(e error) {
 	if e != nil {
@@ -286,63 +335,3 @@ func (f *File) placeableHeader() []byte {
 	bw(checksum(b.Bytes()))                 //checksum (xor of 10 previous 16bit words)
 	return b.Bytes()
 }
-
-/*
-func (w *wf) Bytes() []byte {
-	var b bytes.Buffer
-	bw := func(x interface{}) { binary.Write(&b, binary.LittleEndian, x) }
-
-	// meta placeable record (2.3.2.3) 22-bytes
-	b.Write([]byte{0xd7, 0xcd, 0xc6, 0x9a}) //key
-	b.Write([]byte{0, 0})                   //hwmf (on-disk)
-	bw(uint16(0))                           //bbox left
-	bw(uint16(0))                           //bbox right
-	bw(w.width)                             //bbox right
-	bw(w.height)                            //bbox bottom
-	bw(w.inch)                              //units per inch
-	b.Write([]byte{0, 0, 0, 0})             //reserved
-	cs := checksum(b.Bytes())               //
-	bw(cs)                                  //checksum (xor of 10 previous 16bit words)
-
-	total, max := 0, 0
-	for _, o := range w.obj {
-		n := len(o)
-		total += n
-		if n > max {
-			max = n
-		}
-	}
-
-	// header record (2.3.2.2)
-	bw(uint16(2))       //type 1(inmemory) 2(ondisk)
-	bw(uint16(9))       //header size in words
-	bw(uint16(0x0300))  //version
-	bw(uint32(0))       //lo/hi size in 16bit words: (total size in bytes - 22)/2 TODO
-	bw(w.nobj)          //number of graphics objects (brushes, fonts, palettes, pens, regions) (defined prior to the records)
-	bw(uint32(max / 2)) //maxrecord size of largest record in 16bit words         TODO
-	bw(uint16(0))       //unused
-
-	for _, o := range w.obj {
-		b.Write(o)
-	}
-	bw(uint32(3)) // eof record size
-	bw(uint16(0)) // eof
-	return b.Bytes()
-}
-
-//  4 0x0301 setmapmode
-//  5 0x0b02 setwindoworg
-//  5 0x0c02 seteindowext
-//  4 0x0601 setpolyfillmode
-//  7 0xfc02 createbrushindirect
-//  4 0x2d01 selectobj
-//  8 0xfa02 createpenindirect
-// 99 0x3805 polypolygon
-
-type wf struct {
-	width, height int16    //logical units
-	inch          int16    //logical units per inch (convention 1440)
-	nobj          uint16   // number of graphics objects brushes, etc..)
-	obj           [][]byte //records
-}
-*/

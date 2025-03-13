@@ -506,8 +506,6 @@ func (f FloatEnvelope) Draw(p *Painter) {
 	z := fixed.I(f.Z)
 	for i := range f.X {
 		x, y := transform(f.X[i], f.Y[i], f.CoordinateSystem, bounds)
-		//x += fixed.I(p.x0)
-		//y += fixed.I(p.y0)
 		x += z
 		y -= z
 		if i == 0 {
@@ -576,11 +574,7 @@ type FloatBars struct {
 func (f FloatBars) Draw(p *Painter) {
 	for i := 0; i < len(f.X); i += 2 {
 		x0, y0 := transform(f.X[i], f.Y[i], f.CoordinateSystem, rect26_6(p.im.Bounds()))
-		//x0 += fixed.I(p.x0)
-		//y0 += fixed.I(p.y0)
 		x1, y1 := transform(f.X[i+1], f.Y[i+1], f.CoordinateSystem, rect26_6(p.im.Bounds()))
-		//x1 += fixed.I(p.x0)
-		//y1 += fixed.I(p.y0)
 		path := raster.Path{0, x0, y0, 0, 1, x0, y1, 1, 1, x1, y1, 1, 1, x1, y0, 1, 1, x0, y0, 1}
 		p.Fill(path)
 	}

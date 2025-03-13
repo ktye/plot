@@ -1,7 +1,6 @@
 package vg
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -11,27 +10,24 @@ import (
 
 // Image implements Drawer and renders on a go image.
 type Image struct {
-	RGBA *image.RGBA
-	w, h int
-	p    *Painter
+	RGBA   *image.RGBA
+	w, h   int
+	f1, f2 font.Face
+	p      *Painter
 }
 
-func NewImage(w, h int) *Image {
-	m := Image{w: w, h: h}
+func NewImage(w, h int, f1, f2 font.Face) *Image {
+	m := Image{w: w, h: h, f1: f1, f2: f2}
 	m.RGBA = image.NewRGBA(image.Rect(0, 0, m.w, m.h))
 	m.Reset()
 	return &m
 }
-func (m *Image) Reset() {
-	fmt.Println("Reset!")
-	m.p = NewPainter(m.RGBA)
-}
+func (m *Image) Reset()                  { m.p = NewPainter(m.RGBA) }
 func (m *Image) Size() (int, int)        { return m.w, m.h }
 func (m *Image) Bounds() image.Rectangle { return m.RGBA.Bounds() }
 func (m *Image) SubImage(r image.Rectangle) Drawer {
 	r = r.Add(m.RGBA.Bounds().Min) //move relative to old rectangle
-	fmt.Println("SubImage", r, "oldMin", m.RGBA.Bounds().Min)
-	s := Image{w: r.Dx(), h: r.Dy(), RGBA: m.RGBA.SubImage(r).(*image.RGBA)}
+	s := Image{w: r.Dx(), h: r.Dy(), RGBA: m.RGBA.SubImage(r).(*image.RGBA), f1: m.f1, f2: m.f2}
 	s.p = NewPainter(s.RGBA)
 	return &s
 }
@@ -46,7 +42,13 @@ func (m *Image) Rectangle(r Rectangle) { m.p.Add(r) }
 func (m *Image) Triangle(t Triangle)   { m.p.Add(t) }
 func (m *Image) Ray(r Ray)             { m.p.Add(r) }
 func (m *Image) Text(t Text)           { m.p.Add(t) }
-func (m *Image) Font(f font.Face)      { m.p.SetFont(f) }
+func (m *Image) Font(font1 bool) {
+	if font1 {
+		m.p.SetFont(m.f1)
+	} else {
+		m.p.SetFont(m.f2)
+	}
+}
 func (m *Image) ArrowHead(a ArrowHead) { m.p.Add(a) }
 
 func (m *Image) FloatTics(t FloatTics)                            { m.p.Add(t) }

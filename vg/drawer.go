@@ -3,8 +3,6 @@ package vg
 import (
 	"image"
 	"image/color"
-
-	"golang.org/x/image/font"
 )
 
 type Drawer interface {
@@ -21,7 +19,7 @@ type Drawer interface {
 	Triangle(Triangle)
 	Ray(Ray)
 	Text(Text)
-	Font(font.Face)
+	Font(bool)
 	ArrowHead(ArrowHead)
 
 	FloatTics(FloatTics)

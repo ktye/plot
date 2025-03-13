@@ -193,7 +193,8 @@ func (ui *Plot) setImage() error {
 }
 
 func (ui *Plot) image(width, height int) (image.Image, plot.Iplots, error) {
-	if hp, err := ui.plots.Iplots(vg.NewImage(width, height), ui.Columns); err != nil {
+	f1, f2 := plot.Fonts()
+	if hp, err := ui.plots.Iplots(vg.NewImage(width, height, f1, f2), ui.Columns); err != nil {
 		return nil, hp, err
 	} else {
 		im := hp.Image(ui.hi)

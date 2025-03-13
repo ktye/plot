@@ -51,7 +51,8 @@ type Option struct {
 
 func setSize(width, height, columns int) {
 	p.w, p.h, p.c = width, height, columns
-	p.hp, _ = p.p.Iplots(vg.NewImage(width, height), columns)
+	f1, f2 := plot.Fonts()
+	p.hp, _ = p.p.Iplots(vg.NewImage(width, height, f1, f2), columns)
 }
 
 func Plot(w http.ResponseWriter, r *http.Request) {

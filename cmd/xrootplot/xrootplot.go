@@ -103,7 +103,8 @@ func pp(p plot.Plots) {
 	}
 	w, h := screensize()
 	m := func() *image.RGBA {
-		ip, e := p.Iplots(vg.NewImage(w, h), 0)
+		f1, f2 := plot.Fonts()
+		ip, e := p.Iplots(vg.NewImage(w, h, f1, f2), 0)
 		fatal(e)
 		return ip.Image(nil).(*image.RGBA)
 	}
