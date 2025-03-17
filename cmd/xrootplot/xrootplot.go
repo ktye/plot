@@ -25,7 +25,7 @@ const (
 	TERM    = 0
 	CONSOLE = 1
 	PNG     = 2
-	WMF     = 3
+	EMF     = 3
 )
 const use = `|plot [-dtcw:h:o:] [-plt] [0 2 ..]
 ktye/plot/cmd/xrootplot/xrootplot.go
@@ -62,8 +62,8 @@ func main() {
 		} else if suf(s, ".png") {
 			dst = PNG
 			out = s
-		} else if suf(s, ".wmf") {
-			dst = WMF
+		} else if suf(s, ".emf") {
+			dst = EMF
 			out = s
 		} else if pre(s, "-p") {
 			plt = true
@@ -115,8 +115,8 @@ func pp(p plot.Plots) {
 		drawConsole(w, h, m().Pix)
 	case PNG:
 		fatal(ioutil.WriteFile(out, pngData(m()), 0644))
-	case WMF:
-		b, e := p.Wmf(w, h, 0, nil)
+	case EMF:
+		b, e := p.Emf(w, h, 0, nil)
 		fatal(e)
 		fatal(ioutil.WriteFile(out, b, 0644))
 	default:

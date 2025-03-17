@@ -6,7 +6,7 @@ import (
 	"image/color"
 	"math"
 
-	"github.com/ktye/plot/vg/wmf"
+	wmf "github.com/ktye/plot/vg/emf"
 	"golang.org/x/image/math/fixed"
 )
 

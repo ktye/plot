@@ -66,7 +66,7 @@ const (
 )
 
 type Pen struct {
-	Style, Width, BrushStyle uint32
+	Style, Width, BrushStyle uint16
 	Color                    Color
 }
 type Brush struct {
@@ -75,15 +75,17 @@ type Brush struct {
 	Hatch uint32
 }
 type Font struct {
-	Height      int16
-	Escapement  uint16
-	Orientation uint16
-	Weight      uint16
-	Face        string
+	Height       int16
+	Escapement   uint16
+	Orientation  uint16
+	Weight       uint16
+	OutPrecision uint16 //ignored
+	Quality      uint16 //ignored
+	Face         string
 }
 
 func (f *File) CreatePen(p Pen) {
-	f.push(Record{0x26, 0x1c, []uint32{uint32(f.Handles), p.Style, p.Width, p.BrushStyle, p.Color.Value()}})
+	f.push(Record{0x26, 0x1c, []uint32{uint32(f.Handles), uint32(p.Style), uint32(p.Width), uint32(p.BrushStyle), p.Color.Value()}})
 	//f.push(Record{0x5f, 56, []uint32{uint32(f.Handles), 56, 0, 56, 0, 65536, p.Width, 0, p.Color.Value(), 0, 0, 0}})
 	f.Handles++
 }
@@ -139,8 +141,10 @@ func polyvals(x, y []int16) []uint32 {
 	}
 	return r
 }
+func (f *File) Polygon(x, y []int16)  { f.push(Record{0x56, uint32(4 * (7 + len(x))), polyvals(x, y)}) }
 func (f *File) Polyline(x, y []int16) { f.push(Record{0x57, uint32(4 * (7 + len(x))), polyvals(x, y)}) }
-func (f *File) Text(x, y int16, s string) { //textouta
+
+func (f *File) Text(x, y int16, s string) { //smalltextout
 
 	ansi := func(s string) (b []byte) { // https://go.dev/play/p/bLORbSxRU63
 		b = []byte(s)
@@ -156,7 +160,6 @@ func (f *File) Text(x, y int16, s string) { //textouta
 		b = bytes.ReplaceAll(b, []byte("µ"), []byte{181})
 		return b
 	}
-
 	b := ansi(s)
 	n := len(b)
 	if m := len(b) % 4; m > 0 {
@@ -167,17 +170,53 @@ func (f *File) Text(x, y int16, s string) { //textouta
 	t := make([]uint32, len(b)/4)
 	binary.Read(bytes.NewReader(b), binary.LittleEndian, t)
 
-	u := []uint32{0, 0, 0xffffffff, 0xffffffff, 2, 0, 0,
-		uint32(x), uint32(y), uint32(n),
-		76, 0,
-		0, 0, 0xffffffff, 0xffffffff,
-		76 + 4*uint32(len(t))}
-	u = append(u, t...)
-	for i := 0; i < n; i++ {
-		u = append(u, 10) //what is correct spacing?
+	u := []uint32{uint32(x), uint32(y), uint32(n),
+		0x200, //options
+		2,     //graphics mode
+		0, 0, 0, 0, 0xffffffff, 0xffffffff,
 	}
-	f.push(Record{0x53, 8 + 4*uint32(len(u)), u})
+	u = append(u, t...)
+	f.push(Record{0x6c, 8 + 4*uint32(len(u)), u})
 }
+
+/*
+func (f *File) Text(x, y int16, s string) { //textouta
+
+		ansi := func(s string) (b []byte) { // https://go.dev/play/p/bLORbSxRU63
+			b = []byte(s)
+			b = bytes.ReplaceAll(b, []byte("ä"), []byte{228})
+			b = bytes.ReplaceAll(b, []byte("ö"), []byte{246})
+			b = bytes.ReplaceAll(b, []byte("ü"), []byte{252})
+			b = bytes.ReplaceAll(b, []byte("Ä"), []byte{196})
+			b = bytes.ReplaceAll(b, []byte("Ö"), []byte{214})
+			b = bytes.ReplaceAll(b, []byte("Ü"), []byte{220})
+			b = bytes.ReplaceAll(b, []byte("ß"), []byte{223})
+			b = bytes.ReplaceAll(b, []byte("€"), []byte{128})
+			b = bytes.ReplaceAll(b, []byte("°"), []byte{176})
+			b = bytes.ReplaceAll(b, []byte("µ"), []byte{181})
+			return b
+		}
+		b := ansi(s)
+		n := len(b)
+		if m := len(b) % 4; m > 0 {
+			for i := 0; i < 4-m; i++ {
+				b = append(b, 0)
+			}
+		}
+		t := make([]uint32, len(b)/4)
+		binary.Read(bytes.NewReader(b), binary.LittleEndian, t)
+		u := []uint32{0, 0, 0xffffffff, 0xffffffff, 2, 0, 0,
+			uint32(x), uint32(y), uint32(n),
+			76, 0,
+			0, 0, 0xffffffff, 0xffffffff,
+			76 + 4*uint32(len(t))}
+		u = append(u, t...)
+		for i := 0; i < n; i++ {
+			u = append(u, 10) //what is correct spacing?
+		}
+		f.push(Record{0x53, 8 + 4*uint32(len(u)), u})
+	}
+*/
 func (f *File) SetBkMode(mode uint16) { f.push(Record{0x12, 12, []uint32{uint32(mode)}}) }
 func (f *File) SetTextColor(c Color)  { f.push(Record{0x18, 12, []uint32{c.Value()}}) }
 func (f *File) SetTextAlign(mode uint16) { //mode: refpoint is 0(left top) 2(right) 6(hor-center) 8(bottom) 0x18(baseline) 2.1.2.3  2.3.5.24
@@ -199,6 +238,18 @@ func name64(s string) []uint32 {
 	u := make([]uint32, 16)
 	binary.Read(bytes.NewReader(b), binary.LittleEndian, u)
 	return u
+}
+func (f *File) AntiAlias() { //emf+ header+antialias
+	return /* todo..
+	f.push(Record{0x46, 0x2c, []uint32{0x20, 726027589,
+		0x4001 | 0x1<<16, 0x1c, 0x10, 0xDBC01002, 0x1,
+		// 0x66, 0x6c
+		0x32, 0x32,
+	}})
+	f.push(Record{0x46, 28, []uint32{12,
+		726027589, //"EMF+"
+		0x401e | 0xb<<16, 0xc, 0}})
+	*/
 }
 func (f *File) MarshallBinary() []byte {
 	var r []Record

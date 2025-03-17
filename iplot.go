@@ -104,7 +104,7 @@ func (p Plots) Png(width, height, columns int, idx []HighlightID) ([]byte, error
 	e = png.Encode(&b, m)
 	return b.Bytes(), e
 }
-func (p Plots) Wmf(width, height, columns int, idx []HighlightID) ([]byte, error) {
+func (p Plots) Emf(width, height, columns int, idx []HighlightID) ([]byte, error) {
 	ip, e := p.Iplots(vg.NewWmf(width, height), columns)
 	if e != nil {
 		return nil, e
