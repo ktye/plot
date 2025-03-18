@@ -239,6 +239,11 @@ func name64(s string) []uint32 {
 	binary.Read(bytes.NewReader(b), binary.LittleEndian, u)
 	return u
 }
+func (f *File) EmfplusComment(u []uint32) {
+	s := uint32(4 * len(u))
+	d := append([]uint32{s, 726027589}, u...)
+	f.push(Record{0x46, 12 + s, d})
+}
 func (f *File) AntiAlias() { //emf+ header+antialias
 	return /* todo..
 	f.push(Record{0x46, 0x2c, []uint32{0x20, 726027589,
