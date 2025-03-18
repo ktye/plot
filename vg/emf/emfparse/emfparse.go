@@ -30,7 +30,19 @@ func main() {
 		fatal(binary.Read(r, binary.LittleEndian, &s))
 		x := make([]uint32, (s/4)-2)
 		fatal(binary.Read(r, binary.LittleEndian, x))
-		fmt.Printf("%x #%d %d\n", u, s, x)
+		if u == 0x46 && len(x) > 1 && x[1] == 0x2b464d45 { //"EMF+"
+			fmt.Printf("%x #%d EMF+\n", u, s)
+			x = x[2:]
+			for len(x) > 0 {
+				t := uint16(x[0])
+				s = x[1]
+				n := s / 4
+				fmt.Printf("+%x #%d %v\n", t, s, x[2:n])
+				x = x[n:]
+			}
+		} else {
+			fmt.Printf("%x #%d %d\n", u, s, x)
+		}
 	}
 }
 func fatal(e error) {
