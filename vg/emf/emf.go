@@ -13,15 +13,36 @@ func New(w, h int) *File {
 	f := File{
 		width:  w,
 		height: h,
+		/*
+			Header: Header{
+				Type: 1, Size: 108,
+				Bounds3: int32(w), Bounds4: int32(h),
+				Frame3: int32(20 * w), Frame4: int32(20 * h),
+				Signature: 1179469088, Version: 65536,
+				Handles:  1, //1st is predefined
+				DevWidth: 1920, DevHeight: 1080,
+				MilliX: 2 * 192, MilliY: 2 * 108,
+				MicroX: 500, MicroY: 500,
+			},
+		*/
 		Header: Header{
 			Type: 1, Size: 108,
-			Bounds3: int32(w), Bounds4: int32(h),
-			Frame3: int32(20 * w), Frame4: int32(20 * h),
-			Signature: 1179469088, Version: 65536,
-			Handles:  1, //1st is predefined
-			DevWidth: 1920, DevHeight: 1080,
-			MilliX: 2 * 192, MilliY: 2 * 108,
-			MicroX: 500, MicroY: 500,
+			Bounds1:   2374,
+			Bounds2:   1285,
+			Bounds3:   3058,
+			Bounds4:   1969,
+			Frame1:    10190,
+			Frame2:    5593,
+			Frame3:    12796,
+			Frame4:    8200,
+			Signature: 1179469088,
+			Version:   65536,
+			Bytes:     1128,
+			DevWidth:  4750,
+			DevHeight: 6250,
+			MilliX:    201,
+			MilliY:    265,
+			MicroX:    201083, MicroY: 264583,
 		},
 	}
 	return &f
@@ -242,7 +263,7 @@ func name64(s string) []uint32 {
 func (f *File) EmfplusComment(u []uint32) {
 	s := uint32(4 * len(u))
 	d := append([]uint32{s, 726027589}, u...)
-	f.push(Record{0x46, 12 + s, d})
+	f.push(Record{0x46, 16 + s, d})
 }
 func (f *File) AntiAlias() { //emf+ header+antialias
 	return /* todo..

@@ -19,7 +19,8 @@ func main() {
 	fatal(binary.Read(r, binary.LittleEndian, &h))
 	fmt.Printf("%+v\n", h)
 	if h.Size != 108 {
-		fmt.Printf("unsupported header size: #%d\n", h.Size)
+		fmt.Println("header size too large", h.Size)
+		r.Seek(int64(h.Size), io.SeekStart)
 	}
 	for {
 		var u, s uint32
@@ -37,7 +38,7 @@ func main() {
 				t := uint16(x[0])
 				s = x[1]
 				n := s / 4
-				fmt.Printf("+%x #%d %v\n", t, s, x[2:n])
+				fmt.Printf("+%x (%x) #%d %v\n", t, x[0]>>16, s, x[2:n])
 				x = x[n:]
 			}
 		} else {
