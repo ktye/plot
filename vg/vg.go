@@ -444,19 +444,23 @@ func (a ArrowHead) Draw(p *Painter) {
 	if len(a.X) < 2 || len(a.Y) < 2 {
 		return
 	}
-	x, y := transform(a.X[len(a.X)-1], a.Y[len(a.Y)-1], a.CoordinateSystem, rect26_6(p.im.Bounds()))
-	dx, dy := a.X[len(a.X)-1]-a.X[len(a.X)-2], a.Y[len(a.Y)-1]-a.Y[len(a.Y)-2]
-	dx, dy = transformDirection(dx, dy, a.CoordinateSystem, rect26_6(p.im.Bounds())) // unit vector in pixels (float64)
-	A := float64(a.LineWidth * 12)                                                   // arrow head length (pixels)
-	B := A / 5.0                                                                     // short cathetus length
-	//x += fixed.I(p.x0)
-	//y += fixed.I(p.y0)
-	xa, ya := float64(x)/64.0-A*dx, float64(y)/64.0-A*dy // arrow base point on the line
-	xb, yb := xa-B*dy, ya+B*dx                           // corner points
-	xc, yc := xa+B*dy, ya-B*dx                           //
+	x, y, xa, ya, xb, yb, xc, yc := a.points(rect26_6(p.im.Bounds()))
 	f := func(p float64) fixed.Int26_6 { return fixed.Int26_6(int(64.0 * p)) }
 	path := raster.Path{0, x, y, 0, 1, f(xb), f(yb), 1, 1, f(xa), f(ya), 1, 1, f(xc), f(yc), 1, 1, x, y, 1}
 	p.Fill(path)
+}
+func (a ArrowHead) points(r fixed.Rectangle26_6) (x, y fixed.Int26_6, xa, ya, xb, yb, xc, yc float64) {
+	x, y = transform(a.X[len(a.X)-1], a.Y[len(a.Y)-1], a.CoordinateSystem, r)
+	dx, dy := a.X[len(a.X)-1]-a.X[len(a.X)-2], a.Y[len(a.Y)-1]-a.Y[len(a.Y)-2]
+	dx, dy = transformDirection(dx, dy, a.CoordinateSystem, r) // unit vector in pixels (float64)
+	A := float64(a.LineWidth * 12)                             // arrow head length (pixels)
+	B := A / 5.0                                               // short cathetus length
+	//x += fixed.I(p.x0)
+	//y += fixed.I(p.y0)
+	xa, ya = float64(x)/64.0-A*dx, float64(y)/64.0-A*dy // arrow base point on the line
+	xb, yb = xa-B*dy, ya+B*dx                           // corner points
+	xc, yc = xa+B*dy, ya-B*dx                           //
+	return x, y, xa, ya, xb, yb, xc, yc
 }
 
 // FloatPath is a connected line with many points.

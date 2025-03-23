@@ -191,15 +191,7 @@ func (f *Wmf) ArrowHead(a ArrowHead) {
 	if len(a.X) < 2 || len(a.Y) < 2 {
 		return
 	}
-	x, y := transform(a.X[len(a.X)-1], a.Y[len(a.Y)-1], a.CoordinateSystem, rect26_6(f.rect))
-	dx, dy := a.X[len(a.X)-1]-a.X[len(a.X)-2], a.Y[len(a.Y)-1]-a.Y[len(a.Y)-2]
-	dx, dy = transformDirection(dx, dy, a.CoordinateSystem, rect26_6(f.rect))
-	A := float64(a.LineWidth * 12)
-	B := A / 5.0
-	xa, ya := float64(x)/64.0-A*dx, float64(y)/64.0-A*dy
-	xb, yb := xa-B*dy, ya+B*dx
-	xc, yc := xa+B*dy, ya-B*dx
-	//path := raster.Path{0, x, y, 0, 1, f(xb), f(yb), 1, 1, f(xa), f(ya), 1, 1, f(xc), f(yc), 1, 1, x, y, 1}
+	x, y, xa, ya, xb, yb, xc, yc := a.points(rect26_6(f.rect))
 	X := []int16{int16(x >> 6), int16(xb), int16(xa), int16(xc), int16(x >> 6)}
 	Y := []int16{int16(y >> 6), int16(yb), int16(ya), int16(yc), int16(y >> 6)}
 	f.setFillStroke(true, 0)
