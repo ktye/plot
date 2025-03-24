@@ -169,10 +169,10 @@ func (a axes) drawXYTics(X, Y []float64, xlabels, ylabels []string) {
 	boxLw := a.plot.defaultAxesGridLineWidth()
 	aoff := a.plot.defaultTicLength()
 	zw := a.zSpace
-	d.Line(vg.Line{vg.LineCoords{a.x + zw, a.y - aoff, a.width - 1 - zw, 0}, boxLw, true})           //top
-	d.Line(vg.Line{vg.LineCoords{a.x, a.y + a.height + aoff, a.width - 1 - zw, 0}, boxLw, true})     //bottom
-	d.Line(vg.Line{vg.LineCoords{a.x - aoff, a.y + zw, 0, a.height - 1 - zw}, boxLw, true})          //left
-	d.Line(vg.Line{vg.LineCoords{a.x + a.width + aoff - 1, a.y, 0, a.height - 1 - zw}, boxLw, true}) //right
+	d.Line(vg.Line{vg.LineCoords{a.x + zw, a.y - aoff, a.width - 1 - zw, 0}, boxLw, true})       //top
+	d.Line(vg.Line{vg.LineCoords{a.x, a.y + a.height + aoff, a.width - 1 - zw, 0}, boxLw, true}) //bottom
+	d.Line(vg.Line{vg.LineCoords{a.x - aoff, a.y + zw, 0, a.height - 1 - zw}, boxLw, true})      //left
+	d.Line(vg.Line{vg.LineCoords{a.x + a.width + aoff, a.y, 0, a.height - 1 - zw}, boxLw, true}) //right
 
 	// x and y tics on all 4 borders.
 	L := a.plot.defaultTicLength()
@@ -199,10 +199,10 @@ func (a axes) drawXYTics(X, Y []float64, xlabels, ylabels []string) {
 		}
 		stop, _ = cs.Pixel(X[i], lim.Ymin, rect0)
 		stop += textWidth(s) / 2
-		yoff := font2.Metrics().Height.Ceil()
+		yoff := 3 + a.plot.defaultTicLength()
 		d.FloatText(vg.FloatText{X: X[i], Y: lim.Ymin, S: s, Yoff: yoff, Align: 5, CoordinateSystem: cs, Rect: rect0})
 	}
-	xoff := -2 * L
+	xoff := -(3 + L)
 	for i, s := range ylabels {
 		d.FloatText(vg.FloatText{X: lim.Xmin, Y: Y[i], S: s, Yoff: 2, Xoff: xoff, Align: 3, CoordinateSystem: cs, Rect: rect0})
 	}
@@ -221,6 +221,9 @@ func (a axes) drawPolarCircle(ring bool) {
 	d := a.parent
 	d.Color(a.fg)
 	r := a.width / 2
+	if 2*r < a.width {
+		r++ // Correct round off.
+	}
 	lw := a.plot.defaultAxesGridLineWidth()
 	if ring == false { // grid lines
 		d.Line(vg.Line{vg.LineCoords{X: a.x + r, Y: a.y, DX: 0, DY: 2*r + 1}, lw, true})
@@ -242,12 +245,12 @@ func (a axes) drawPolarCircle(ring bool) {
 			if rr > 0 && ring == false {
 				w := int(float64(a.width) * rr / a.limits.Ymax)
 				off := (a.width - w) / 2
-				d.Circle(vg.Circle{a.x + off, a.y + off, w, lw, false})
+				d.Circle(vg.Circle{a.x + off, a.y + off, 1 + w, lw, false})
 			} else if ring && rr > a.limits.Zmin {
 				rrr := xmath.Scale(rr, a.limits.Zmin, a.limits.Zmax, innerRing, 1.0)
 				w := int(float64(a.width) * rrr)
 				off := (a.width - w) / 2
-				d.Circle(vg.Circle{a.x + off, a.y + off, w, lw, false})
+				d.Circle(vg.Circle{a.x + off, a.y + off, 1 + w, lw, false})
 			}
 			rr += spacing
 		}
@@ -267,7 +270,7 @@ func (a axes) drawPolarTics(ring, ccw, noTics bool) {
 	d.Color(a.fg)
 	r := a.width / 2
 	if 2*r < a.width {
-		r++ // Correct round off.
+		r++
 	}
 	l := a.plot.defaultTicLength()
 	aligns := []int{1, 0, 0, 7, 6, 6, 5, 4, 4, 3, 2, 2}

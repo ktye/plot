@@ -1,12 +1,14 @@
 package vg
 
 import (
+	"bytes"
 	"fmt"
-	"golang.org/x/image/math/fixed"
 	"image"
 	"image/color"
 	"math"
 	"strings"
+
+	"golang.org/x/image/math/fixed"
 )
 
 func NewSvg(w, h int) *Svg {
@@ -17,32 +19,47 @@ func NewSvg(w, h int) *Svg {
 
 type Svg struct {
 	r   image.Rectangle
+	g   []string
 	svg *svg
 }
 type svg struct {
-	fg color.Color
-	bg color.Color
-	f1 bool
-	g  []string
+	fg    color.Color
+	bg    color.Color
+	f1    bool
+	clips map[string]string
+	data  []string
 }
 
-func (f *Svg) push(s string)             { f.svg.g = append(f.svg.g, s) }
+func (f *Svg) push(s string)             { f.g = append(f.g, s) }
 func (f *Svg) Reset()                    {}
 func (f *Svg) rect() fixed.Rectangle26_6 { return fixed.R(0, 0, f.r.Dx(), f.r.Dy()) }
 func (f *Svg) Size() (int, int)          { return f.r.Dx(), f.r.Dy() }
 func (f *Svg) SubImage(r image.Rectangle) Drawer {
+	if f.svg.clips == nil {
+		f.svg.clips = make(map[string]string)
+	}
+	id := f.clipId(r)
+	f.svg.clips[id] = fmt.Sprintf("<clipPath id='%s'><rect x='0' y='0' width='%d' height='%d'/></clipPath>", id, r.Dx(), r.Dy())
 	s := Svg{r: r.Add(f.r.Min), svg: f.svg}
 	return &s
 }
-func (f *Svg) Bounds() image.Rectangle { return f.r }
-func (f *Svg) Clear(c color.Color)     { f.svg.bg = c }
-func (f *Svg) Color(c color.Color)     { f.svg.fg = c }
+func (f *Svg) Embed(x, y int, m image.Image) {
+	s, e := EncodeToPng(m)
+	if e != nil {
+		return
+	}
+	f.push(fmt.Sprintf("<image x='%d' y='%d' width='%d' height='%d' xlink:href='%s'/>", x, y, m.Bounds().Dx(), m.Bounds().Dy(), s))
+}
+func (f *Svg) clipId(r image.Rectangle) string { return fmt.Sprintf("r-%d-%d", r.Dx(), r.Dy()) }
+func (f *Svg) Bounds() image.Rectangle         { return f.r }
+func (f *Svg) Clear(c color.Color)             { f.svg.bg = c }
+func (f *Svg) Color(c color.Color)             { f.svg.fg = c }
 func (f *Svg) rgb() string {
 	r, g, b, _ := f.svg.fg.RGBA()
 	return fmt.Sprintf("#%02x%02x%02x", r>>8, g>>8, b>>8)
 }
 func (f *Svg) fillStroke(lw int, fill bool) string {
-	s := fmt.Sprintf("stroke-width='%d' strok='%s'", lw, f.rgb())
+	s := fmt.Sprintf("stroke-width='%d' stroke='%s' fill='none'", lw, f.rgb())
 	if fill {
 		s = fmt.Sprintf("fill='%s'", f.rgb())
 	}
@@ -52,13 +69,14 @@ func (f *Svg) Line(l Line) {
 	f.push(fmt.Sprintf("<line x1='%d' y1='%d' x2='%d' y2='%d' stroke-width='%d' stroke='%s'/>", l.X, l.Y, l.X+l.DX, l.Y+l.DY, l.LineWidth, f.rgb()))
 }
 func (f *Svg) Circle(c Circle) {
-	f.push(fmt.Sprintf("<circle cx='%d' cy='%d' r='%.1f' %s>", c.X, c.Y, float64(c.D)/2, f.fillStroke(c.LineWidth, c.Fill)))
+	r := c.D / 2
+	f.push(fmt.Sprintf("<circle cx='%d' cy='%d' r='%d' %s/>", c.X+r, c.Y+r, r, f.fillStroke(c.LineWidth, c.Fill)))
 }
 func (f *Svg) Rectangle(r Rectangle) {
-	f.push(fmt.Sprintf("<rectangle x='%d' y='%d' width='%d' height='%d' %s>", r.X, r.Y, r.W, r.H, f.fillStroke(r.LineWidth, r.Fill)))
+	f.push(fmt.Sprintf("<rectangle x='%d' y='%d' width='%d' height='%d' %s/>", r.X, r.Y, r.W, r.H, f.fillStroke(r.LineWidth, r.Fill)))
 }
 func (f *Svg) Triangle(t Triangle) {
-	f.push(fmt.Sprintf("<polygon points='%d %d %d %d %d %d' %s>", t.X0, t.Y0, t.X1, t.Y1, t.X2, t.Y2, f.fillStroke(t.LineWidth, t.Fill)))
+	f.push(fmt.Sprintf("<polygon points='%d %d %d %d %d %d' %s/>", t.X0, t.Y0, t.X1, t.Y1, t.X2, t.Y2, f.fillStroke(t.LineWidth, t.Fill)))
 }
 func (f *Svg) Ray(r Ray) {
 	R := float64(r.R)
@@ -71,14 +89,20 @@ func (f *Svg) Ray(r Ray) {
 }
 func (f *Svg) Text(t Text) {
 	a := []string{"start", "middle", "end", "end", "end", "middle", "start", "start", "middle"}[t.Align]
-	b := "alignment-baseline='" + ([]string{"bottom", "bottom", "bottom", "center", "top", "top", "top", "center", "center"}[t.Align]) + "'"
+	b := "alignment-baseline='" + ([]string{"top", "top", "top", "middle", "hanging", "hanging", "hanging", "middle", "middle"}[t.Align]) + "'"
 	if a != "start" {
 		a = "text-anchor='" + a + "'"
+	} else {
+		a = ""
+	}
+	size := ""
+	if f.svg.f1 == false {
+		size = "class='s'"
 	}
 	if t.Vertical {
-		f.push(fmt.Sprintf("<g transform='translate(%d,%d) rotate(-90)'><text %s %s>%s</text></g>", t.X, t.Y, a, b, t.S))
+		f.push(fmt.Sprintf("<g transform='translate(%d,%d) rotate(-90)'><text %s %s %s>%s</text></g>", t.X, t.Y, size, a, b, t.S))
 	} else {
-		f.push(fmt.Sprintf("<text x='%d' y='%d' %s %s>%s</text>", t.X, t.Y, a, b, t.S))
+		f.push(fmt.Sprintf("<text x='%d' y='%d' %s %s %s>%s</text>", t.X, t.Y, size, a, b, t.S))
 	}
 }
 func (f *Svg) Font(f1 bool) { f.svg.f1 = f1 }
@@ -89,22 +113,26 @@ func (f *Svg) ArrowHead(a ArrowHead) {
 
 func (f *Svg) FloatTics(t FloatTics) {
 	var p strings.Builder
+	rect := rect26_6(t.Rect.Sub(f.r.Min))
 	for _, v := range t.P {
 		X, Y, dx, dy := t.Q, v, t.L, 0
 		if t.Horizontal {
 			X, Y, dx, dy = Y, X, dy, dx
 		}
-		x, y := transform(X, Y, t.CoordinateSystem, f.rect())
+		x, y := transform(X, Y, t.CoordinateSystem, rect)
+		if t.LeftTop == false {
+			dx, dy = 0, 0
+		}
 		fmt.Fprintf(&p, "M%d %d", int(x>>6)-dx, int(y>>6)-dy)
 		if t.Horizontal {
-			fmt.Fprintf(&p, "h%d", t.L)
-		} else {
 			fmt.Fprintf(&p, "v%d", t.L)
+		} else {
+			fmt.Fprintf(&p, "h%d", t.L)
 		}
 	}
 	f.push(fmt.Sprintf("<path d='%s' %s/>", p.String(), f.fillStroke(t.LineWidth, false)))
 }
-func (f *Svg) FloatText(t FloatText)                            { f.Text(t.toText(0, 0)) }
+func (f *Svg) FloatText(ft FloatText)                           { f.Text(ft.toText(f.r.Min.X, f.r.Min.Y)) }
 func (f *Svg) FloatTextExtent(t FloatText) (int, int, int, int) { return 0, 0, 0, 0 }
 func (f *Svg) FloatBars(b FloatBars) {
 	var p strings.Builder
@@ -147,6 +175,7 @@ func (f *Svg) FloatPath(q FloatPath) {
 		x += z
 		y -= z
 		if st {
+			st = false
 			fmt.Fprintf(&p, "M%d %d", int(x>>6), int(y>>6))
 		} else {
 			fmt.Fprintf(&p, "L%d %d", int(x>>6), int(y>>6))
@@ -157,22 +186,40 @@ func (f *Svg) FloatPath(q FloatPath) {
 
 func (f *Svg) Paint() {
 	var b strings.Builder
-	id := fmt.Sprintf("r-%d-%d-%d-%d", f.r.Min.X, f.r.Min.Y, f.r.Max.X, f.r.Max.Y)
 	fmt.Fprintf(&b, "<g transform='translate(%d,%d)'>\n", f.r.Min.X, f.r.Min.Y)
-	fmt.Fprintf(&b, "<defs><clipPath id='%s'><rect x='%d' y='%d' width='%d' height='%d'/></clipPath></defs\n", id, f.r.Min.X, f.r.Min.Y, f.r.Dx(), f.r.Dy())
-	fmt.Fprintf(&b, "<g clip-path='url(#%s)'>\n", id)
-	for _, s := range f.svg.g {
+	clip := false
+	if len(f.svg.clips) > 0 {
+		id := f.clipId(f.r)
+		_, clip = f.svg.clips[id]
+		if clip {
+			fmt.Fprintf(&b, "<g clip-path='url(#%s)'>\n", id)
+		}
+	}
+	for _, s := range f.g {
 		fmt.Fprintln(&b, s)
 	}
-	fmt.Fprintf(&b, "</g></g>\n")
-	f.svg.g = []string{b.String()}
+	if clip {
+		fmt.Fprintf(&b, "</g>")
+	}
+	fmt.Fprintf(&b, "</g>\n")
+	f.svg.data = append(f.svg.data, b.String())
 }
-func (f *Svg) File() string {
-	var b strings.Builder
-	fmt.Fprintf(&b, "<svg viewBox='0 0 %d %d' xmlns='http://www.w3.org/2000/svg'\n>", f.r.Dx(), f.r.Dy())
-	for _, s := range f.svg.g {
+func (f *Svg) Bytes() []byte {
+	var b bytes.Buffer
+	fmt.Fprintf(&b, "<svg viewBox='0 0 %d %d' width='%d' height='%d' xmlns='http://www.w3.org/2000/svg'>\n", f.r.Dx(), f.r.Dy(), f.r.Dx(), f.r.Dy())
+	fmt.Fprintf(&b, "<style>text{font-family:sans-serif;font-size:18px}.s{font-size:small}</style>\n")
+
+	if len(f.svg.clips) > 0 {
+		fmt.Fprintf(&b, "<defs>\n")
+		for _, s := range f.svg.clips {
+			b.Write([]byte(s))
+		}
+		fmt.Fprintf(&b, "</defs>\n")
+	}
+	fmt.Fprintf(&b, "<g transform='translate(0.5,0.5)'>\n")
+	for _, s := range f.svg.data {
 		b.Write([]byte(s))
 	}
-	fmt.Fprintf(&b, "</svg>\n")
-	return b.String()
+	fmt.Fprintf(&b, "</g></svg>\n")
+	return b.Bytes()
 }

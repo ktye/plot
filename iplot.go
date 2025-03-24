@@ -112,6 +112,14 @@ func (p Plots) Emf(width, height, columns int, idx []HighlightID) ([]byte, error
 	//todo: for i := range p.p { p.p[i].highlight(ids) }
 	return ip.d.(*vg.Wmf).MarshallBinary(), nil
 }
+func (p Plots) Svg(width, height, columns int, idx []HighlightID) ([]byte, error) {
+	ip, e := p.Iplots(vg.NewSvg(width, height), columns)
+	if e != nil {
+		return nil, e
+	}
+	//todo: for i := range p.p { p.p[i].highlight(ids) }
+	return ip.d.(*vg.Svg).Bytes(), nil
+}
 
 //// Image creates an Image from a slice of iplotters.
 //// If ids is nil, no lines will be highlighted.

@@ -348,10 +348,10 @@ type Ray struct {
 }
 
 func (r Ray) Draw(p *Painter) {
-	x0 := float64(r.X+p.x0) + float64(r.R)*math.Cos(r.Phi) - 0.5
-	y0 := float64(r.Y+p.y0) + float64(r.R)*math.Sin(r.Phi) - 0.5
-	x1 := float64(r.X+p.x0) + float64(r.R+r.L)*math.Cos(r.Phi) - 0.5
-	y1 := float64(r.Y+p.y0) + float64(r.R+r.L)*math.Sin(r.Phi) - 0.5
+	x0 := float64(r.X+p.x0) + float64(r.R)*math.Cos(r.Phi) + 0.5
+	y0 := float64(r.Y+p.y0) + float64(r.R)*math.Sin(r.Phi) + 0.5
+	x1 := float64(r.X+p.x0) + float64(r.R+r.L)*math.Cos(r.Phi) + 0.5
+	y1 := float64(r.Y+p.y0) + float64(r.R+r.L)*math.Sin(r.Phi) + 0.5
 	path := raster.Path{
 		0, fixed.Int26_6(int(x0 * 64.0)), fixed.Int26_6(int(y0 * 64.0)), 0,
 		1, fixed.Int26_6(int(x1 * 64.0)), fixed.Int26_6(int(y1 * 64.0)), 1,
@@ -602,8 +602,8 @@ func transform(x, y float64, cs CoordinateSystem, bounds fixed.Rectangle26_6) (X
 		return fixed.Int26_6(int(64.0 * f))
 	}
 	hp := fixed.Int26_6(32)
-	x0, x1 := float64(bounds.Min.X+hp)/64.0, float64(bounds.Max.X-hp)/64.0
-	y0, y1 := float64(bounds.Min.Y+hp)/64.0, float64(bounds.Max.Y-hp)/64.0
+	x0, x1 := float64(bounds.Min.X+hp)/64.0, float64(bounds.Max.X+hp)/64.0
+	y0, y1 := float64(bounds.Min.Y+hp)/64.0, float64(bounds.Max.Y+hp)/64.0
 	return fixedFloat(clip(xmath.Scale(x, cs.X0, cs.X1, x0, x1))), fixedFloat(clip(xmath.Scale(y, cs.Y0, cs.Y1, y0, y1)))
 }
 func transformDirection(dx, dy float64, cs CoordinateSystem, bounds fixed.Rectangle26_6) (float64, float64) {

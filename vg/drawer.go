@@ -1,8 +1,11 @@
 package vg
 
 import (
+	"bytes"
+	"encoding/base64"
 	"image"
 	"image/color"
+	"image/png"
 )
 
 type Drawer interface {
@@ -21,6 +24,7 @@ type Drawer interface {
 	Text(Text)
 	Font(bool)
 	ArrowHead(ArrowHead)
+	//Embed(int, int, image.Image) //todo
 
 	FloatTics(FloatTics)
 	FloatText(FloatText)
@@ -29,4 +33,12 @@ type Drawer interface {
 	FloatCircles(FloatCircles)
 	FloatEnvelope(FloatEnvelope)
 	FloatPath(FloatPath)
+}
+
+func EncodeToPng(m image.Image) (string, error) {
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, m); err != nil {
+		return "", err
+	}
+	return "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf.Bytes()), nil
 }

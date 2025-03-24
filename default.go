@@ -28,7 +28,7 @@ func stringWidth(f font.Face, s string) int {
 
 // defaultBorder is the outer border around a plot. It is cut from the requested size.
 func (p *Plot) defaultBorder() int {
-	return font1.Metrics().Height.Ceil() / 4
+	return 5 //font1.Metrics().Height.Ceil() / 4
 }
 
 func (p *Plot) defaultForegroundColor() color.Color {
@@ -53,7 +53,7 @@ func (p *Plot) defaultTitleHeight() int {
 	if p.Title == "" {
 		return 2
 	}
-	return 2 + font1.Metrics().Height.Ceil()
+	return 20 //2 + font1.Metrics().Height.Ceil()
 }
 
 // defaultXLabelHeight is the vertical space for the x-axis label.
@@ -61,7 +61,7 @@ func (p *Plot) defaultXlabelHeight() int {
 	if p.Xlabel+p.Xunit == "" {
 		return 2
 	}
-	return 2 + font1.Metrics().Height.Ceil()
+	return 20 //2 + font1.Metrics().Height.Ceil()
 }
 
 // defaultYLabelWidth is the horizontal space for the rotated y-axis label.
@@ -69,18 +69,18 @@ func (p *Plot) defaultYlabelWidth() int {
 	if p.Ylabel+p.Yunit == "" {
 		return 2
 	}
-	return 2 + font1.Metrics().Height.Ceil()
+	return 20 //2 + font1.Metrics().Height.Ceil()
 }
 
 // defaultTicLabelHeight is the vertical space for the tic labels.
 func (p *Plot) defaultTicLabelHeight() int {
-	return font2.Metrics().Height.Ceil() * 2
+	return 22 //font2.Metrics().Height.Ceil() * 2
 }
 
 // defaultPolarTicLabelWidth is the horizontal space for polar tic labels.
 // which is basically the size around the string "270".
 func (p *Plot) defaultPolarTicLabelWidth() int {
-	return 3 * font2.Metrics().Height.Ceil()
+	return 42 //3 * font2.Metrics().Height.Ceil()
 }
 
 // defaultTicLabelWidth is the horizontal space for tic labels on the y axis.
@@ -104,16 +104,12 @@ func (p *Plot) defaultRightXYWidth(lastXLabel string) int {
 
 // defaultTicLength computes the tic length.
 func (p *Plot) defaultTicLength() int {
-	return font2.Metrics().Height.Ceil() / 2
+	return 6 //font2.Metrics().Height.Ceil() / 2
 }
 
 // defaultAxesGridLineWidth returns the grid line width.
 func (p *Plot) defaultAxesGridLineWidth() int {
-	n := font2.Metrics().Height.Ceil() / 10
-	if n == 0 {
-		n = 1
-	}
-	return n
+	return 1
 }
 
 // defaultAmpAngSpace is the vertical space between the amplitude

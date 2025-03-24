@@ -55,6 +55,17 @@ import (
 //		}
 //	}
 
+func TestUni(t *testing.T) {
+	s := "ab"
+	u, c := uni(s)
+	if c != 2 {
+		t.Fatal()
+	}
+	if u[0] != uint32(0x00620061) {
+		t.Fatalf("%s: %x", s, u)
+	}
+}
+
 func TestEmfPlus(t *testing.T) {
 	f := New(0, 0)
 	f.Records = []Record{
@@ -80,12 +91,17 @@ func TestEmfPlus(t *testing.T) {
 		//Record{0x4015, 0x2, 16, []uint32{4, 1}},                                               //draw-path
 	}
 
-	f.Pen(8, 0xffaa0000)
+	f.Pen(1, 0xffaa0000)
 	//f.DrawEllipse(1, 50, 50, 200, 200)
 	//f.DrawPolyline(1, true, []int16{0, 100, 200, 300}, []int16{0, 50, 0, 70})
-	f.LineSegments(1, []int16{0, 100, 200}, []int16{0, 100, 200}, []int16{0, 0, 0}, []int16{200, 200, 200}) //todo
 
-	f.FillPolygon(0xffff0000, []int16{100, 200, 300, 400, 400, 300, 200, 100}, []int16{100, 200, 100, 200, 400, 300, 400, 300})
+	//f.LineSegments(1, []int16{0, 100, 200}, []int16{0, 100, 200}, []int16{0, 0, 0}, []int16{200, 200, 200})
+	f.LineSegments(1, []int16{0, 100}, []int16{200, 100}, []int16{100, 0}, []int16{100, 200}) //todo
+
+	fn := f.Font(16, "Consolas")
+	f.Text(100, 100, "0.123", fn, 1, false, 0xff00aa00)
+
+	//f.FillPolygon(0xffff0000, []int16{100, 200, 300, 400, 400, 300, 200, 100}, []int16{100, 200, 100, 200, 400, 300, 400, 300})
 
 	//f.Brush(0xff00ff00)
 	//f.FillEllipse(0xff00ff00, 50, 50, 200, 200)

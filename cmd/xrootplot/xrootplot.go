@@ -26,13 +26,14 @@ const (
 	CONSOLE = 1
 	PNG     = 2
 	EMF     = 3
+	SVG     = 4
 )
 const use = `|plot [-dtcw:h:o:] [-plt] [0 2 ..]
 ktye/plot/cmd/xrootplot/xrootplot.go
  -d   print (uniform) plot data [csv]
  -t   print table(caption) data [csv]
  -1   single axes
- FILE.png/wmf   (to file instead of stdout)
+ FILE.png/wmf/emf/svg (to file instead of stdout)
  -c   console output (default iterm2 image)
  -p   convert to plt format
  -wWIDTH -hHEIGHT (also from env)
@@ -64,6 +65,9 @@ func main() {
 			out = s
 		} else if suf(s, ".emf") {
 			dst = EMF
+			out = s
+		} else if suf(s, ".svg") {
+			dst = SVG
 			out = s
 		} else if pre(s, "-p") {
 			plt = true
@@ -117,6 +121,10 @@ func pp(p plot.Plots) {
 		fatal(ioutil.WriteFile(out, pngData(m()), 0644))
 	case EMF:
 		b, e := p.Emf(w, h, 0, nil)
+		fatal(e)
+		fatal(ioutil.WriteFile(out, b, 0644))
+	case SVG:
+		b, e := p.Svg(w, h, 0, nil)
 		fatal(e)
 		fatal(ioutil.WriteFile(out, b, 0644))
 	default:
