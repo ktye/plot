@@ -29,6 +29,7 @@ type File struct {
 	Records       []Record
 	width, height int
 	objects       uint8
+	pens          map[pen]uint8
 	fontmap       map[string]uint8
 	alignments    map[string]uint8
 }
@@ -55,19 +56,36 @@ type Emf struct {
 	Data       []uint32
 }
 
+type pen struct {
+	linewidth int16
+	color     uint32
+}
+
 func (f *File) Pen(linewidth int16, color uint32) uint8 { //color: 0xaarrggbb
+	p := pen{linewidth, color}
+	if f.pens == nil {
+		f.pens = make(map[pen]uint8)
+	}
+	if id, ok := f.pens[p]; ok {
+		return id
+	}
+
 	id := f.objects
+	f.pens[p] = id
 	lw := f32(linewidth)
 	f.push(Record{0x4008, 0x200 | uint16(id), 52 - 8, []uint32{40 - 8, 3686797314, 0, 0, 0, lw, 3686797314, 0, color /*4278219453*/}})
 	f.objects++
 	return id
 }
-func (f *File) Brush(color uint32) uint8 {
-	id := f.objects
-	f.push(Record{0x4008, 0x100 | uint16(id), 24, []uint32{12, 3686797314, 0, color}})
-	f.objects++
-	return id
-}
+
+/*
+	func (f *File) Brush(color uint32) uint8 {
+		id := f.objects
+		f.push(Record{0x4008, 0x100 | uint16(id), 24, []uint32{12, 3686797314, 0, color}})
+		f.objects++
+		return id
+	}
+*/
 func rect(left, top, right, bottom int16) (u1, u2 uint32) {
 	return uint32(left) | uint32(top)<<16, uint32(right) | uint32(bottom)<<16
 }
@@ -79,6 +97,26 @@ func (f *File) DrawEllipse(pen uint8, left, top, right, bottom int16) {
 func (f *File) FillEllipse(color uint32, left, top, right, bottom int16) {
 	u1, u2 := rect(left, top, right, bottom)
 	f.push(Record{0x400e, 0xc000, 24, []uint32{12, color, u1, u2}})
+}
+func (f *File) DrawRects(pen uint8, x, y, w, h []int16) {
+	count := uint32(len(x))
+	n := 4 + 4*count
+	u := []uint32{n, count}
+	for i := range x {
+		u1, u2 := rect(x[i], y[i], w[i], h[i])
+		u = append(u, u1, u2)
+	}
+	f.push(Record{0x400b, 0x4000 | uint16(pen), 12 + n, u})
+}
+func (f *File) FillRects(color uint32, x, y, w, h []int16) {
+	count := uint32(len(x))
+	n := 8 + 4*count
+	u := []uint32{n, color, count}
+	for i := range x {
+		u1, u2 := rect(x[i], y[i], w[i], h[i])
+		u = append(u, u1, u2)
+	}
+	f.push(Record{0x400a, 0xc000, 12 + n, u})
 }
 func (f *File) DrawPolyline(pen uint8, closepath bool, x, y []int16) {
 	cp := uint16(0)
@@ -173,7 +211,7 @@ func (f *File) align(a int, vertical bool) uint8 {
 	}
 
 	id := f.objects
-	f.aligments[aid] = id
+	f.alignments[aid] = id
 	f.objects++
 	v := uint32(0)
 	if vertical {

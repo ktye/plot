@@ -36,6 +36,18 @@ func TestPlot(t *testing.T) {
 	}
 	writeTest(b, "plot.svg")
 
+	b, e = p.Wmf(w, h, 3, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	writeTest(b, "plot.wmf")
+
+	b, e = p.Emf(w, h, 3, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	writeTest(b, "plot.emf")
+
 }
 func TestEncDec(t *testing.T) {
 	var buf bytes.Buffer

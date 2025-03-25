@@ -6,7 +6,7 @@ import (
 	"image/color"
 	"math"
 
-	wmf "github.com/ktye/plot/vg/emf"
+	"github.com/ktye/plot/vg/wmf"
 	"golang.org/x/image/math/fixed"
 )
 
@@ -40,11 +40,11 @@ func NewWmf(w, h int) *Wmf {
 	f.brushes = make(map[wmf.Brush]int)
 	f.fontSize = 20
 
-	f.SetBkMode(1)                                                                  //transparent
-	f.CreatePen(wmf.Pen{Style: 5})                                                  //invisible
-	f.CreateBrush(wmf.Brush{Style: 1})                                              //hollow
-	f.CreateFont(wmf.Font{Height: -20, Face: "Arial", OutPrecision: 7, Quality: 4}) //OutPrecision:7, Quality:4
-	f.CreateFont(wmf.Font{Height: -16, Face: "Arial"})
+	f.SetBkMode(1)                                                                    //transparent
+	f.CreatePen(wmf.Pen{Style: 5})                                                    //invisible
+	f.CreateBrush(wmf.Brush{Style: 1})                                                //hollow
+	f.CreateFont(wmf.Font{Height: -16, Face: "Calibri", OutPrecision: 7, Quality: 4}) //OutPrecision:7, Quality:4
+	f.CreateFont(wmf.Font{Height: -12, Face: "Calibri"})
 	f.currentPen = -1
 	f.currentBrush = -1
 	f.objects = 4
@@ -122,7 +122,6 @@ func (f *Wmf) SubImage(r image.Rectangle) Drawer {
 		rect:      r.Add(f.rect.Min),
 		wmfcanvas: f.wmfcanvas,
 	}
-	fmt.Println(":subimage", s.rect)
 	return &s
 }
 func (f *Wmf) Bounds() image.Rectangle { return f.rect }
@@ -163,10 +162,10 @@ func (f *Wmf) Triangle(t Triangle) {
 func (f *Wmf) Ray(r Ray) {
 	f.setFillStroke(false, r.LineWidth)
 	xo, yo := f.rect.Min.X, f.rect.Min.Y
-	x0 := float64(r.X+xo) + float64(r.R)*math.Cos(r.Phi) - 0.5
-	y0 := float64(r.Y+yo) + float64(r.R)*math.Sin(r.Phi) - 0.5
-	x1 := float64(r.X+xo) + float64(r.R+r.L)*math.Cos(r.Phi) - 0.5
-	y1 := float64(r.Y+yo) + float64(r.R+r.L)*math.Sin(r.Phi) - 0.5
+	x0 := float64(r.X+xo) + float64(r.R)*math.Cos(r.Phi) + 0.5
+	y0 := float64(r.Y+yo) + float64(r.R)*math.Sin(r.Phi) + 0.5
+	x1 := float64(r.X+xo) + float64(r.R+r.L)*math.Cos(r.Phi) + 0.5
+	y1 := float64(r.Y+yo) + float64(r.R+r.L)*math.Sin(r.Phi) + 0.5
 	f.MoveTo(int16(x0), int16(y0))
 	f.LineTo(int16(x1), int16(y1))
 }

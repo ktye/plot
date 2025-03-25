@@ -104,8 +104,16 @@ func (p Plots) Png(width, height, columns int, idx []HighlightID) ([]byte, error
 	e = png.Encode(&b, m)
 	return b.Bytes(), e
 }
-func (p Plots) Emf(width, height, columns int, idx []HighlightID) ([]byte, error) {
+func (p Plots) Wmf(width, height, columns int, idx []HighlightID) ([]byte, error) {
 	ip, e := p.Iplots(vg.NewWmf(width, height), columns)
+	if e != nil {
+		return nil, e
+	}
+	//todo: for i := range p.p { p.p[i].highlight(ids) }
+	return ip.d.(*vg.Wmf).MarshallBinary(), nil
+}
+func (p Plots) Emf(width, height, columns int, idx []HighlightID) ([]byte, error) {
+	ip, e := p.Iplots(vg.NewEmf(width, height), columns)
 	if e != nil {
 		return nil, e
 	}
