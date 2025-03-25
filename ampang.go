@@ -70,7 +70,7 @@ func (plt *Plot) NewAmpAng(d vg.Drawer) (p ampAngPlot, err error) {
 	p.ticLength = plt.defaultTicLength()
 	p.ampAngSpace = plt.defaultAmpAngSpace()
 	p.ticLabelHeight = plt.defaultTicLabelHeight()
-	p.ticLabelWidth = plt.defaultTicLabelWidth(append(ytics.Labels, "-180"))
+	p.ticLabelWidth = plt.defaultTicLabelWidth(ytics.Labels)
 	p.xlabelHeight = plt.defaultXlabelHeight()
 	p.ylabelWidth = plt.defaultYlabelWidth()
 	if p.rightXYWidth = 0; len(xtics.Labels) > 0 {

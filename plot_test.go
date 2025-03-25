@@ -7,19 +7,35 @@ import (
 	"image/draw"
 	"math"
 	"math/cmplx"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/ktye/plot/xmath"
 )
 
+func writeTest(b []byte, file string) {
+	if true {
+		os.WriteFile(file, b, 0744)
+	}
+}
+
 func TestPlot(t *testing.T) {
-	p := Plots{xy, polar, ampang, heatmap}
-	w, h := 800, 400
-	_, e := p.Png(w, h, 0, nil)
+	p := Plots{xy, polar, ampang, heatmap, envelope, bars}
+	w, h := 1000, 600
+
+	b, e := p.Png(w, h, 3, nil)
 	if e != nil {
 		t.Fatal(e)
 	}
+	writeTest(b, "plot.png")
+
+	b, e = p.Svg(w, h, 3, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	writeTest(b, "plot.svg")
+
 }
 func TestEncDec(t *testing.T) {
 	var buf bytes.Buffer
@@ -72,9 +88,10 @@ var xy Plot = Plot{
 }
 
 var polar Plot = Plot{
-	Type:  Polar,
-	Title: "Polar",
-	Yunit: "km/s",
+	Type:   Polar,
+	Title:  "Polar",
+	Yunit:  "km/s",
+	Limits: Limits{Ymax: 8},
 	Lines: []Line{
 		Line{
 			X: x,
@@ -84,6 +101,26 @@ var polar Plot = Plot{
 			Id: 1,
 			X:  x,
 			C:  spiral(x, math.Pi/2),
+		},
+		Line{
+			Id:    2,
+			C:     []complex128{0, 4 + 2i},
+			Style: DataStyle{Line: LineStyle{Width: 2, Arrow: 2}},
+		},
+		Line{
+			Id:    3,
+			C:     []complex128{0, 4 - 2i},
+			Style: DataStyle{Line: LineStyle{Width: 2, Arrow: 2}},
+		},
+		Line{
+			Id:    4,
+			C:     []complex128{0, -4 + 2i},
+			Style: DataStyle{Line: LineStyle{Width: 2, Arrow: 2}},
+		},
+		Line{
+			Id:    5,
+			C:     []complex128{0, -4 - 2i},
+			Style: DataStyle{Line: LineStyle{Width: 2, Arrow: 2}},
 		},
 	},
 }
@@ -126,6 +163,45 @@ var heatmap Plot = Plot{
 			X:     x,
 			Y:     x,
 			Image: x_plus_y(x),
+		},
+	},
+}
+
+var envelope Plot = Plot{
+	Type:   XY,
+	Title:  "Envelope plot äüöß⍳↓→λφα",
+	Xlabel: "time",
+	Xunit:  "s",
+	Ylabel: "quantity",
+	Limits: Limits{Xmin: 1.1, Xmax: 6.5, Ymin: -2, Ymax: 2},
+	Lines: []Line{
+		Line{
+			X: []float64{1, 2, 3, 4, 5, 6, 7},
+			Y: []float64{1, -1, 2, -2, 3, -3, 3},
+		},
+		Line{
+			X: []float64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
+			C: []complex128{0.6 + 0.4i, 0.7 + 0.3i, 0.6 + 0.4i, 0.7 + 0.3i, 0.6 + 0.4i, 0.7 + 0.3i, 0.6 + 0.4i, 0.7 + 0.3i, 0.6 + 0.4i, 0.8 + 0.2i},
+		},
+	},
+}
+
+var bars Plot = Plot{
+	Type:   XY,
+	Xlabel: "steps",
+	Ylabel: "count",
+	Lines: []Line{
+		Line{
+			Id:    1,
+			X:     []float64{0.1, 1, 1.1, 2, 2.1, 3, 3.1, 4, 4.1, 5},
+			Y:     []float64{0, 1, 0, 2, 0, 1, 0, 3, 0, 1},
+			Style: DataStyle{Marker: MarkerStyle{Marker: Bar, Size: 1}},
+		},
+		Line{
+			Id:    2,
+			X:     []float64{0.1, 1, 1.1, 2, 2.1, 3, 3.1, 4, 4.1, 5},
+			Y:     []float64{1.1, 3, 2.1, 4, 1.1, 3, 3.1, 4, 1.1, 3},
+			Style: DataStyle{Marker: MarkerStyle{Marker: Bar, Size: 1}},
 		},
 	},
 }

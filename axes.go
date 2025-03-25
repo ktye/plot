@@ -1,10 +1,12 @@
 package plot
 
 import (
+	"bytes"
 	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
+	"image/png"
 	"math"
 	"strconv"
 
@@ -63,10 +65,12 @@ func (a axes) drawXY(xy xyer) {
 }
 func (a axes) drawImage() {
 	insideImg, o := a.inside.(*vg.Image)
+	var m *image.RGBA
 	if o == false {
-		return //raster image is not supported
+		m = image.NewRGBA(a.inside.Bounds())
+	} else {
+		m = insideImg.RGBA
 	}
-	m := insideImg.RGBA
 	draw.Draw(m, m.Bounds(), image.NewUniform(a.bg), image.ZP, draw.Src)
 	if len(a.plot.Lines) > 0 {
 		l := a.plot.Lines[0]
@@ -97,6 +101,13 @@ func (a axes) drawImage() {
 		y1 := int(xmath.Scale(a.limits.Ymin, l.Y[0], l.Y[len(l.Y)-1], float64(rows), 0.0))
 		y0 := int(xmath.Scale(a.limits.Ymax, l.Y[0], l.Y[len(l.Y)-1], float64(rows), 0.0))
 		xdraw.NearestNeighbor.Scale(m, m.Bounds(), im, image.Rect(x0, y0, x1, y1), xdraw.Src, nil)
+	}
+	if o == false {
+		if em, ok := a.inside.(vg.PngEmbedder); ok {
+			var buf bytes.Buffer
+			png.Encode(&buf, m)
+			em.Embed(0, 0, buf.Bytes())
+		}
 	}
 Noimage:
 	// Put the inside image to the parent.

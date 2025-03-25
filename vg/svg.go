@@ -2,6 +2,7 @@ package vg
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"image"
 	"image/color"
@@ -43,12 +44,9 @@ func (f *Svg) SubImage(r image.Rectangle) Drawer {
 	s := Svg{r: r.Add(f.r.Min), svg: f.svg}
 	return &s
 }
-func (f *Svg) Embed(x, y int, m image.Image) {
-	s, e := EncodeToPng(m)
-	if e != nil {
-		return
-	}
-	f.push(fmt.Sprintf("<image x='%d' y='%d' width='%d' height='%d' xlink:href='%s'/>", x, y, m.Bounds().Dx(), m.Bounds().Dy(), s))
+func (f *Svg) Embed(x, y int, pngdata []byte) {
+	s := "data:image/png;base64," + base64.StdEncoding.EncodeToString(pngdata)
+	f.push(fmt.Sprintf("<image  xlink:href='%s'/>" /*x, y, m.Bounds().Dx(), m.Bounds().Dy(),*/, s))
 }
 func (f *Svg) clipId(r image.Rectangle) string { return fmt.Sprintf("r-%d-%d", r.Dx(), r.Dy()) }
 func (f *Svg) Bounds() image.Rectangle         { return f.r }
@@ -90,25 +88,31 @@ func (f *Svg) Ray(r Ray) {
 func (f *Svg) Text(t Text) {
 	a := []string{"start", "middle", "end", "end", "end", "middle", "start", "start", "middle"}[t.Align]
 	b := "alignment-baseline='" + ([]string{"top", "top", "top", "middle", "hanging", "hanging", "hanging", "middle", "middle"}[t.Align]) + "'"
+	Y := []int{3, 3, 3, 0, 0, 0, 0, 0, 0}[t.Align]
 	if a != "start" {
 		a = "text-anchor='" + a + "'"
 	} else {
 		a = ""
 	}
-	size := ""
+	var class []string
 	if f.svg.f1 == false {
-		size = "class='s'"
+		class = append(class, "s")
 	}
 	if t.Vertical {
-		f.push(fmt.Sprintf("<g transform='translate(%d,%d) rotate(-90)'><text %s %s %s>%s</text></g>", t.X, t.Y, size, a, b, t.S))
-	} else {
-		f.push(fmt.Sprintf("<text x='%d' y='%d' %s %s %s>%s</text>", t.X, t.Y, size, a, b, t.S))
+		class = append(class, "v")
 	}
+	size := ""
+	if len(class) > 0 {
+		size = "class='" + strings.Join(class, " ") + "'"
+	}
+	//f.push(fmt.Sprintf("<g transform='translate(%d,%d) rotate(-90)'><text %s %s %s>%s</text></g>", t.X, t.Y, size, a, b, t.S))
+	//f.push(fmt.Sprintf("<text x='%d' y='%d' %s %s %s style='writing-mode:sideways-lr'>%s</text>", t.X, t.Y, size, a, b, t.S))
+	f.push(fmt.Sprintf("<text x='%d' y='%d' %s %s %s>%s</text>", t.X, t.Y-Y, size, a, b, t.S))
 }
 func (f *Svg) Font(f1 bool) { f.svg.f1 = f1 }
 func (f *Svg) ArrowHead(a ArrowHead) {
 	x, y, xa, ya, xb, yb, xc, yc := a.points(f.rect())
-	f.push(fmt.Sprintf("<polygon points='%d %d %d %d %d %d %d %d' %s/>", int(x>>6), int(y>>6), int(xa), int(ya), int(xb), int(yb), int(xc), int(yc), f.fillStroke(0, true)))
+	f.push(fmt.Sprintf("<polygon points='%d %d %d %d %d %d %d %d' %s/>", int(x>>6), int(y>>6), int(xb), int(yb), int(xa), int(ya), int(xc), int(yc), f.fillStroke(0, true)))
 }
 
 func (f *Svg) FloatTics(t FloatTics) {
@@ -139,7 +143,7 @@ func (f *Svg) FloatBars(b FloatBars) {
 	for i := 0; i < len(b.X); i += 2 {
 		X0, Y0 := transform(b.X[i], b.Y[i], b.CoordinateSystem, f.rect())
 		X1, Y1 := transform(b.X[i+1], b.Y[i+1], b.CoordinateSystem, f.rect())
-		x0, y0, x1, y1 := int(X0<<6), int(Y0<<6), int(X1<<6), int(Y1<<6)
+		x0, y0, x1, y1 := int(X0>>6), int(Y0>>6), int(X1>>6), int(Y1>>6)
 		fmt.Fprintf(&p, "M%d %dL%d %dL%d %dL%d %dz", x0, y0, x0, y1, x1, y1, x1, y0)
 	}
 	f.push(fmt.Sprintf("<path d='%s' %s/>", p.String(), f.fillStroke(0, true)))
@@ -206,8 +210,8 @@ func (f *Svg) Paint() {
 }
 func (f *Svg) Bytes() []byte {
 	var b bytes.Buffer
-	fmt.Fprintf(&b, "<svg viewBox='0 0 %d %d' width='%d' height='%d' xmlns='http://www.w3.org/2000/svg'>\n", f.r.Dx(), f.r.Dy(), f.r.Dx(), f.r.Dy())
-	fmt.Fprintf(&b, "<style>text{font-family:sans-serif;font-size:18px}.s{font-size:small}</style>\n")
+	fmt.Fprintf(&b, "<svg viewBox='0 0 %d %d' width='%d' height='%d' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'>\n", f.r.Dx(), f.r.Dy(), f.r.Dx(), f.r.Dy())
+	fmt.Fprintf(&b, "<style>text{font-family:Tahoma,sans-serif;font-size:16px}.s{font-size:12px}.v{writing-mode:sideways-lr;font-size:17px}</style>\n")
 
 	if len(f.svg.clips) > 0 {
 		fmt.Fprintf(&b, "<defs>\n")

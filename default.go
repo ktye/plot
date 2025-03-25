@@ -3,17 +3,14 @@ package plot
 import (
 	"image/color"
 
+	vgfont "github.com/ktye/plot/vg/font"
 	"golang.org/x/image/font"
-	"golang.org/x/image/font/basicfont"
 )
 
-var font1 font.Face = basicfont.Face7x13
-var font2 font.Face = basicfont.Face7x13
+var font1, font2 font.Face
 
-// SetFonts sets two fonts used plots.
-// A larger for title and axis labels, and usually a smaller one for tic labels.
-func SetFonts(labels, tics font.Face) {
-	font1, font2 = labels, tics
+func init() {
+	font1, font2 = vgfont.MakeFontSizes(vgfont.TTF(), 16, 12)
 }
 
 func Fonts() (font.Face, font.Face) {
@@ -92,7 +89,7 @@ func (p *Plot) defaultTicLabelWidth(ylabels []string) int {
 			width = w
 		}
 	}
-	return width + 3 // Add some space to the longest string.
+	return width
 }
 
 // defaultRightXYWidth is the horizontal space on the right side of an xy axis.

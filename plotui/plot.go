@@ -7,7 +7,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/golang/freetype/truetype"
 	"github.com/ktye/plot"
 	"github.com/ktye/plot/vg"
 	"github.com/lxn/walk"
@@ -50,24 +49,6 @@ func (ui *Plot) SetPlot(p plot.Plots, hi []plot.HighlightID) error {
 		ui.SetSlider(0)
 	}
 	return ui.setImage()
-}
-
-func (ui *Plot) SetFont(ttf []byte) {
-	ui.ttf = ttf
-}
-
-func (ui *Plot) SetFontSizes(large, small int) error {
-	if ui.ttf == nil {
-		return fmt.Errorf("ttf is unset")
-	}
-	font, err := truetype.Parse(ui.ttf)
-	if err != nil {
-		return err
-	}
-	f1 := truetype.NewFace(font, &truetype.Options{Size: float64(large), DPI: 72})
-	f2 := truetype.NewFace(font, &truetype.Options{Size: float64(small), DPI: 72})
-	plot.SetFonts(f1, f2)
-	return nil
 }
 
 // BuildPlot returns a declarative CustomWidget for the plot image.
