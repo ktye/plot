@@ -118,7 +118,7 @@ func (p Plots) Emf(width, height, columns int, idx []HighlightID) ([]byte, error
 		return nil, e
 	}
 	//todo: for i := range p.p { p.p[i].highlight(ids) }
-	return ip.d.(*vg.Wmf).MarshallBinary(), nil
+	return ip.d.(*vg.Emf).MarshallBinary(), nil
 }
 func (p Plots) Svg(width, height, columns int, idx []HighlightID) ([]byte, error) {
 	ip, e := p.Iplots(vg.NewSvg(width, height), columns)

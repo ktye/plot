@@ -1,7 +1,6 @@
 package vg
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"math"
@@ -9,6 +8,10 @@ import (
 	"github.com/ktye/plot/vg/wmf"
 	"golang.org/x/image/math/fixed"
 )
+
+/*
+ * no clip, no embedded png
+ */
 
 type Wmf struct {
 	rect image.Rectangle
@@ -53,14 +56,13 @@ func NewWmf(w, h int) *Wmf {
 }
 func (f *Wmf) setFillStroke(fill bool, lw int) {
 	if fill {
-		brush := wmf.Brush{Color: wmf.Blue}
+		brush := wmf.Brush{Color: f.fg}
 		b, o := f.brushes[brush]
 		if o == false {
 			b = f.objects
 			f.objects++
 			f.brushes[brush] = b
 			f.CreateBrush(brush)
-			fmt.Println("new brush", b, f.fg)
 		}
 		f.setCurrentPen(0)
 		f.setCurrentBrush(b)
@@ -72,7 +74,6 @@ func (f *Wmf) setFillStroke(fill bool, lw int) {
 			f.objects++
 			f.pens[pen] = p
 			f.CreatePen(pen)
-			fmt.Println("new pen", p, f.fg)
 		}
 		f.setCurrentBrush(1)
 		f.setCurrentPen(p)
@@ -81,14 +82,12 @@ func (f *Wmf) setFillStroke(fill bool, lw int) {
 func (f *Wmf) setCurrentPen(x int) {
 	if f.currentPen != x {
 		f.currentPen = x
-		fmt.Println("select pen", x)
 		f.Select(x)
 	}
 }
 func (f *Wmf) setCurrentBrush(x int) {
 	if f.currentBrush != x {
 		f.currentBrush = x
-		fmt.Println("select brush", x)
 		f.Select(x)
 	}
 }
@@ -143,7 +142,6 @@ func (f *Wmf) Line(l Line) {
 }
 func (f *Wmf) Circle(c Circle) {
 	f.setFillStroke(c.Fill, c.LineWidth)
-	fmt.Printf(":circle %+v\n", c)
 	x, y, d := c.X+f.rect.Min.X, c.Y+f.rect.Min.Y, c.D
 	f.Ellipse(int16(x), int16(y), int16(x+d), int16(y+d))
 }

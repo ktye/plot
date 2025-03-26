@@ -66,7 +66,7 @@ func (p *Plot) defaultYlabelWidth() int {
 	if p.Ylabel+p.Yunit == "" {
 		return 2
 	}
-	return 20 //2 + font1.Metrics().Height.Ceil()
+	return 16 //2 + font1.Metrics().Height.Ceil()
 }
 
 // defaultTicLabelHeight is the vertical space for the tic labels.

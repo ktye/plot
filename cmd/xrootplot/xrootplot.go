@@ -134,6 +134,8 @@ func pp(p plot.Plots) {
 func screensize() (w, h int) {
 	if dst == CONSOLE {
 		w, h = consoleSize()
+	} else if dst == TERM {
+		w, h = 8*atoi0(os.Getenv("COLUMNS")), 16*atoi0(os.Getenv("LINES"))
 	}
 	if wid != 0 {
 		w = wid
@@ -211,7 +213,4 @@ func fatal(e error) {
 		fmt.Fprintln(os.Stderr, e)
 		os.Exit(1)
 	}
-}
-func init() {
-	plot.SetFonts(Face10x20, Face10x20)
 }

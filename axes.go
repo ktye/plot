@@ -180,10 +180,10 @@ func (a axes) drawXYTics(X, Y []float64, xlabels, ylabels []string) {
 	boxLw := a.plot.defaultAxesGridLineWidth()
 	aoff := a.plot.defaultTicLength()
 	zw := a.zSpace
-	d.Line(vg.Line{vg.LineCoords{a.x + zw, a.y - aoff, a.width - 1 - zw, 0}, boxLw, true})       //top
-	d.Line(vg.Line{vg.LineCoords{a.x, a.y + a.height + aoff, a.width - 1 - zw, 0}, boxLw, true}) //bottom
-	d.Line(vg.Line{vg.LineCoords{a.x - aoff, a.y + zw, 0, a.height - 1 - zw}, boxLw, true})      //left
-	d.Line(vg.Line{vg.LineCoords{a.x + a.width + aoff, a.y, 0, a.height - 1 - zw}, boxLw, true}) //right
+	d.Line(vg.Line{vg.LineCoords{a.x + zw, a.y - aoff, a.width /*- 1*/ - zw, 0}, boxLw, false /* true*/})      //top
+	d.Line(vg.Line{vg.LineCoords{a.x, a.y + a.height + aoff, a.width /*- 1*/ - zw, 0}, boxLw, false /*true*/}) //bottom
+	d.Line(vg.Line{vg.LineCoords{a.x - aoff, a.y + zw, 0, a.height /*- 1*/ - zw}, boxLw, false /*true*/})      //left
+	d.Line(vg.Line{vg.LineCoords{a.x + a.width + aoff, a.y, 0, a.height /*- 1*/ - zw}, boxLw, false /*true*/}) //right
 
 	// x and y tics on all 4 borders.
 	L := a.plot.defaultTicLength()
@@ -221,8 +221,8 @@ func (a axes) drawXYTics(X, Y []float64, xlabels, ylabels []string) {
 func (a axes) drawPolar(ring, ccw, noTics bool) {
 	a.inside.Clear(a.bg)
 	a.inside.Color(a.fg)
-	a.drawLines(a.xyRing(ccw))
 	a.drawPolarCircle(ring)
+	a.drawLines(a.xyRing(ccw))
 	a.drawPolarTics(ring, ccw, noTics)
 }
 func (a axes) xyRing(ccw bool) xyPolar {

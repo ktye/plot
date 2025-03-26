@@ -98,7 +98,26 @@ var xy Plot = Plot{
 		},
 	},
 }
-
+var xy0 Plot = Plot{
+	Type:   XY,
+	Limits: Limits{Ymax: 1},
+	Lines: []Line{
+		Line{X: []float64{0, 1}, Y: []float64{1, 1}},
+		Line{X: []float64{0, 1}, Y: []float64{.2, .2}, Id: 1},
+		Line{X: []float64{0, 0}, Y: []float64{0, 1}, Id: 2},
+		Line{X: []float64{.2, .2}, Y: []float64{0, 1}, Id: 2},
+		Line{X: []float64{1, 1}, Y: []float64{0, 1}, Id: 2},
+	},
+}
+var polar0 Plot = Plot{
+	Type:   Polar,
+	Limits: Limits{Ymax: 1},
+	Lines: []Line{
+		Line{C: []complex128{0}},
+		Line{C: []complex128{0.2 + 0i, 0 + 0.2i, -0.2 + 0i, 0 - 0.2i}, Id: 1},
+		Line{C: []complex128{1 + 0i, 0 + 1i, -1 + 0i, 0 - 1i}, Id: 2},
+	},
+}
 var polar Plot = Plot{
 	Type:   Polar,
 	Title:  "Polar",
