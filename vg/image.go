@@ -22,6 +22,7 @@ func NewImage(w, h int, f1, f2 font.Face) *Image {
 	m.Reset()
 	return &m
 }
+func (m *Image) Rgba() *image.RGBA       { return m.RGBA }
 func (m *Image) Reset()                  { m.p = NewPainter(m.RGBA) }
 func (m *Image) Size() (int, int)        { return m.w, m.h }
 func (m *Image) Bounds() image.Rectangle { return m.RGBA.Bounds() }

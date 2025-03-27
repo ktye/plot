@@ -44,6 +44,7 @@ func (f *Svg) SubImage(r image.Rectangle) Drawer {
 	s := Svg{r: r.Add(f.r.Min), svg: f.svg}
 	return &s
 }
+func (f *Svg) Rgba() *image.RGBA { return nil }
 func (f *Svg) Embed(x, y int, pngdata []byte) {
 	s := "data:image/png;base64," + base64.StdEncoding.EncodeToString(pngdata)
 	f.push(fmt.Sprintf("<image  xlink:href='%s'/>" /*x, y, m.Bounds().Dx(), m.Bounds().Dy(),*/, s))

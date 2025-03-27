@@ -266,5 +266,5 @@ func (p ampAngPlot) highlight(id []HighlightID) *image.RGBA {
 	p.amp.restore()
 	p.amp.highlight(id, xyAmp{})
 	p.ang.highlight(id, xyAng{})
-	return p.drawer.(*vg.Image).RGBA
+	return p.drawer.Rgba()
 }

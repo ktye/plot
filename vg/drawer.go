@@ -29,6 +29,8 @@ type Drawer interface {
 	FloatCircles(FloatCircles)
 	FloatEnvelope(FloatEnvelope)
 	FloatPath(FloatPath)
+
+	Rgba() *image.RGBA //or nil
 }
 type PngEmbedder interface {
 	Embed(int, int, []byte)

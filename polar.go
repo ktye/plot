@@ -234,5 +234,5 @@ func (p polarPlot) highlight(id []HighlightID) *image.RGBA {
 		//a.drawPolarTics(p.ring, ccw, a.limits.isPolarLimits() == false)
 		//a.drawPolarCircle(p.ring)
 	}
-	return p.drawer.(*vg.Image).RGBA
+	return p.drawer.Rgba()
 }

@@ -221,5 +221,5 @@ func (p xyPlot) click(x, y int, snapToPoint, deleteLine bool) (Callback, bool) {
 func (p xyPlot) highlight(id []HighlightID) *image.RGBA {
 	p.ax.restore()
 	p.ax.highlight(id, xyXY{})
-	return p.drawer.(*vg.Image).RGBA
+	return p.drawer.Rgba()
 }

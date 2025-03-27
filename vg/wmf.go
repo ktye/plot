@@ -123,6 +123,7 @@ func (f *Wmf) SubImage(r image.Rectangle) Drawer {
 	}
 	return &s
 }
+func (f *Wmf) Rgba() *image.RGBA       { return nil }
 func (f *Wmf) Bounds() image.Rectangle { return f.rect }
 func (f *Wmf) Paint()                  {}
 func wmfColor(c color.Color) wmf.Color {

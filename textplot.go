@@ -50,4 +50,4 @@ func (p textPlot) line(x0, y0, x1, y1 int) (complex128, bool) { return complex(0
 func (p textPlot) click(x, y int, snapToPoint, deleteLine bool) (Callback, bool) {
 	return Callback{}, false
 }
-func (p textPlot) highlight(id []HighlightID) *image.RGBA { return p.drawer.(*vg.Image).RGBA }
+func (p textPlot) highlight(id []HighlightID) *image.RGBA { return p.drawer.Rgba() }

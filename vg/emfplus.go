@@ -43,6 +43,7 @@ func (e *Emf) SubImage(r image.Rectangle) Drawer {
 	}
 	return &s
 }
+func (e *Emf) Rgba() *image.RGBA { return nil }
 func (e *Emf) clip() {
 	if r := e.rect; r != e.emf.clip {
 		e.Clip(i16(r.Min.X)-8, i16(r.Min.Y)-8, i16(r.Dx())+16, i16(r.Dy())+16)

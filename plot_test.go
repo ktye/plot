@@ -23,26 +23,27 @@ func writeTest(b []byte, file string) {
 func TestPlot(t *testing.T) {
 	p := Plots{xy, polar, ampang, heatmap, envelope, bars}
 	w, h := 1000, 600
+	idx := []HighlightID{HighlightID{Line: 1, Point: -1}}
 
-	b, e := p.Png(w, h, 3, nil)
+	b, e := p.Png(w, h, 3, idx)
 	if e != nil {
 		t.Fatal(e)
 	}
 	writeTest(b, "plot.png")
 
-	b, e = p.Svg(w, h, 3, nil)
+	b, e = p.Svg(w, h, 3, idx)
 	if e != nil {
 		t.Fatal(e)
 	}
 	writeTest(b, "plot.svg")
 
-	b, e = p.Wmf(w, h, 3, nil)
+	b, e = p.Wmf(w, h, 3, idx)
 	if e != nil {
 		t.Fatal(e)
 	}
 	writeTest(b, "plot.wmf")
 
-	b, e = p.Emf(w, h, 3, nil)
+	b, e = p.Emf(w, h, 3, idx)
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -126,12 +127,12 @@ var polar Plot = Plot{
 	Lines: []Line{
 		Line{
 			X: x,
-			C: spiral(x, 0),
+			C: spiral(x, 0, 1),
 		},
 		Line{
 			Id: 1,
 			X:  x,
-			C:  spiral(x, math.Pi/2),
+			C:  spiral(x, math.Pi/2, 1),
 		},
 		Line{
 			Id:    2,
@@ -166,12 +167,12 @@ var ampang Plot = Plot{
 	Lines: []Line{
 		Line{
 			X: x,
-			C: spiral(x, 0),
+			C: spiral(x, 0, 1),
 		},
 		Line{
 			Id: 1,
 			X:  x,
-			C:  spiral(x, math.Pi/2),
+			C:  spiral(x, math.Pi/2, 1.5),
 		},
 	},
 }
@@ -253,10 +254,10 @@ func apply(x []float64, f func(float64) float64) []float64 {
 	return y
 }
 
-func spiral(r []float64, phi0 float64) []complex128 {
+func spiral(r []float64, phi0, scale float64) []complex128 {
 	z := make([]complex128, len(r))
 	for i := range z {
-		z[i] = cmplx.Rect(r[i], r[i]+phi0)
+		z[i] = cmplx.Rect(scale*r[i], r[i]+phi0)
 	}
 	return z
 }
