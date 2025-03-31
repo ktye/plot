@@ -17,6 +17,7 @@ const (
 	Numbers    uint = 1 << iota // Add '#' column (run numbers).
 	HtmlColors                  // Add a block character with the data color.
 	Uni                         // Unicode borders and right align of numbers
+	Rtf                         // Write as rich text
 )
 
 // Caption represents the caption table of a Plot.
@@ -358,6 +359,10 @@ func (c *Caption) WriteTable(w io.Writer, flags uint) (int, error) {
 E:
 	tw.Flush()
 
+	u := 1
+	if noUnits {
+		u = 0
+	}
 	if flags&HtmlColors != 0 {
 		lines := strings.Split(string(b.Bytes()), "\n")
 		for i, s := range lines {
@@ -369,17 +374,55 @@ E:
 			fmt.Fprintf(w, "<span style=\"color:%s\">&#x25A0; </span>%s\n", color, s)
 		}
 	} else if flags&Uni != 0 {
-		u := 1
-		if noUnits {
-			u = 0
-		}
 		w.Write(unitab(b.Bytes(), u, numeric, c.colors))
+	} else if flags&Rtf != 0 {
+		w.Write(rtftab(b.Bytes(), u, numeric, c.colors))
 	} else {
 		w.Write(b.Bytes())
 	}
 	return lineOffset, nil
 }
-
+func rtftab(b []byte, units int, numeric []bool, colr []color.Color) []byte {
+	ansi := func(s []byte) []byte { return s }
+	colu := func(c color.Color) uint32 { r, g, b, _ := c.RGBA(); return (r&0xff00)<<8 | (g & 0xff00) | b>>8 }
+	var w bytes.Buffer
+	w.Write([]byte(`{\rtf1\ansi\deff0{\fonttbl{\f0\fmodern\fprq1 Consolas;}}\f0\fs24{\colortbl;`))
+	m := make(map[uint32]int)
+	for _, c := range colr {
+		u := colu(c)
+		if u != 0xffffff {
+			if _, o := m[u]; !o {
+				m[u] = 1 + len(m) //user colors start at 1
+				fmt.Fprintf(&w, "\\red%d\\green%d\\blue%d;", u>>16, (u&0xff00)>>8, u&0xff)
+			}
+		}
+	}
+	w.Write([]byte(`} `))
+	lines := bytes.Split(b, []byte("\n"))
+	if len(lines) > 1 && 0 == len(lines[len(lines)-1]) {
+		lines = lines[:len(lines)-1]
+	}
+	for i := range lines {
+		j := i - 1 - units
+		if j >= 0 && j < len(colr) {
+			c := m[colu(colr[j])]
+			if c != 0 {
+				fmt.Fprintf(&w, "\\cf%d \\u9632\\'a6 \\cf0 ", c)
+			} else {
+				w.Write([]byte("  "))
+			}
+		} else if i == 0 {
+			w.Write([]byte("\\u160\\'a6")) //otherwise the double space is ignored
+		} else {
+			w.Write([]byte("  "))
+		}
+		w.Write(ansi(lines[i]))
+		w.Write([]byte("\\par\r\n"))
+	}
+	w.Write([]byte("}\r\n"))
+	w.Write([]byte{0})
+	return w.Bytes()
+}
 func unitab(b []byte, units int, numeric []bool, colr []color.Color) []byte {
 	lines := bytes.Split(b, []byte("\n"))
 	if len(lines[len(lines)-1]) == 0 {

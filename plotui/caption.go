@@ -8,6 +8,7 @@ import (
 	"image/color"
 	"image/draw"
 	"log"
+	"os"
 	"strings"
 	"sync"
 
@@ -110,6 +111,13 @@ func (ui *Plot) CaptionStrings() ([]string, int, error) {
 }
 
 func (ui *Plot) ClipboardCaption() error {
+
+	if ui.caption != nil {
+		var buf bytes.Buffer
+		ui.caption.WriteTable(&buf, plot.Rtf)
+		os.WriteFile("cap.rtf", buf.Bytes(), 0744)
+	}
+
 	v, _, err := ui.CaptionStrings()
 	if err != nil {
 		return err
