@@ -23,11 +23,20 @@ type emf struct {
 	fn, f1, f2 uint8
 }
 
-func NewEmf(w, h int) *Emf {
+func NewEmf(w, h int, font string, f1, f2 int) *Emf {
+	if font == "" {
+		font = "Calibri"
+	}
+	if f1 == 0 {
+		f1 = 18
+	}
+	if f2 == 0 {
+		f2 = 14
+	}
 	f := Emf{rect: image.Rect(0, 0, w, h)}
 	e := emf{File: *emfplus.New(w, h)}
-	e.f1 = e.Font(8*18, "Calibri")
-	e.f2 = e.Font(8*14, "Calibri")
+	e.f1 = e.Font(8*int16(f1), font)
+	e.f2 = e.Font(8*int16(f2), font)
 	e.fn = e.f1
 	f.emf = &e
 	return &f

@@ -69,6 +69,14 @@ func TestUni(t *testing.T) {
 	}
 }
 
+func TestEmfPlusSmall(t *testing.T) {
+	f := New(20, 20)
+	f.Pen(5*8, 0xffaa0000)
+	f.DrawEllipse(1, 0, 0, 8*20, 8*20)
+	b := f.MarshallBinary()
+	os.WriteFile("small.emf", b, 0744)
+}
+
 func TestEmfPlus(t *testing.T) {
 	pngdata, e := hex.DecodeString("89504e470d0a1a0a0000000d4948445200000010000000100803000000282d0f530000000467414d410000b18f0bfc6105000000206348524d00007" +
 		"a26000080840000fa00000080e8000075300000ea6000003a98000017709cba513c000000ae504c5445000000f1592af1592af1592af1592af1592af" +

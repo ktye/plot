@@ -112,8 +112,8 @@ func (p Plots) Wmf(width, height, columns int, idx []HighlightID) ([]byte, error
 	//todo: for i := range p.p { p.p[i].highlight(ids) }
 	return ip.d.(*vg.Wmf).MarshallBinary(), nil
 }
-func (p Plots) Emf(width, height, columns int, idx []HighlightID) ([]byte, error) {
-	ip, e := p.Iplots(vg.NewEmf(width, height), columns)
+func (p Plots) Emf(width, height, columns int, idx []HighlightID, font string, f1, f2 int) ([]byte, error) { //font f1 f2 maybe empty
+	ip, e := p.Iplots(vg.NewEmf(width, height, font, f1, f2), columns)
 	if e != nil {
 		return nil, e
 	}
@@ -166,10 +166,20 @@ type grid struct {
 	colmajor                      bool
 }
 
+func (p Plots) Layout(maxcols int) (rows, cols int) { //used externally
+	g := newGrid(len(p), 100, 100, maxcols)
+	return g.rows, g.cols
+}
 func newGrid(plots, width, height, maxcols int) grid {
 	g := grid{plots: plots, width: width, height: height, maxcols: maxcols}
 	if g.maxcols == 0 {
-		g.maxcols = 4
+		//         0  1  2  3  4  5  6  7  8  9 10 11 12
+		q := []int{4, 4, 4, 4, 4, 3, 3, 4, 4, 5, 5, 4, 4}
+		if plots >= 0 && plots < len(q) {
+			g.maxcols = q[plots]
+		} else {
+			g.maxcols = 5
+		}
 	}
 	if g.maxcols < 0 {
 		g.maxcols = -g.maxcols

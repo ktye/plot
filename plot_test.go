@@ -43,7 +43,7 @@ func TestPlot(t *testing.T) {
 	}
 	writeTest(b, "plot.wmf")
 
-	b, e = p.Emf(w, h, 3, idx)
+	b, e = p.Emf(w, h, 3, idx, "", 0, 0)
 	if e != nil {
 		t.Fatal(e)
 	}

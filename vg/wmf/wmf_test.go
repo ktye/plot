@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-const writeToDisk = true
+const writeToDisk = false
 
 func (f *File) write(t *testing.T, file string) {
 	b := f.MarshallBinary()

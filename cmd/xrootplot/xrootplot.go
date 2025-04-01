@@ -120,7 +120,7 @@ func pp(p plot.Plots) {
 	case PNG:
 		fatal(ioutil.WriteFile(out, pngData(m()), 0644))
 	case EMF:
-		b, e := p.Emf(w, h, 0, nil)
+		b, e := p.Emf(w, h, 0, nil, "", 0, 0)
 		fatal(e)
 		fatal(ioutil.WriteFile(out, b, 0644))
 	case SVG:
