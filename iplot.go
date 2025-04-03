@@ -166,7 +166,7 @@ type grid struct {
 	colmajor                      bool
 }
 
-func (p Plots) Layout(maxcols int) (rows, cols int) { //used externally
+func (p Plots) RowsCols(maxcols int) (rows, cols int) { //used externally
 	g := newGrid(len(p), 100, 100, maxcols)
 	return g.rows, g.cols
 }

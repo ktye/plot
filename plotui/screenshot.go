@@ -15,10 +15,10 @@ import (
 
 // WriteClipboard writes the plot image as EMFPLUS to clipboard as CF_ENHMETAFILE,
 // the caption table as "Rich Text Format" with line color markers.
-func (ui *Plot) WriteClipboard(font string, f1, f2 int, captionfont string, f3 int) {
+func (ui *Plot) WriteClipboard(w, h int, font string, f1, f2 int, captionfont string, f3 int) {
 
-	bounds := ui.canvas.ClientBoundsPixels()
-	w, h := bounds.Width, bounds.Height
+	//bounds := ui.canvas.ClientBoundsPixels()
+	//w, h := bounds.Width, bounds.Height
 	if ui.plots == nil || w*h == 0 {
 		return
 	}
