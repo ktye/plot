@@ -14,7 +14,7 @@ import (
 )
 
 // WriteClipboard writes the plot image as EMFPLUS to clipboard as CF_ENHMETAFILE,
-// the caption table as "Rich Text Format" with line color markers.
+// the caption table as "Rich Text Format" with line color markers and as plain text.
 func (ui *Plot) WriteClipboard(w, h int, font string, f1, f2 int, captionfont string, f3 int) {
 
 	//bounds := ui.canvas.ClientBoundsPixels()

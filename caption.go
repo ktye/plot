@@ -182,6 +182,12 @@ func (c *Caption) WriteTable(w io.Writer, flags uint) (int, error) {
 	lineOffset := 0
 	dataOffset := 0 // lineOffset without title and lead text
 
+	var rw bytes.Buffer
+	var ow io.Writer
+	if flags&Rtf != 0 {
+		ow, w = w, &rw
+	}
+
 	// Write Title.
 	if c.Title != "" {
 		lineOffset++
@@ -376,20 +382,35 @@ E:
 	} else if flags&Uni != 0 {
 		w.Write(unitab(b.Bytes(), u, numeric, c.colors))
 	} else if flags&Rtf != 0 {
-		w.Write(rtftab(b.Bytes(), u, numeric, c.colors))
+		ow.Write(rtftab(b.Bytes(), u, numeric, c.colors, rw.Bytes()))
 	} else {
 		w.Write(b.Bytes())
 	}
 	return lineOffset, nil
 }
-func rtftab(b []byte, units int, numeric []bool, colr []color.Color) []byte {
-	ansi := func(s []byte) []byte { return s }
-	colu := func(c color.Color) uint32 { r, g, b, _ := c.RGBA(); return (r&0xff00)<<8 | (g & 0xff00) | b>>8 }
+func rtftab(b []byte, units int, numeric []bool, colr []color.Color, leadText []byte) []byte {
+	coli := func(i int) uint32 {
+		c := colr[i]
+		if c == nil {
+			return 0xffffff
+		}
+		r, g, b, _ := c.RGBA()
+		return (r&0xff00)<<8 | (g & 0xff00) | b>>8
+	}
 	var w bytes.Buffer
+	ansiWrite := func(s []byte) {
+		for _, c := range string(s) {
+			if c > 128 {
+				fmt.Fprintf(&w, "\\u%d\\'a6", c)
+			} else {
+				w.WriteByte(byte(c))
+			}
+		}
+	}
 	w.Write([]byte(`{\rtf1\ansi\deff0{\fonttbl{\f0\fmodern\fprq1 Consolas;}}\f0\fs24{\colortbl;`))
 	m := make(map[uint32]int)
-	for _, c := range colr {
-		u := colu(c)
+	for i := range colr {
+		u := coli(i) //colu
 		if u != 0xffffff {
 			if _, o := m[u]; !o {
 				m[u] = 1 + len(m) //user colors start at 1
@@ -398,6 +419,7 @@ func rtftab(b []byte, units int, numeric []bool, colr []color.Color) []byte {
 		}
 	}
 	w.Write([]byte(`} `))
+	ansiWrite(bytes.ReplaceAll(leadText, []byte{10}, []byte("\\par\r\n")))
 	lines := bytes.Split(b, []byte("\n"))
 	if len(lines) > 1 && 0 == len(lines[len(lines)-1]) {
 		lines = lines[:len(lines)-1]
@@ -405,8 +427,8 @@ func rtftab(b []byte, units int, numeric []bool, colr []color.Color) []byte {
 	for i := range lines {
 		j := i - 1 - units
 		if j >= 0 && j < len(colr) {
-			c := m[colu(colr[j])]
-			if c != 0 {
+			c := m[coli(j)]
+			if c != 0 && c != 0xffffff {
 				fmt.Fprintf(&w, "\\cf%d \\u9632\\'a6 \\cf0 ", c)
 			} else {
 				w.Write([]byte("  "))
@@ -416,8 +438,10 @@ func rtftab(b []byte, units int, numeric []bool, colr []color.Color) []byte {
 		} else {
 			w.Write([]byte("  "))
 		}
-		w.Write(ansi(lines[i]))
-		w.Write([]byte("\\par\r\n"))
+		ansiWrite(lines[i])
+		if i < len(lines)-1 {
+			w.Write([]byte("\\par\r\n"))
+		}
 	}
 	w.Write([]byte("}\r\n"))
 	w.Write([]byte{0})
