@@ -399,6 +399,9 @@ func rtftab(b []byte, units int, numeric []bool, colr []color.Color, leadText []
 	}
 	var w bytes.Buffer
 	ansiWrite := func(s []byte) {
+		if bytes.HasPrefix(s, []byte{32, 32}) { //multiple leading spaces are ignored
+			s = append([]byte("\\u160\\'a6"), s[1:]...)
+		}
 		for _, c := range string(s) {
 			if c > 128 {
 				fmt.Fprintf(&w, "\\u%d\\'a6", c)
@@ -418,7 +421,7 @@ func rtftab(b []byte, units int, numeric []bool, colr []color.Color, leadText []
 			}
 		}
 	}
-	w.Write([]byte(`} `))
+	w.Write([]byte("}\r\n"))
 	ansiWrite(bytes.ReplaceAll(leadText, []byte{10}, []byte("\\par\r\n")))
 	lines := bytes.Split(b, []byte("\n"))
 	if len(lines) > 1 && 0 == len(lines[len(lines)-1]) {
@@ -429,14 +432,17 @@ func rtftab(b []byte, units int, numeric []bool, colr []color.Color, leadText []
 		if j >= 0 && j < len(colr) {
 			c := m[coli(j)]
 			if c != 0 && c != 0xffffff {
-				fmt.Fprintf(&w, "\\cf%d \\u9632\\'a6 \\cf0 ", c)
+				//fmt.Fprintf(&w, "\\cf%d \\u9632\\'a6 \\cf0 ", c)
+				fmt.Fprintf(&w, "\\cf%d\\u9632\\'a6\\cf0 ", c)
 			} else {
-				w.Write([]byte("  "))
+				w.Write([]byte(" "))
 			}
-		} else if i == 0 {
-			w.Write([]byte("\\u160\\'a6")) //otherwise the double space is ignored
+			//} else if i == 0 {
+			//	w.Write([]byte("\\u160\\'a6")) //otherwise the double space is ignored
+			//} else {
+			//w.Write([]byte("  "))
 		} else {
-			w.Write([]byte("  "))
+			w.WriteByte(32)
 		}
 		ansiWrite(lines[i])
 		if i < len(lines)-1 {

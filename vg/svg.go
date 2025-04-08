@@ -159,7 +159,7 @@ func (f *Svg) FloatCircles(c FloatCircles) {
 }
 func (f *Svg) FloatEnvelope(e FloatEnvelope) {
 	var p strings.Builder
-	for i := range e.X {
+	for i := range e.X { // maybe in reverse, like emfplus.go?
 		x, y := transform(e.X[i], e.Y[i], e.CoordinateSystem, f.rect())
 		x += fixed.I(e.Z)
 		y -= fixed.I(e.Z)

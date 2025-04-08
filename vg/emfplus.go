@@ -222,8 +222,8 @@ func (e *Emf) FloatCircles(c FloatCircles) {
 func (e *Emf) FloatEnvelope(f FloatEnvelope) {
 	e.clip()
 	var X, Y []int16
-	z := fixed.I(f.Z)
 	r := e.rect26()
+	z := fixed.I(f.Z)
 	for i := range f.X {
 		x, y := transform(f.X[i], f.Y[i], f.CoordinateSystem, r)
 		x += z
@@ -232,6 +232,7 @@ func (e *Emf) FloatEnvelope(f FloatEnvelope) {
 		Y = append(Y, int16(y>>3))
 	}
 	e.FillPolygon(e.fg, X, Y)
+	e.DrawPolyline(e.Pen(i16(f.LineWidth), e.fg), true, X, Y)
 }
 func (e *Emf) FloatPath(p FloatPath) {
 	e.clip()
