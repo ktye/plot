@@ -302,7 +302,7 @@ func (a axes) drawPolarTics(ring, ccw, noTics bool) {
 	}
 	d.Font(true)
 	phi := 130.0 * math.Pi / 180.0
-	s := strconv.FormatFloat(a.limits.Ymax, 'g', 4, 64)
+	s := strconv.FormatFloat((a.limits.Ymax-a.limits.Ymin)/2, 'g', 4, 64)
 	d.Ray(vg.Ray{a.x + r, a.y + r, r, 3 * l, phi - phi0, a.plot.defaultAxesGridLineWidth()})
 	x0 := -float64(2 * l)
 	switch {

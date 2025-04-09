@@ -66,7 +66,7 @@ func (intervals HistogramIntervals) Histogram(u []float64, lineIndex, numLines i
 		intervals.N = 30
 	}
 
-	bins := make([]int, intervals.N)
+	bins := make([]float64, intervals.N)
 	for _, v := range u {
 		i := int(xmath.Scale(v, intervals.Min, intervals.Max, 0, float64(intervals.N)) + 0.5)
 		if i < 0 {
@@ -77,11 +77,17 @@ func (intervals HistogramIntervals) Histogram(u []float64, lineIndex, numLines i
 		}
 		bins[i]++
 	}
+	return Bars(bins, intervals.Min, intervals.Max, intervals.N, lineIndex, numLines)
+}
 
-	w := (intervals.Max - intervals.Min) / float64(intervals.N-1)
+// Bars creates line data for Plot.Type=XY and Line:Style: DataStyle{Marker: MarkerStyle{Marker: Bar, Size: 1}}.
+// v has nx values at nominal points in the interval [xmin,xmax].
+// bars are plotted side by side (not stacked).
+func Bars(v []float64, xmin, xmax float64, nx int, lineIndex, numLines int) (x, y []float64) {
+	w := (xmax - xmin) / float64(nx)
 	dw := 0.9 * w / float64(numLines)
-	for i, b := range bins {
-		f := xmath.Scale(float64(i), 0, float64(intervals.N-1), intervals.Min, intervals.Max)
+	for i, b := range v {
+		f := xmath.Scale(float64(i), 0, float64(nx-1), xmin, xmax)
 		x0 := f - w/2
 		x0 += 0.05*w + float64(lineIndex)*dw
 		x1 := x0 + dw

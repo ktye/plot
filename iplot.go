@@ -30,6 +30,15 @@ type Iplots struct {
 	g grid
 }
 
+func (ip Iplots) SetLimitsTo(p *Plots) {
+	if len(ip.p) == len(*p) {
+		for i := range ip.p {
+			(*p)[i].Limits = ip.p[i].limits()
+			//todo: force these limits for polar plots (nonzero origin)
+		}
+	}
+}
+
 // IPlots returns a slice of IPlotters, one for each plot.
 // The subplots are shown next to each other.
 func (p Plots) Iplots(d vg.Drawer, columns int) (Iplots, error) {
@@ -166,8 +175,8 @@ type grid struct {
 	colmajor                      bool
 }
 
-func (p Plots) RowsCols(maxcols int) (rows, cols int) { //used externally
-	g := newGrid(len(p), 100, 100, maxcols)
+func RowsCols(nplots, maxcols int) (rows, cols int) { //used externally
+	g := newGrid(nplots, 100, 100, maxcols)
 	return g.rows, g.cols
 }
 func newGrid(plots, width, height, maxcols int) grid {

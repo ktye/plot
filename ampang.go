@@ -133,8 +133,8 @@ func (plt *Plot) NewAmpAng(d vg.Drawer) (p ampAngPlot, err error) {
 	return p, nil
 }
 func (p ampAngPlot) draw() {
-	xtics := getXTics(p.Limits)
-	ytics := getYTics(p.Limits)
+	xtics := getXTics(p.amp.limits) // p.Limits
+	ytics := getYTics(p.amp.limits) // p.Limits
 	atics := Tics{Pos: []float64{-180, -90, 0, 90, 180}, Labels: []string{"-180", "-90", "0", "90", "180"}}
 	p.amp.fillParentBackground()
 	p.amp.drawXY(xyAmp{})
@@ -184,14 +184,11 @@ func (p ampAngPlot) pan(x, y, dx, dy int) bool {
 		p.ang.limits.Xmin -= DX
 		p.ang.limits.Xmax -= DX
 	} else {
-		X0, Y0 := p.amp.toFloats(x, y+dy)
-		X1, Y1 := p.amp.toFloats(x+dx, y)
+		X0, _ := p.amp.toFloats(x, y+dy)
+		X1, _ := p.amp.toFloats(x+dx, y)
 		DX := X1 - X0
-		DY := Y1 - Y0
 		p.amp.limits.Xmin -= DX
 		p.amp.limits.Xmax -= DX
-		p.amp.limits.Ymin += DY
-		p.amp.limits.Ymax += DY
 		p.ang.limits.Xmin -= DX
 		p.ang.limits.Xmax -= DX
 	}

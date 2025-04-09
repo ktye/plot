@@ -13,13 +13,30 @@ import (
 	"github.com/lxn/win"
 )
 
+type CopyFormat struct {
+	Width       int    // image width (px)
+	Height      int    // image height (px)
+	PlotFont    string // plot font family
+	F1          int    // plot font title size
+	F2          int    // plot font number label size
+	CaptionFont string // caption font family
+	F3          int    // caption font size
+}
+
 // WriteClipboard writes the plot image as EMFPLUS to clipboard as CF_ENHMETAFILE,
 // the caption table as "Rich Text Format" with line color markers and as plain text.
-func (ui *Plot) WriteClipboard(w, h int, font string, f1, f2 int, captionfont string, f3 int) {
+// func (ui *Plot) WriteClipboard(w, h int, font string, f1, f2 int, captionfont string, f3 int) {
+func (ui *Plot) WriteClipboard() {
+	if ui.GetCopyFormat == nil || ui.plots == nil {
+		return
+	}
+	n := len(*ui.plots)
+	f := ui.GetCopyFormat(n)
+	w, h, font, f1, f2, captionfont, f3 := f.Width, f.Height, f.PlotFont, f.F1, f.F2, f.CaptionFont, f.F3
 
-	//bounds := ui.canvas.ClientBoundsPixels()
-	//w, h := bounds.Width, bounds.Height
-	if ui.plots == nil || w*h == 0 {
+	ui.iplots.SetLimitsTo(ui.plots) // may have changed interactively
+
+	if w*h == 0 {
 		return
 	}
 	b, err := ui.plots.Emf(w, h, ui.Columns, ui.hi, font, f1, f2)

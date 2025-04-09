@@ -17,21 +17,23 @@ type Plot struct {
 	ReplotEnvelope func(int, *plot.Plots) // called after zoom
 	//UnitDialog     func(int)              // callback after unit is clicked
 	//AxisDialog     func(int, plot.Limits) // callback after axis limits are clicked
-	Columns     int
-	canvas      *walk.CustomWidget // plot canvas
-	bitmap      *walk.Bitmap       // underlying plot bitmap
-	table       *walk.TableView    // caption table
-	slider      *walk.Slider
-	model       CaptionModel
-	slidePoints int // slide over lines (value 0) or points (value > 0, enabled by a pointclick)
-	lineOffset  int
-	ignore      bool
-	caption     *plot.Caption
-	plots       *plot.Plots
-	iplots      plot.Iplots
-	hi          []plot.HighlightID
-	mouse       mouseState
-	ttf         []byte
+	Columns         int
+	CopyToClipboard bool //call WriteClipboard after plotting, also after zoom/pan/click/reset
+	GetCopyFormat   func(int) CopyFormat
+	canvas          *walk.CustomWidget // plot canvas
+	bitmap          *walk.Bitmap       // underlying plot bitmap
+	table           *walk.TableView    // caption table
+	slider          *walk.Slider
+	model           CaptionModel
+	slidePoints     int // slide over lines (value 0) or points (value > 0, enabled by a pointclick)
+	lineOffset      int
+	ignore          bool
+	caption         *plot.Caption
+	plots           *plot.Plots
+	iplots          plot.Iplots
+	hi              []plot.HighlightID
+	mouse           mouseState
+	ttf             []byte
 }
 
 // SetPlot sets new plots and update the plot.
@@ -48,7 +50,7 @@ func (ui *Plot) SetPlot(p plot.Plots, hi []plot.HighlightID) error {
 		ui.slidePoints = 0
 		ui.SetSlider(0)
 	}
-	return ui.setImage()
+	return ui.setImage(true)
 }
 
 // BuildPlot returns a declarative CustomWidget for the plot image.
@@ -56,7 +58,7 @@ func (ui *Plot) BuildPlot(menu []declarative.MenuItem) declarative.CustomWidget 
 	var timer *time.Timer
 	resizeFunc := func() {
 		if ui.canvas != nil && ui.canvas.Parent().Visible() {
-			ui.setImage()
+			ui.setImage(false)
 		}
 		timer = nil
 	}
@@ -147,7 +149,7 @@ func (ui *Plot) GetImage(width, height int) (image.Image, error) {
 }
 
 // SetImage creates an image from the current plot and puts it on the canvas.
-func (ui *Plot) setImage() error {
+func (ui *Plot) setImage(copyToClipboard bool) error { //copyToClipboard is false after resize
 	if ui.plots == nil {
 		return nil
 	}
@@ -169,6 +171,9 @@ func (ui *Plot) setImage() error {
 				old.Dispose()
 			}
 		}
+	}
+	if copyToClipboard && ui.CopyToClipboard {
+		ui.WriteClipboard()
 	}
 	return nil
 }
@@ -232,6 +237,10 @@ func (ui *Plot) update(hiIDs []plot.HighlightID) {
 				old.Dispose()
 			}
 		}
+		if ui.CopyToClipboard {
+			ui.hi = hiIDs
+			ui.WriteClipboard()
+		}
 	}
 }
 
@@ -244,5 +253,5 @@ func (ui *Plot) ResetZoom() {
 	for i, p := range plts {
 		plts[i].Limits = plot.Limits{p.Equal, 0, 0, 0, 0, 0, 0}
 	}
-	ui.setImage()
+	ui.setImage(true)
 }
