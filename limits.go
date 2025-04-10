@@ -6,6 +6,8 @@ import (
 	"math/cmplx"
 	"strconv"
 	"strings"
+
+	"github.com/ktye/plot/xmath"
 )
 
 // Limits are axes limits for a single plot.
@@ -108,6 +110,14 @@ func (p *Plot) getPolarLimits(ring bool) Limits {
 		rmin = p.Ymin
 	}
 	limits.Ymin = 0
+	dx, dy := math.Abs(p.Xmax-p.Xmin), math.Abs(p.Ymax-p.Ymin)
+	if dx > 0 && dy > 0 && p.Ymin != 0 && ring == false { //user explicit offset (or zoom)
+		x0, y0 := 0.5*(p.Xmax+p.Xmin), 0.5*(p.Ymax+p.Ymin)
+		r := 0.5 * max(dx, dy)
+		limits.Xmin, limits.Ymax = x0-r, x0+r
+		limits.Ymin, limits.Ymax = y0-r, y0+r
+		return limits
+	}
 	if p.Ymax == 0 {
 		a := autoscale{}
 		if ring == false {
@@ -133,11 +143,20 @@ func (p *Plot) getPolarLimits(ring bool) Limits {
 	return limits
 }
 
-func (l Limits) isPolarLimits() bool {
-	if r := l.Xmax; l.Xmin == -r && l.Ymin == -r && l.Ymax == r {
-		return true
+/*
+	func (l Limits) isPolarLimits() bool {
+		if r := l.Xmax; l.Xmin == -r && l.Ymin == -r && l.Ymax == r {
+			return true
+		}
+		return false
 	}
-	return false
+*/
+func (l Limits) polarOffset(ccw bool) string {
+	if r := l.Xmax; l.Xmin == -r && l.Ymin == -r && l.Ymax == r {
+		return ""
+	}
+	z := complex(0.5*(l.Xmax+l.Xmin), 0.5*(l.Ymax+l.Ymin))
+	return xmath.Absang(z, "-%.4g@%.0f")
 }
 
 // getAmpAngLimits returns speed and amplitude limits.

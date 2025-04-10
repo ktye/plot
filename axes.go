@@ -218,12 +218,12 @@ func (a axes) drawXYTics(X, Y []float64, xlabels, ylabels []string) {
 		d.FloatText(vg.FloatText{X: lim.Xmin, Y: Y[i], S: s, Yoff: 2, Xoff: xoff, Align: 3, CoordinateSystem: cs, Rect: rect0})
 	}
 }
-func (a axes) drawPolar(ring, ccw, noTics bool) {
+func (a axes) drawPolar(ring, ccw bool) {
 	a.inside.Clear(a.bg)
 	a.inside.Color(a.fg)
 	a.drawPolarCircle(ring)
 	a.drawLines(a.xyRing(ccw))
-	a.drawPolarTics(ring, ccw, noTics)
+	a.drawPolarTics(ring, ccw)
 }
 func (a axes) xyRing(ccw bool) xyPolar {
 	return xyPolar{rmin: a.limits.Zmin, rmax: a.limits.Zmax, ccw: ccw}
@@ -275,7 +275,7 @@ func (a axes) drawPolarCircle(ring bool) {
 		d.Circle(vg.Circle{a.x + off, a.y + off, int(float64(a.width) * innerRing), lw, false})
 	}
 }
-func (a axes) drawPolarTics(ring, ccw, noTics bool) {
+func (a axes) drawPolarTics(ring, ccw bool) {
 	// Draw Tics.
 	d := a.parent
 	d.Color(a.fg)
@@ -287,7 +287,7 @@ func (a axes) drawPolarTics(ring, ccw, noTics bool) {
 	aligns := []int{1, 0, 0, 7, 6, 6, 5, 4, 4, 3, 2, 2}
 	d.Font(false)
 	phi0 := math.Pi / 2.0
-	if noTics == false {
+	{
 		for i := 0; i < 360; i += 30 {
 			phi := float64(i) * math.Pi / 180.0
 			d.Ray(vg.Ray{a.x + r, a.y + r, r - l/2, l, phi, a.plot.defaultAxesGridLineWidth()})
@@ -316,13 +316,19 @@ func (a axes) drawPolarTics(ring, ccw, noTics bool) {
 	tx := float64(a.x+r) + float64(r+3*l)*math.Cos(phi-phi0) + x0
 	ty := float64(a.y+r) + float64(r+3*l)*math.Sin(phi-phi0)
 	singleLine := false
-	if ls := s + string(a.plot.Yunit); len(ls) < 6 {
+	polarOffset := a.limits.polarOffset(ccw)
+	if ls := s + string(a.plot.Yunit); len(ls) < 6 && polarOffset == "" {
 		singleLine = true
 		s = ls
 	}
 	d.Text(vg.Text{int(tx + 0.5), int(ty + 0.5), s, 6, false})
 	if singleLine == false {
-		ty += float64(3 + font2.Metrics().Height.Ceil()) // 3 should be line gap
+		dy := float64(3 + font2.Metrics().Height.Ceil()) // 3 should be line gap
+		if polarOffset != "" {
+			ty += dy
+			d.Text(vg.Text{int(tx + 0.5), int(ty + 0.5), polarOffset, 6, false})
+		}
+		ty += dy
 		d.Text(vg.Text{int(tx + 0.5), int(ty + 0.5), string(a.plot.Yunit), 6, false})
 	}
 	if ring {

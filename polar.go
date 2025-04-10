@@ -52,7 +52,7 @@ func (plt *Plot) NewPolar(d vg.Drawer, isRing bool) (p polarPlot, err error) {
 	p.plot = plt
 	p.ring = isRing
 	p.Limits = plt.getPolarLimits(p.ring)
-	if p.Limits.Ymax == 0 || math.IsNaN(p.Limits.Ymax) {
+	if p.Limits.Ymax-p.Limits.Ymin == 0 || math.IsNaN(p.Limits.Ymax) {
 		return p, fmt.Errorf("cannot calculate polar limits (no data?)")
 	}
 
@@ -103,16 +103,16 @@ func (plt *Plot) NewPolar(d vg.Drawer, isRing bool) (p polarPlot, err error) {
 	)
 	p.axes = &ax
 
-	p.draw(false)
+	p.draw()
 	p.axes.store()
 	return p, nil
 }
 
-func (p polarPlot) draw(noTics bool) {
+func (p polarPlot) draw() {
 	p.axes.reset()
 	ccw := p.plot.Style.Counterclockwise
 	p.axes.fillParentBackground()
-	p.axes.drawPolar(p.ring, ccw, noTics)
+	p.axes.drawPolar(p.ring, ccw)
 	p.axes.drawTitle(p.ticLabelHeight)
 	p.axes.inside.Paint()
 	p.drawer.Paint()
@@ -132,7 +132,7 @@ func (p polarPlot) zoom(x, y, dx, dy int) bool {
 	p.axes.limits.Ymin = Y0
 	p.axes.limits.Ymax = Y1
 	p.axes.reset()
-	p.draw(true)
+	p.draw()
 	p.axes.store()
 	return true
 }
@@ -147,7 +147,7 @@ func (p polarPlot) pan(x, y, dx, dy int) bool {
 	p.axes.limits.Ymin += DY
 	p.axes.limits.Ymax += DY
 	p.axes.reset()
-	p.draw(true)
+	p.draw()
 	p.axes.store()
 	return true
 }
@@ -167,11 +167,7 @@ func (p polarPlot) line(x0, y0, x1, y1 int) (complex128, bool) {
 		C:     []complex128{complex(Y0, X0), complex(Y1, X1)},
 		Style: DataStyle{Line: LineStyle{Width: 1, Color: -1}},
 	})
-	if p.axes.limits.isPolarLimits() {
-		p.draw(false)
-	} else { // axes are zoomed.
-		p.draw(true)
-	}
+	p.draw()
 	return vec, true
 }
 
@@ -215,11 +211,7 @@ func (p polarPlot) click(x, y int, snapToPoint, deleteLine bool) (Callback, bool
 				},
 			})
 		}
-		if p.axes.limits.isPolarLimits() {
-			p.draw(false)
-		} else { // axes are zoomed.
-			p.draw(true)
-		}
+		p.draw()
 		return Callback{Type: MeasurePoint, PointInfo: pi}, ok
 	}
 	return Callback{PointInfo: pi}, ok

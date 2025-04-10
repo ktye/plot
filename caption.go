@@ -357,7 +357,7 @@ func (c *Caption) WriteTable(w io.Writer, flags uint) (int, error) {
 			if i == 1 && flags&Numbers != 0 {
 				fmt.Fprintf(tw, "%d\t", row+1)
 			}
-			fmt.Fprintf(tw, s+ap)
+			fmt.Fprint(tw, s+ap)
 		}
 		row++
 	}
