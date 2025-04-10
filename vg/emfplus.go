@@ -21,6 +21,7 @@ type emf struct {
 	clip       image.Rectangle
 	fg, bg     uint32
 	fn, f1, f2 uint8
+	h1         int //height of font1
 }
 
 func NewEmf(w, h int, font string, f1, f2 int) *Emf {
@@ -38,6 +39,7 @@ func NewEmf(w, h int, font string, f1, f2 int) *Emf {
 	e.f1 = e.Font(8*int16(f1), font)
 	e.f2 = e.Font(8*int16(f2), font)
 	e.fn = e.f1
+	e.h1 = f1
 	f.emf = &e
 	return &f
 }
@@ -185,8 +187,15 @@ func (e *Emf) FloatTics(t FloatTics) {
 	p := e.Pen(int16(t.LineWidth), e.fg)
 	e.LineSegments(p, x0, x1, y0, y1)
 }
-func (e *Emf) FloatText(t FloatText)                            { e.Text(t.toText(e.rect.Min.X, e.rect.Min.Y)) }
-func (e *Emf) FloatTextExtent(t FloatText) (int, int, int, int) { return 0, 0, 0, 0 }
+func (e *Emf) FloatText(t FloatText) { e.Text(t.toText(e.rect.Min.X, e.rect.Min.Y)) }
+func (e *Emf) FloatTextExtent(t FloatText) (int, int, int, int) {
+	q := t.toText(e.rect.Min.X, e.rect.Min.Y)
+	x, y := i16(q.X), i16(q.Y)
+	w := (2 * e.h1 * len(t.S)) / 3 // constant fw/fh of 2/3 is guessed to approx text extent
+	x -= 8 * int16(([]int{0, 1, 2, 2, 2, 1, 0, 0, 1}[t.Align]*w)/2)
+	y -= 8 * int16(([]int{2, 2, 2, 1, 0, 0, 0, 1, 1}[t.Align]*e.h1)/2)
+	return int(x >> 3), int(y >> 3), w, e.h1
+}
 func (e *Emf) FloatBars(b FloatBars) {
 	e.clip()
 	var x, y, w, h []int16
