@@ -41,13 +41,14 @@ func (plt *Plot) NewTextPlot(d vg.Drawer) (p textPlot, err error) {
 	return p, nil
 }
 
-func (p textPlot) background() color.Color                    { return p.plot.defaultBackgroundColor() }
-func (p textPlot) image() *image.RGBA                         { return p.drawer.(*vg.Image).RGBA }
-func (p textPlot) zoom(x, y, dx, dy int) bool                 { return false }
-func (p textPlot) pan(x, y, dx, dy int) bool                  { return false }
-func (p textPlot) limits() Limits                             { return Limits{} }
-func (p textPlot) line(x0, y0, x1, y1 int) (complex128, bool) { return complex(0, 0), false }
-func (p textPlot) click(x, y int, snapToPoint, deleteLine bool) (Callback, bool) {
+func (p textPlot) background() color.Color                        { return p.plot.defaultBackgroundColor() }
+func (p textPlot) image() *image.RGBA                             { return p.drawer.(*vg.Image).RGBA }
+func (p textPlot) zoom(x, y, dx, dy int) bool                     { return false }
+func (p textPlot) pan(x, y, dx, dy int) bool                      { return false }
+func (p textPlot) limits() Limits                                 { return Limits{} }
+func (p textPlot) measure(x0, y0, x1, y1 int) (MeasureInfo, bool) { return MeasureInfo{}, false }
+func (p textPlot) line(x0, y0, x1, y1 int) (complex128, bool)     { return complex(0, 0), false }
+func (p textPlot) click(x, y int, snapToPoint, deleteLine, dodraw bool) (Callback, bool) {
 	return Callback{}, false
 }
 func (p textPlot) highlight(id []HighlightID) *image.RGBA { return p.drawer.Rgba() }

@@ -118,7 +118,7 @@ func Plot(w http.ResponseWriter, r *http.Request) {
 	}
 	if x != 0 && y != 0 {
 		snapToPoint := true
-		if callback, ok := plot.ClickIPlotters(p.hp, x, y, snapToPoint, false); ok {
+		if callback, ok := plot.ClickIPlotters(p.hp, x, y, snapToPoint, false, true); ok {
 			if callback.Type == plot.PointInfoCallback {
 				p.pi = callback.PointInfo
 				p.hi = []plot.HighlightID{plot.HighlightID{

@@ -47,8 +47,9 @@ func (e *emptyPlot) background() color.Color {
 	e.image()
 	return e.color
 }
-func (e *emptyPlot) zoom(x, y, dx, dy int) bool                  { return false }
-func (e *emptyPlot) pan(x, y, dx, dy int) bool                   { return false }
-func (e *emptyPlot) click(int, int, bool, bool) (Callback, bool) { return Callback{}, false }
-func (e *emptyPlot) line(x0, y0, x1, y1 int) (complex128, bool)  { return complex(0, 0), false }
-func (e *emptyPlot) limits() Limits                              { return Limits{} }
+func (e *emptyPlot) zoom(x, y, dx, dy int) bool                        { return false }
+func (e *emptyPlot) pan(x, y, dx, dy int) bool                         { return false }
+func (e *emptyPlot) click(int, int, bool, bool, bool) (Callback, bool) { return Callback{}, false }
+func (e *emptyPlot) measure(x0, y0, x1, y1 int) (MeasureInfo, bool)    { return MeasureInfo{}, false }
+func (e *emptyPlot) line(x0, y0, x1, y1 int) (complex128, bool)        { return complex(0, 0), false }
+func (e *emptyPlot) limits() Limits                                    { return Limits{} }

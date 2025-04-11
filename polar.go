@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"math/cmplx"
 
 	"github.com/ktye/plot/vg"
 )
@@ -127,6 +128,13 @@ func (p polarPlot) zoom(x, y, dx, dy int) bool {
 	}
 	X0, Y0 := p.axes.toFloats(x, y+dy)
 	X1, Y1 := p.axes.toFloats(x+dx, y)
+	{ //remain centered, if offset is small
+		r := max(math.Abs(Y1-Y0), math.Abs(X1-X0))
+		o := cmplx.Abs(complex(0.5*(X1+X0), 0.5*(Y1+Y0)))
+		if o < 0.1*r {
+			X0, Y0, X1, Y1 = -r, -r, r, r
+		}
+	}
 	p.axes.limits.Xmin = X0
 	p.axes.limits.Xmax = X1
 	p.axes.limits.Ymin = Y0
@@ -156,6 +164,18 @@ func (p polarPlot) limits() Limits {
 	return p.axes.limits
 }
 
+func (p polarPlot) measure(x0, y0, x1, y1 int) (MeasureInfo, bool) {
+	if !p.axes.isInside(x0, y0) || p.ring {
+		return MeasureInfo{}, false
+	}
+	_, X0, Y0, X1, Y1 := p.axes.line(x0, y0, x1, y1)
+
+	if p.plot.Style.Counterclockwise == false {
+		X0, Y0 = Y0, X0
+		X1, Y1 = Y1, X1
+	}
+	return MeasureInfo{A: complex(X0, Y0), B: complex(X1, Y1), Polar: true, Yunit: p.plot.Yunit}, true
+}
 func (p polarPlot) line(x0, y0, x1, y1 int) (complex128, bool) {
 	if !p.axes.isInside(x0, y0) {
 		return complex(0, 0), false
@@ -165,13 +185,13 @@ func (p polarPlot) line(x0, y0, x1, y1 int) (complex128, bool) {
 	p.plot.Lines = append(p.plot.Lines, Line{
 		Id:    p.plot.nextNegativeLineId(),
 		C:     []complex128{complex(Y0, X0), complex(Y1, X1)},
-		Style: DataStyle{Line: LineStyle{Width: 1, Color: -1}},
+		Style: DataStyle{Line: LineStyle{Width: 1, Color: -1, Arrow: 5}},
 	})
 	p.draw()
 	return vec, true
 }
 
-func (p polarPlot) click(x, y int, snapToPoint, deleteLine bool) (Callback, bool) {
+func (p polarPlot) click(x, y int, snapToPoint, deleteLine, dodraw bool) (Callback, bool) {
 	if !p.axes.isInside(x, y) {
 		return Callback{
 			Type:   AxisCallback,
@@ -194,24 +214,26 @@ func (p polarPlot) click(x, y int, snapToPoint, deleteLine bool) (Callback, bool
 			pi.X = 0
 			pi.Y = 0
 		}
-		if deleteLine {
-			if n := len(p.plot.Lines); n > 0 {
-				p.plot.Lines = p.plot.Lines[:n-1]
-			}
-		} else {
-			p.plot.Lines = append(p.plot.Lines, Line{
-				Id: p.plot.nextNegativeLineId(),
-				C:  []complex128{pi.C},
-				Style: DataStyle{
-					Marker: MarkerStyle{
-						Marker: CrossMarker,
-						Color:  -1,
-						Size:   3,
+		if dodraw {
+			if deleteLine {
+				if n := len(p.plot.Lines); n > 0 {
+					p.plot.Lines = p.plot.Lines[:n-1]
+				}
+			} else {
+				p.plot.Lines = append(p.plot.Lines, Line{
+					Id: p.plot.nextNegativeLineId(),
+					C:  []complex128{pi.C},
+					Style: DataStyle{
+						Marker: MarkerStyle{
+							Marker: CrossMarker,
+							Color:  -1,
+							Size:   3,
+						},
 					},
-				},
-			})
+				})
+			}
+			p.draw()
 		}
-		p.draw()
 		return Callback{Type: MeasurePoint, PointInfo: pi}, ok
 	}
 	return Callback{PointInfo: pi}, ok

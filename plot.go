@@ -69,7 +69,8 @@ type Line struct {
 	ImageMin, ImageMax float64      // image color scale corresponding to [0..255]
 	Segments           bool         // Lines contain segments
 	Style              DataStyle    // line style
-	Id                 int          // line id used for selection
+	Label              string
+	Id                 int // line id used for selection
 }
 
 // DataStyle is the line and marker style definition, which is set for

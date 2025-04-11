@@ -19,8 +19,9 @@ type Iplotter interface {
 	background() color.Color
 	zoom(int, int, int, int) bool
 	pan(int, int, int, int) bool
-	click(int, int, bool, bool) (Callback, bool)
+	click(int, int, bool, bool, bool) (Callback, bool)
 	line(int, int, int, int) (complex128, bool)
+	measure(int, int, int, int) (MeasureInfo, bool)
 	limits() Limits
 }
 
@@ -138,6 +139,14 @@ func (p Plots) Svg(width, height, columns int, idx []HighlightID) ([]byte, error
 	}
 	//todo: for i := range p.p { p.p[i].highlight(ids) }
 	return ip.d.(*vg.Svg).Bytes(), nil
+}
+
+func (p Iplots) IsPolar(n int) bool {
+	var ok bool
+	if n >= 0 && n < len(p.p) && p.p != nil {
+		_, ok = p.p[n].(polarPlot)
+	}
+	return ok
 }
 
 //// Image creates an Image from a slice of iplotters.

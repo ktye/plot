@@ -38,8 +38,11 @@ func (ui *Plot) mouseMove(x, y int, button walk.MouseButton) {
 	if button != walk.LeftButton {
 		return
 	}
-	if ui.mouse.modifier == walk.ModAlt {
-		x, y = ui.toHorOrVer(x, y)
+	if ui.mouse.modifier == walk.ModShift {
+		_, _, n := plot.ClickCoords(ui.iplots, ui.mouse.x, ui.mouse.y)
+		if !ui.iplots.IsPolar(n) {
+			x, y = ui.toHorOrVer(x, y)
+		}
 	}
 	ui.mouse.xL = x
 	ui.mouse.yL = y
@@ -68,13 +71,20 @@ func (ui *Plot) mouseUp(x, y int, button walk.MouseButton) {
 	//bounds := ui.canvas.ClientBoundsPixels()
 	if dx*dx+dy*dy > 100 {
 		// Click and Move (zoom, pan or draw line)
-		if ui.mouse.modifier == walk.ModShift || ui.mouse.modifier == walk.ModAlt {
-			if ui.mouse.modifier == walk.ModAlt {
-				x, y = ui.toHorOrVer(x, y)
-			}
-			if vec, ok := plot.LineIPlotters(ui.iplots, ui.mouse.x, ui.mouse.y, x, y); ok {
-				log.Print("vector: ", xmath.Absang(vec, "%v@%.0f"))
-				ui.update(nil)
+		if ui.mouse.modifier == walk.ModShift {
+			mi, ok := plot.Measure(ui.iplots, ui.mouse.x, ui.mouse.y, x, y)
+			if ok {
+				if ui.MainWindow != nil {
+					if r, ok := MeasureDialog(ui.MainWindow, mi); ok {
+						plot.Annotate(ui.iplots, r.MeasureInfo, r.label, r.color, r.linewidth)
+						ui.update(nil)
+					}
+				} else {
+					if vec, ok := plot.LineIPlotters(ui.iplots, ui.mouse.x, ui.mouse.y, x, y); ok {
+						log.Print("vector: ", xmath.Absang(vec, "%v@%.0f"))
+						ui.update(nil)
+					}
+				}
 			}
 			ui.mouse.rect = walk.Rectangle{}
 		} else {
@@ -114,12 +124,12 @@ func (ui *Plot) mouseUp(x, y int, button walk.MouseButton) {
 			if walk.ModifiersDown() == walk.ModShift {
 				snapToPoint = false
 			}
-			if walk.ModifiersDown() == walk.ModAlt {
-				// delete line takes the same path as MeasurePoint
-				deleteLine = true
-				snapToPoint = false
-			}
-			if callback, ok := plot.ClickIPlotters(ui.iplots, x, y, snapToPoint, deleteLine); ok {
+			//if walk.ModifiersDown() == walk.ModAlt {
+			//	// delete line takes the same path as MeasurePoint
+			//	deleteLine = true
+			//	snapToPoint = false
+			//}
+			if callback, ok := plot.ClickIPlotters(ui.iplots, x, y, snapToPoint, deleteLine, true); ok {
 				if callback.Type == plot.PointInfoCallback {
 					pointInfo := callback.PointInfo
 					hi := []plot.HighlightID{plot.HighlightID{

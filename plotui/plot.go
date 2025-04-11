@@ -24,6 +24,7 @@ type Plot struct {
 	bitmap          *walk.Bitmap       // underlying plot bitmap
 	table           *walk.TableView    // caption table
 	slider          *walk.Slider
+	MainWindow      *walk.MainWindow //used as parent for draw vector ui
 	model           CaptionModel
 	slidePoints     int // slide over lines (value 0) or points (value > 0, enabled by a pointclick)
 	lineOffset      int

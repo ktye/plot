@@ -160,6 +160,13 @@ func (p xyPlot) pan(x, y, dx, dy int) bool {
 }
 func (p xyPlot) limits() Limits     { return p.ax.limits }
 func (p xyPlot) image() *image.RGBA { return p.drawer.(*vg.Image).RGBA }
+func (p xyPlot) measure(x0, y0, x1, y1 int) (MeasureInfo, bool) {
+	if !p.ax.isInside(x0, y0) {
+		return MeasureInfo{}, false
+	}
+	_, X0, Y0, X1, Y1 := p.ax.line(x0, y0, x1, y1)
+	return MeasureInfo{A: complex(X0, Y0), B: complex(X1, Y1), Xunit: p.plot.Xunit, Yunit: p.plot.Yunit}, true
+}
 func (p xyPlot) line(x0, y0, x1, y1 int) (complex128, bool) {
 	if !p.ax.isInside(x0, y0) {
 		return complex(0, 0), false
@@ -174,7 +181,7 @@ func (p xyPlot) line(x0, y0, x1, y1 int) (complex128, bool) {
 	p.draw()
 	return vec, true
 }
-func (p xyPlot) click(x, y int, snapToPoint, deleteLine bool) (Callback, bool) {
+func (p xyPlot) click(x, y int, snapToPoint, deleteLine, dodraw bool) (Callback, bool) {
 	if !p.ax.isInside(x, y) {
 		limits := p.ax.limits
 		if x < p.ax.x {
@@ -199,7 +206,7 @@ func (p xyPlot) click(x, y int, snapToPoint, deleteLine bool) (Callback, bool) {
 		return Callback{PointInfo: pi}, ok
 	} else {
 		pi, ok := p.ax.click(x, y, xyXY{}, snapToPoint)
-		if ok && snapToPoint == false {
+		if ok && snapToPoint == false && dodraw {
 			p.plot.Lines = append(p.plot.Lines, Line{
 				Id: p.plot.nextNegativeLineId(),
 				X:  []float64{pi.X},

@@ -429,17 +429,6 @@ func (a axes) drawLine(xy xyer, cs vg.CoordinateSystem, l Line, z int, isHighlig
 			d.Color(c)
 			d.FloatEnvelope(vg.FloatEnvelope{X: x, Y: y, CoordinateSystem: cs, LineWidth: width})
 		} else {
-			/*
-				if len(x) > 1024 {
-					// Use a fast (non-antialiased) version if
-					// there many points.
-					im := raster.Image{
-						Image: p.Image().(*image.RGBA),
-						Color: c,
-					}
-					raster.FloatLines(im, x, y, z, raster.CoordinateSystem(cs))
-				} else {
-			*/
 			if a.zSpace > 0 && len(x) > 1 && len(y) > 1 && !isHighlight {
 				d.Color(a.bg)
 				xx, yy := reverse(x), reverse(y)
@@ -448,9 +437,50 @@ func (a axes) drawLine(xy xyer, cs vg.CoordinateSystem, l Line, z int, isHighlig
 				d.FloatEnvelope(vg.FloatEnvelope{X: xx, Y: yy, Z: z, CoordinateSystem: cs})
 			}
 			d.Color(c)
+			if l.Label != "" && 2 == len(x) && 2 == len(y) {
+				al, xoff, yoff := 0, 0, 0
+				if y[1] == y[0] {
+					al, yoff = 1, -4                                                                          // centered on top
+					if dy := math.Abs(a.limits.Ymax-y[0]) / math.Abs(a.limits.Ymax-a.limits.Ymin); dy < 0.2 { //too close to top
+						al, yoff = 5, 4 // centered below
+					}
+				} else if x[1] == x[0] {
+					al, xoff = 7, 4 // centered on the right
+					if dx := math.Abs(a.limits.Xmax-x[0]) / math.Abs(a.limits.Xmax-a.limits.Xmin); dx < 0.5 {
+						al, xoff = 3, -3 // centered on the left
+					}
+				} else if (x[1]-x[0])*(y[1]-y[0]) > 0 {
+					al = 6
+				}
+
+				d.Font(true)
+				t := vg.FloatText{X: (x[0] + x[1]) / 2, Y: (y[0] + y[1]) / 2, Xoff: xoff, Yoff: yoff, Z: z, S: l.Label, Align: al, CoordinateSystem: cs, Rect: a.inside.Bounds()}
+				x, y, w, h := d.FloatTextExtent(t)
+				d.Color(a.bg)
+				d.Rectangle(vg.Rectangle{X: x, Y: y, W: w, H: h, Fill: true})
+				d.Color(c)
+				d.FloatText(t)
+			}
 			d.FloatPath(vg.FloatPath{X: x, Y: y, Z: z, CoordinateSystem: cs, LineWidth: width})
 			if l.Style.Line.Arrow != 0 {
 				d.ArrowHead(vg.ArrowHead{X: x, Y: y, CoordinateSystem: cs, LineWidth: width, Arrow: l.Style.Line.Arrow})
+			}
+			if em := l.Style.Line.EndMarks; em != 0 {
+				r := a.inside.Bounds()
+				X0, Y0 := cs.Pixel(x[0], y[0], r)
+				X1, Y1 := cs.Pixel(x[1], y[1], r)
+				X0 -= r.Min.X
+				X1 -= r.Min.X
+				Y0 -= r.Min.Y
+				Y1 -= r.Min.Y
+				me := 2 * em
+				if X0 == X1 {
+					d.Line(vg.NewLine(X0-em, Y0, me, 0, width))
+					d.Line(vg.NewLine(X0-em, Y1, me, 0, width))
+				} else {
+					d.Line(vg.NewLine(X0, Y0-em, 0, me, width))
+					d.Line(vg.NewLine(X1, Y0-em, 0, me, width))
+				}
 			}
 		}
 	}
