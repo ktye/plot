@@ -672,6 +672,9 @@ func (p *Plot) SetCaptionColors() {
 	if p.Caption == nil {
 		return
 	}
+	if len(p.Caption.colors) > 0 { // custom colors take preference
+		return
+	}
 	colors := make([]color.Color, p.Caption.Rows())
 	for i, l := range p.Lines {
 		co := p.Style.Order.Get(l.Style.Line.Color, i+1).Color()
@@ -680,4 +683,17 @@ func (p *Plot) SetCaptionColors() {
 		}
 	}
 	p.Caption.colors = colors
+}
+func (p *Plot) SetCustomCaptionColors(c []int) { //if table rows do not match lines (e.g. order bar)
+	if p.Caption == nil {
+		return
+	}
+	fmt.Println("SetCustomColors", len(c), p.Caption.Rows())
+	if n := len(c); n == p.Caption.Rows() {
+		p.Caption.colors = make([]color.Color, n)
+		for i := range n {
+			p.Caption.colors[i] = p.Style.Order.Get(c[i], i+1).Color()
+			fmt.Println("color", i, p.Caption.colors[i])
+		}
+	}
 }
