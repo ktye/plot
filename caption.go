@@ -688,12 +688,10 @@ func (p *Plot) SetCustomCaptionColors(c []int) { //if table rows do not match li
 	if p.Caption == nil {
 		return
 	}
-	fmt.Println("SetCustomColors", len(c), p.Caption.Rows())
 	if n := len(c); n == p.Caption.Rows() {
 		p.Caption.colors = make([]color.Color, n)
 		for i := range n {
 			p.Caption.colors[i] = p.Style.Order.Get(c[i], i+1).Color()
-			fmt.Println("color", i, p.Caption.colors[i])
 		}
 	}
 }
