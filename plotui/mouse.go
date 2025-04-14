@@ -76,7 +76,7 @@ func (ui *Plot) mouseUp(x, y int, button walk.MouseButton) {
 			if ok {
 				if ui.MainWindow != nil {
 					if r, ok := MeasureDialog(ui.MainWindow, mi); ok {
-						plot.Annotate(ui.iplots, r.MeasureInfo, r.label, r.color, r.linewidth)
+						plot.Annotate(ui.iplots, r.MeasureInfo, r.label, r.circle, r.color, r.linewidth)
 						ui.update(nil)
 					}
 				} else {

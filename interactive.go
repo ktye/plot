@@ -32,7 +32,7 @@ func LineIPlotters(p Iplots, x, y, x1, y1 int) (complex128, bool) {
 	return p.p[n].line(x, y, x+dx, y+dy)
 }
 
-func Measure(p Iplots, x, y, x1, y1 int) (MeasureInfo, bool) {
+func Measure(p Iplots, x, y, x1, y1 int) (MeasureInfo, bool) { //MeasureInfo:callback.go
 	if len(p.p) == 0 {
 		return MeasureInfo{}, false
 	}
@@ -60,7 +60,7 @@ func Measure(p Iplots, x, y, x1, y1 int) (MeasureInfo, bool) {
 	}
 	return mi, ok
 }
-func Annotate(p Iplots, m MeasureInfo, label string, color, lw int) {
+func Annotate(p Iplots, m MeasureInfo, label string, circle, color, lw int) {
 	type drawer interface {
 		draw()
 	}
@@ -77,10 +77,14 @@ func Annotate(p Iplots, m MeasureInfo, label string, color, lw int) {
 		return
 	}
 	if m.Polar {
+		arrow := 3 + 2*lw
+		if circle > 0 {
+			arrow = 0
+		}
 		plt.Lines = append(plt.Lines, Line{
 			Id:    plt.nextNegativeLineId(),
 			C:     []complex128{m.A, m.B},
-			Style: DataStyle{Line: LineStyle{Width: lw, Color: color, Arrow: 3 + 2*lw}},
+			Style: DataStyle{Line: LineStyle{Width: lw, Color: color, Arrow: arrow, Circle: circle}},
 			Label: label,
 		})
 	} else {

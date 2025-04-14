@@ -437,6 +437,15 @@ func (a axes) drawLine(xy xyer, cs vg.CoordinateSystem, l Line, z int, isHighlig
 				d.FloatEnvelope(vg.FloatEnvelope{X: xx, Y: yy, Z: z, CoordinateSystem: cs})
 			}
 			d.Color(c)
+			if c := l.Style.Line.Circle; c > 0 && 2 == len(x) && 2 == len(y) {
+				X, Y, R := x[0], y[0], math.Hypot(x[1]-x[0], y[1]-y[0])
+				if c > 1 {
+					X, Y, R = 0.5*(x[0]+x[1]), 0.5*(y[0]+y[1]), 0.5*R
+				}
+				rpx := int(math.Round(float64(a.inside.Bounds().Dx()) * R / (a.limits.Xmax - a.limits.Xmin)))
+				//fmt.Println("circle", X, Y, "R", R, "Rpx", rpx, "width", width)
+				d.FloatCircles(vg.FloatCircles{X: []float64{X}, Y: []float64{Y}, CoordinateSystem: cs, Radius: rpx, LineWidth: width, Fill: false})
+			}
 			if l.Label != "" && 2 == len(x) && 2 == len(y) {
 				al, xoff, yoff := 0, 0, 0
 				if y[1] == y[0] {

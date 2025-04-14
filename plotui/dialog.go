@@ -19,6 +19,7 @@ type MeasureResult struct {
 	label     string
 	color     int
 	linewidth int
+	circle    int //0(arrow) 1(circle/radius) 2(circle/diameter)
 }
 
 func MeasureDialog(parent walk.Form, mi plot.MeasureInfo) (MeasureResult, bool) {
@@ -42,11 +43,9 @@ func MeasureDialog(parent walk.Form, mi plot.MeasureInfo) (MeasureResult, bool) 
 	if mi.Polar {
 		title, distance = "measure vector", "vector"
 		if cmplx.Abs(mi.A-mi.AA.C) > cmplx.Abs(mi.A) { // include origin to snap point
-			fmt.Println("A to 0")
 			mi.AA.C = 0
 		}
 		if cmplx.Abs(mi.B-mi.BB.C) > cmplx.Abs(mi.B) {
-			fmt.Println("B to 0")
 			mi.BB.C = 0
 		}
 		maysnap = cmplx.Abs(mi.AA.C-mi.BB.C) > 0
@@ -104,6 +103,7 @@ func MeasureDialog(parent walk.Form, mi plot.MeasureInfo) (MeasureResult, bool) 
 	var color *walk.ComboBox
 	var linewidth *walk.ComboBox
 	var label *walk.LineEdit
+	var circle *walk.ComboBox
 
 	update := func(a, b, c bool) {
 		set := func(x *walk.LineEdit, s string, b bool) {
@@ -161,6 +161,12 @@ func MeasureDialog(parent walk.Form, mi plot.MeasureInfo) (MeasureResult, bool) 
 			Text:     rpmlabel(mi.B - mi.A),
 		},
 		declarative.ComboBox{
+			AssignTo:     &circle,
+			Model:        []string{"arrow", "circle radius", "circle diameter"},
+			Enabled:      mi.Polar,
+			CurrentIndex: 0,
+		},
+		declarative.ComboBox{
 			AssignTo:     &color,
 			Model:        []string{"black:0", "color 1", "color 2", "color 3", "color 4", "color 5", "color 6", "color 7", "color 8", "color 9"},
 			CurrentIndex: 0,
@@ -189,6 +195,7 @@ func MeasureDialog(parent walk.Form, mi plot.MeasureInfo) (MeasureResult, bool) 
 						r.label = label.Text()
 						r.color = color.CurrentIndex()
 						r.linewidth = linewidth.CurrentIndex() + 1
+						r.circle = circle.CurrentIndex()
 						dlg.Accept()
 					},
 				},

@@ -100,9 +100,9 @@ func (p PointInfo) String() string {
 
 type MeasureInfo struct {
 	X0, Y0, X1, Y1  int        //original px coordinates
-	A, B            complex128 // vectors in axis space
+	A, B            complex128 //vectors in axis space
 	AA, BB          PointInfo  //closest points to a and b
-	N               int        // plot index
-	Polar, Vertical bool       // nonpolar snap to hor/ver
+	N               int        //plot index
+	Polar, Vertical bool       //nonpolar snap to hor/ver
 	Xunit, Yunit    string
 }

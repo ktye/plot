@@ -5,6 +5,7 @@ type LineStyle struct {
 	Width    int // line width
 	Color    int // line color index.
 	Arrow    int // arrow head if != 0
+	Circle   int // 0(none) 1(circle with radius) 2(circle with diameter)
 	EndMarks int // line end markers (horizontal/vertical only)
 }
 
