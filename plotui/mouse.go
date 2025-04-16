@@ -16,6 +16,7 @@ type mouseState struct {
 	button   walk.MouseButton
 	time     time.Time
 	modifier walk.Modifiers
+	scale    float64
 }
 
 func (ui *Plot) toHorOrVer(x, y int) (int, int) {
@@ -32,6 +33,10 @@ func (ui *Plot) mouseDown(x, y int, button walk.MouseButton) {
 	ui.mouse.y = y
 	ui.mouse.button = button
 	ui.mouse.modifier = walk.ModifiersDown()
+
+	rp := ui.canvas.ClientBoundsPixels() // walk.RectangleTo96DPI(c.BoundsPixels(), c.DPI())
+	rb := ui.canvas.Bounds()
+	ui.mouse.scale = float64(rb.Width) / float64(rp.Width) // at 150% magnification, scale is 0.666..
 }
 
 func (ui *Plot) mouseMove(x, y int, button walk.MouseButton) {
@@ -68,7 +73,7 @@ func (ui *Plot) mouseUp(x, y int, button walk.MouseButton) {
 	elapsed := time.Since(ui.mouse.time)
 	dx := x - ui.mouse.x
 	dy := y - ui.mouse.y
-	//bounds := ui.canvas.ClientBoundsPixels()
+
 	if dx*dx+dy*dy > 100 {
 		// Click and Move (zoom, pan or draw line)
 		if ui.mouse.modifier == walk.ModShift {

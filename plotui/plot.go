@@ -194,6 +194,11 @@ func (ui *Plot) image(width, height int) (image.Image, plot.Iplots, error) {
 
 // paint ist the paint function for the plot canvas.
 func (ui *Plot) paint(canvas *walk.Canvas, updateBounds walk.Rectangle) error {
+	scale := func(x int) int { return int(float64(x) * ui.mouse.scale) }
+	rscale := func(r walk.Rectangle) walk.Rectangle {
+		r.X, r.Y, r.Width, r.Height = scale(r.X), scale(r.Y), scale(r.Width), scale(r.Height)
+		return r
+	}
 	if ui.bitmap != nil {
 		canvas.DrawImage(ui.bitmap, walk.Point{0, 0})
 	} else {
@@ -213,9 +218,9 @@ func (ui *Plot) paint(canvas *walk.Canvas, updateBounds walk.Rectangle) error {
 			return nil
 		}
 		if ui.mouse.modifier == walk.ModShift || ui.mouse.modifier == walk.ModAlt {
-			canvas.DrawLine(pen, walk.Point{ui.mouse.x, ui.mouse.y}, walk.Point{ui.mouse.xL, ui.mouse.yL})
+			canvas.DrawLine(pen, walk.Point{scale(ui.mouse.x), scale(ui.mouse.y)}, walk.Point{scale(ui.mouse.xL), scale(ui.mouse.yL)})
 		} else {
-			canvas.DrawRectangle(pen, ui.mouse.rect)
+			canvas.DrawRectangle(pen, rscale(ui.mouse.rect))
 		}
 		pen.Dispose()
 	}
