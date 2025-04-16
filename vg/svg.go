@@ -147,7 +147,7 @@ func (f *Svg) FloatBars(b FloatBars) {
 		x0, y0, x1, y1 := int(X0>>6), int(Y0>>6), int(X1>>6), int(Y1>>6)
 		fmt.Fprintf(&p, "M%d %dL%d %dL%d %dL%d %dz", x0, y0, x0, y1, x1, y1, x1, y0)
 	}
-	f.push(fmt.Sprintf("<path d='%s' %s/>", p.String(), f.fillStroke(0, true)))
+	f.push(fmt.Sprintf("<path d='%s' %s/>", p.String(), f.fillStroke(b.LineWidth, b.Fill)))
 }
 func (f *Svg) FloatCircles(c FloatCircles) {
 	for i := range c.X {

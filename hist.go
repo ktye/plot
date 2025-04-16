@@ -77,13 +77,15 @@ func (intervals HistogramIntervals) Histogram(u []float64, lineIndex, numLines i
 		}
 		bins[i]++
 	}
-	return Bars(bins, intervals.Min, intervals.Max, intervals.N, lineIndex, numLines)
+	x, y, _ = Bars(bins, intervals.Min, intervals.Max, intervals.N, lineIndex, numLines)
+	return x, y
 }
 
 // Bars creates line data for Plot.Type=XY and Line:Style: DataStyle{Marker: MarkerStyle{Marker: Bar, Size: 1}}.
 // v has nx values at nominal points in the interval [xmin,xmax].
 // bars are plotted side by side (not stacked).
-func Bars(v []float64, xmin, xmax float64, nx int, lineIndex, numLines int) (x, y []float64) {
+// xc contains nominal(central) x values used as labels in Line.V.
+func Bars(v []float64, xmin, xmax float64, nx int, lineIndex, numLines int) (x, y, xc []float64) {
 	w := (xmax - xmin) / float64(nx)
 	dw := 0.9 * w / float64(numLines)
 	for i, b := range v {
@@ -93,6 +95,7 @@ func Bars(v []float64, xmin, xmax float64, nx int, lineIndex, numLines int) (x, 
 		x1 := x0 + dw
 		x = append(x, x0, x1)
 		y = append(y, 0, float64(b))
+		xc = append(xc, f)
 	}
-	return x, y
+	return x, y, xc
 }

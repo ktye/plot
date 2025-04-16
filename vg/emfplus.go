@@ -197,6 +197,20 @@ func (e *Emf) FloatTextExtent(t FloatText) (int, int, int, int) {
 	return int(x >> 3), int(y >> 3), w, e.h1
 }
 func (e *Emf) FloatBars(b FloatBars) {
+
+	/*
+		e.clip()
+		x, y := i16(r.X), i16(r.Y)
+		w, h := i16(r.W), i16(r.H)
+		x, y = e.translate(x, y)
+		if r.Fill {
+			e.FillRects(e.fg, []int16{x}, []int16{y}, []int16{w}, []int16{h})
+		} else {
+			p := e.Pen(int16(r.LineWidth), e.fg)
+			e.DrawRects(p, []int16{x}, []int16{y}, []int16{w}, []int16{h})
+		}
+	*/
+
 	e.clip()
 	var x, y, w, h []int16
 	for i := 0; i < len(b.X); i += 2 {
@@ -207,7 +221,12 @@ func (e *Emf) FloatBars(b FloatBars) {
 		w = append(w, int16((x1-x0)>>3))
 		h = append(h, int16((y0-y1)>>3))
 	}
-	e.FillRects(e.fg, x, y, w, h)
+	if b.Fill {
+		e.FillRects(e.fg, x, y, w, h)
+	} else {
+		p := e.Pen(int16(b.LineWidth), e.fg)
+		e.DrawRects(p, x, y, w, h)
+	}
 }
 func (e *Emf) FloatCircles(c FloatCircles) {
 	e.clip()

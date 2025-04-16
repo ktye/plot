@@ -569,10 +569,12 @@ func (f FloatCircles) Draw(p *Painter) {
 	}
 }
 
-// FloatBars draws a filled rectangle for each 2 float points.
+// FloatBars draws rectangles for each 2 float points.
 type FloatBars struct {
 	X, Y []float64
 	CoordinateSystem
+	LineWidth int
+	Fill      bool
 }
 
 func (f FloatBars) Draw(p *Painter) {
@@ -580,7 +582,12 @@ func (f FloatBars) Draw(p *Painter) {
 		x0, y0 := transform(f.X[i], f.Y[i], f.CoordinateSystem, rect26_6(p.im.Bounds()))
 		x1, y1 := transform(f.X[i+1], f.Y[i+1], f.CoordinateSystem, rect26_6(p.im.Bounds()))
 		path := raster.Path{0, x0, y0, 0, 1, x0, y1, 1, 1, x1, y1, 1, 1, x1, y0, 1, 1, x0, y0, 1}
-		p.Fill(path)
+		if f.Fill {
+			p.Fill(path)
+		}
+		if f.LineWidth > 0 {
+			p.Stroke(path, f.LineWidth)
+		}
 	}
 }
 

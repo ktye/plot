@@ -386,9 +386,11 @@ func (a axes) drawLines(xy xyer) {
 	z := 0
 	for i, l := range a.plot.Lines {
 		// Append vertical line data to lines separated by NaNs.
-		for _, t := range l.V {
-			l.X = append(l.X, math.NaN(), t, t)
-			l.Y = append(l.Y, math.NaN(), lim.Ymin, lim.Ymax)
+		if l.Style.Marker.Marker != Bar { // bar plot uses l.V for nominal values, dont draw lines.
+			for _, t := range l.V {
+				l.X = append(l.X, math.NaN(), t, t)
+				l.Y = append(l.Y, math.NaN(), lim.Ymin, lim.Ymax)
+			}
 		}
 		if n := len(a.plot.Lines); n > 0 {
 			z = int(float64(a.zSpace) * (1.0 - float64(i)/float64(n-1)))
@@ -415,7 +417,12 @@ func (a axes) drawLine(xy xyer, cs vg.CoordinateSystem, l Line, z int, isHighlig
 		}
 		d.Color(c)
 		if l.Style.Marker.Marker == Bar {
-			d.FloatBars(vg.FloatBars{X: x, Y: y, CoordinateSystem: cs})
+			lw, fill := 0, true
+			if isHighlight { //red rectangle outline is drawn over the filled bar.
+				d.Color(color.RGBA{255, 0, 0, 255})
+				lw, fill = 2, false
+			}
+			d.FloatBars(vg.FloatBars{X: x, Y: y, CoordinateSystem: cs, LineWidth: lw, Fill: fill})
 		} else {
 			d.FloatCircles(vg.FloatCircles{X: x, Y: y, CoordinateSystem: cs, Radius: size, Fill: true})
 		}
@@ -609,7 +616,10 @@ func (a axes) drawPoint(xy xyer, cs vg.CoordinateSystem, l Line, z int, pointNum
 			labels[1] = vg.FloatText{X: xp2, Y: yp2, S: fmt.Sprintf("(%.4g, %.4g)", xp2, yp2), Align: 1}
 		}
 	} else {
-		xp, yp := x[pointNumber], y[pointNumber]
+		xp, yp, hp := x[pointNumber], y[pointNumber], x[pointNumber]
+		if pointNumber%2 == 1 {
+			hp = 0.5 * (x[pointNumber] + x[pointNumber-1]) //half-point for bar plot marker position
+		}
 		x = []float64{xp}
 		y = []float64{yp}
 		var s string
@@ -631,6 +641,10 @@ func (a axes) drawPoint(xy xyer, cs vg.CoordinateSystem, l Line, z int, pointNum
 			if a.zSpace > 0 {
 				s = fmt.Sprintf("(%.4g, %.4g, %.4g)", xp, yp, l.Z)
 			} else {
+				if l.Style.Marker.Marker == Bar && len(l.V) > pointNumber/2 {
+					xp = l.V[pointNumber/2]
+					x[0] = hp
+				}
 				s = fmt.Sprintf("(%.4g, %.4g)", xp, yp)
 			}
 		}
