@@ -104,4 +104,4 @@ func (p fotoPlot) line(x0, y0, x1, y1 int) (complex128, bool)     { return compl
 func (p fotoPlot) click(x, y int, snapToPoint, deleteLine, dodraw bool) (Callback, bool) {
 	return Callback{}, false
 }
-func (p fotoPlot) highlight(id []HighlightID) *image.RGBA { return p.drawer.(*vg.Image).RGBA }
+func (p fotoPlot) highlight(id []HighlightID) *image.RGBA { return p.drawer.Rgba() }
