@@ -54,7 +54,8 @@ func (plt *Plot) NewPolar(d vg.Drawer, isRing bool) (p polarPlot, err error) {
 	p.ring = isRing
 	p.Limits = plt.getPolarLimits(p.ring)
 	if p.Limits.Ymax-p.Limits.Ymin == 0 || math.IsNaN(p.Limits.Ymax) {
-		return p, fmt.Errorf("cannot calculate polar limits (no data?)")
+		p.Limits.Ymin, p.Limits.Ymax = 0, 1
+		//return p, fmt.Errorf("cannot calculate polar limits (no data?)")
 	}
 
 	// Calculate Dimensions.

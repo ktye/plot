@@ -671,23 +671,23 @@ func (a axes) drawPoint(xy xyer, cs vg.CoordinateSystem, l Line, z int, pointNum
 
 		// Change the alignment, if the label would be placed at a picture boundary.
 		x0, y0 := cs.Pixel(l.X, l.Y, rect)
-		if l.Align == 1 && y0 < 30 {
+		if l.Align == 1 && y0 < rect.Min.Y+30 {
 			l.Align = 5
 		} else if l.Align == 5 && y0 > rect.Max.Y-30 {
 			l.Align = 1
 		}
-		if x0 < 50 {
-			if l.Align == 1 {
-				l.Align = 0
-			} else if l.Align == 5 {
-				l.Align = 6
-			}
-		} else if x0 > rect.Max.X-50 {
-			if l.Align == 1 {
-				l.Align = 2
-			} else if l.Align == 5 {
-				l.Align = 4
-			}
+		lcr := 0
+		if dx := rect.Dx(); x0-rect.Min.X < dx/3 { //left
+			lcr = 0
+		} else if x0-rect.Min.X > 2*dx/3 { // right
+			lcr = 2
+		} else { //center
+			lcr = 1
+		}
+		if l.Align == 1 {
+			l.Align = 0 + lcr
+		} else if l.Align == 5 {
+			l.Align = 6 - lcr
 		}
 
 		// Place the label above or below with the offset of the marker's radius.
