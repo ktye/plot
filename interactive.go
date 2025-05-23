@@ -66,13 +66,14 @@ func Annotate(p Iplots, m MeasureInfo, label string, circle, color, lw int) {
 	}
 	var plt *Plot
 	var drw drawer
+	var aa bool
 	switch v := p.p[m.N].(type) {
 	case polarPlot:
 		plt, drw = v.plot, v
 	case xyPlot:
 		plt, drw = v.plot, v
 	case ampAngPlot:
-		plt, drw = v.plot, v
+		plt, drw, aa = v.plot, v, true
 	default:
 		return
 	}
@@ -88,10 +89,16 @@ func Annotate(p Iplots, m MeasureInfo, label string, circle, color, lw int) {
 			Label: label,
 		})
 	} else {
+		var C []complex128
+		Y := []float64{imag(m.A), imag(m.B)}
+		if aa {
+			C, Y = []complex128{complex(imag(m.A), 0), complex(imag(m.B), 0)}, nil
+		}
 		plt.Lines = append(plt.Lines, Line{
 			Id:    plt.nextNegativeLineId(),
 			X:     []float64{real(m.A), real(m.B)},
-			Y:     []float64{imag(m.A), imag(m.B)},
+			Y:     Y,
+			C:     C,
 			Style: DataStyle{Line: LineStyle{Width: lw, Color: color, EndMarks: 2 + lw}},
 			Label: label,
 		})
