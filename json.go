@@ -9,7 +9,7 @@ import (
 //
 // marshal/unmarshal     Line.C
 // marshal CaptionColumn
-// unmarshal Caption     caption column data must be converted, complex columns can be guessed if not on the first column (todo minmax)
+// unmarshal Caption     caption column data must be converted, complex columns can be guessed if there are columns twice as long as others
 
 //json encode/decode complex vectors as float [z,z,..]->[r,i,r,i,..]
 
@@ -53,7 +53,7 @@ func (c *CaptionColumn) MarshalJSON() ([]byte, error) {
 		C:    (*C)(c),
 	})
 }
-func (c *Caption) UnmarshalJSON(b []byte) error { //if a []float64 column has twice the length as the first, it's complex
+func (c *Caption) UnmarshalJSON(b []byte) error { //if a []float64 column has twice the length as others, it's complex
 	type C Caption
 	x := &struct {
 		*C
@@ -64,9 +64,15 @@ func (c *Caption) UnmarshalJSON(b []byte) error { //if a []float64 column has tw
 		return e
 	}
 	// data unmarshals as []interface{}, it should be []string|[]int|[]float|[]complex128
+	nmin := -1
 	for i := range c.Columns {
 		if c.Columns[i].Data != nil {
 			if v, o := c.Columns[i].Data.([]interface{}); o {
+				if nmin < 0 {
+					nmin = len(v)
+				} else {
+					nmin = min(nmin, len(v))
+				}
 				col, e := autocol(v)
 				if e != nil {
 					return e
@@ -77,11 +83,10 @@ func (c *Caption) UnmarshalJSON(b []byte) error { //if a []float64 column has tw
 	}
 
 	if c != nil && len(c.Columns) > 1 {
-		n := c.Rows()
 		for i := range c.Columns {
 			if c.Columns[i].Data != nil {
 				if f, o := c.Columns[i].Data.([]float64); o {
-					if len(f) == 2*n {
+					if len(f) == 2*nmin {
 						c.Columns[i].Data = zf(f)
 					}
 				}
