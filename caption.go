@@ -137,7 +137,7 @@ func (c *Caption) Rows() int {
 	case []complex128:
 		return len(data.([]complex128))
 	default:
-		panic(fmt.Sprintf("table data has unknown type: %s", t))
+		panic(fmt.Sprintf("table data has unknown type: %T", t))
 	}
 	return 0
 }
