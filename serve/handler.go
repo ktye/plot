@@ -311,6 +311,7 @@ plotcnv.onwheel     = slideWheel
 plotcnv.onmousedown = zoomStart
 plotcnv.onmousemove = zoomMove
 plotcnv.onmouseup   = zoomEnd
+plotsld.onwheel     = slideWheel
 plotsld.onchange    = plotSlide
 
 export { plot, caption }
