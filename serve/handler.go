@@ -11,6 +11,7 @@ import (
 	"image/png"
 	"log"
 	"net/http"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -18,6 +19,8 @@ import (
 	"github.com/ktye/plot"
 	"github.com/ktye/plot/vg"
 )
+
+var CopyToClipboard bool
 
 type t struct {
 	sync.Mutex
@@ -38,6 +41,9 @@ func SetPlots(plots plot.Plots, e error) {
 	p.hi = nil
 	p.e = e
 	p.w, p.h, p.c = 0, 0, 0
+	if e == nil && CopyToClipboard {
+		WriteClipboard(plots, 4, nil, CopyFormat{800, 600, "Consolas", 14, 12, "Consolas", 12}) //todo formats.. hi?
+	}
 }
 
 type Option struct {
@@ -52,18 +58,28 @@ type Option struct {
 func setSize(width, height, columns int) {
 	p.w, p.h, p.c = width, height, columns
 	f1, f2 := plot.Fonts()
-	p.hp, _ = p.p.Iplots(vg.NewImage(width, height, f1, f2), columns)
+	p.hp, p.e = p.p.Iplots(vg.NewImage(width, height, f1, f2), columns)
 }
 
 func Plot(w http.ResponseWriter, r *http.Request) {
-	p.Lock()
-	defer p.Unlock()
 	q := r.URL.Query()
-
 	wi, hi := atoi(q.Get("w")), atoi(q.Get("h"))
 	hl := atois(q.Get("hl"))
 	x, y := atoi(q.Get("x")), atoi(q.Get("y"))
 	z := atois(q.Get("z"))
+
+	p.Lock()
+
+	defer func() {
+		if r := recover(); r != nil {
+			//fmt.Println(r)
+			//fmt.Println(debug.Stack())
+			errImage(w, wi, hi, fmt.Errorf("error:\n%v\n\nstack:\n%s", r, string(debug.Stack())))
+		}
+	}()
+
+	defer p.Unlock()
+
 	//fmt.Println("w", wi, "h", hi, "z", z, "x", x, "y", y, "hl", hl)
 
 	if q.Get("caption") != "" {
@@ -109,11 +125,9 @@ func Plot(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(z) == 4 {
 		if q.Get("draw") != "" {
-			v, ok := plot.LineIPlotters(p.hp, z[0], z[1], z[2]+z[0], z[3]+z[1])
-			fmt.Println("draw vector", v, ok)
+			plot.LineIPlotters(p.hp, z[0], z[1], z[2]+z[0], z[3]+z[1])
 		} else {
-			ok, n := plot.ZoomIPlotters(p.hp, z[0], z[1], z[2], z[3])
-			fmt.Println("zoom", ok, n)
+			plot.ZoomIPlotters(p.hp, z[0], z[1], z[2], z[3])
 		}
 	}
 	if x != 0 && y != 0 {
@@ -210,7 +224,12 @@ func errImage(w http.ResponseWriter, width, height int, err error) {
 	draw.Draw(m, m.Bounds(), &image.Uniform{color.White}, image.ZP, draw.Src)
 	p := vg.NewPainter(m)
 	//p.SetFont(font1)
-	p.Add(vg.Text{X: 30, Y: 30, Align: 6, S: err.Error()})
+	lines := strings.Split(err.Error(), "\n")
+	y := 30
+	for _, s := range lines {
+		p.Add(vg.Text{X: 30, Y: y, Align: 6, S: strings.ReplaceAll(s, "\t", "    ")})
+		y += 13
+	}
 	p.Paint()
 	if err := png.Encode(w, m); err != nil {
 		log.Print(err)
