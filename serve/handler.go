@@ -17,10 +17,9 @@ import (
 	"sync"
 
 	"github.com/ktye/plot"
+	"github.com/ktye/plot/clipboard"
 	"github.com/ktye/plot/vg"
 )
-
-var CopyToClipboard bool
 
 type t struct {
 	sync.Mutex
@@ -28,21 +27,25 @@ type t struct {
 	hp      plot.Iplots
 	hi      []plot.HighlightID
 	pi      plot.PointInfo
+	f       clipboard.CopyFormat
+	columns int
 	e       error
 	w, h, c int
 }
 
 var p t
 
-func SetPlots(plots plot.Plots, e error) {
+func SetPlots(plots plot.Plots, e error, f clipboard.CopyFormat, columns int) {
 	p.Lock()
 	defer p.Unlock()
 	p.p = plots
 	p.hi = nil
 	p.e = e
+	p.f = f
+	p.columns = columns
 	p.w, p.h, p.c = 0, 0, 0
-	if e == nil && CopyToClipboard {
-		WriteClipboard(plots, 4, nil, CopyFormat{800, 600, "Consolas", 14, 12, "Consolas", 12}) //todo formats.. hi?
+	if e == nil {
+		clipboard.CopyToClipboard(plots, columns, nil, f)
 	}
 }
 
@@ -153,8 +156,12 @@ func Plot(w http.ResponseWriter, r *http.Request) {
 		errImage(w, wi, hi, fmt.Errorf("plot area is too small"))
 		return
 	}
+
 	w.Header().Set("Content-Type", "image/png")
 	png.Encode(w, im)
+
+	p.hp.SetLimitsTo(&p.p)
+	clipboard.CopyToClipboard(p.p, p.columns, p.hi, p.f)
 }
 func writeCaption(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")

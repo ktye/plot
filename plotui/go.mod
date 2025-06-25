@@ -6,6 +6,7 @@ toolchain go1.24.0
 
 require (
 	github.com/ktye/plot v0.0.0
+	github.com/ktye/plot/clipboard v0.0.0
 	github.com/lxn/walk v0.0.0-20210112085537-c389da54e794
 	github.com/lxn/win v0.0.0-20201111105847-2a20daff6a55
 )
@@ -18,6 +19,8 @@ require (
 )
 
 replace github.com/ktye/plot => ../
+
+replace github.com/ktye/plot/clipboard => ../clipboard
 
 replace github.com/ktye/pptx => ../../pptx
 

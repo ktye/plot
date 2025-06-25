@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ktye/plot"
+	"github.com/ktye/plot/clipboard"
 	"github.com/ktye/plot/vg"
 	"github.com/lxn/walk"
 	"github.com/lxn/walk/declarative"
@@ -19,7 +20,7 @@ type Plot struct {
 	//AxisDialog     func(int, plot.Limits) // callback after axis limits are clicked
 	Columns         int
 	CopyToClipboard bool //call WriteClipboard after plotting, also after zoom/pan/click/reset
-	GetCopyFormat   func(int) CopyFormat
+	GetCopyFormat   func(int) clipboard.CopyFormat
 	canvas          *walk.CustomWidget // plot canvas
 	bitmap          *walk.Bitmap       // underlying plot bitmap
 	table           *walk.TableView    // caption table
