@@ -177,7 +177,6 @@ func (c *Caption) Color(row int, lineOffset int) color.Color {
 
 // WriteTable writes an aligned text table to the writer.
 func (c *Caption) WriteTable(w io.Writer, flags uint) (int, error) {
-
 	// lineOffset is the offset of the first data line.
 	lineOffset := 0
 	dataOffset := 0 // lineOffset without title and lead text
@@ -547,7 +546,6 @@ func MergeCaptions(captions []Caption) (single Caption, err error) {
 	// Merging two captions checks if any columns (starting at the end)
 	// are equal. The non-equal columns are appended next to each
 	// other, followed by the equal column only once.
-
 	if len(captions) == 0 {
 		return single, nil
 	}

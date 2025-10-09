@@ -46,6 +46,9 @@ func (ui *Plot) SetPlot(p plot.Plots, hi []plot.HighlightID) error {
 		return err
 	} else {
 		ui.caption = &caption
+		if len(*ui.plots) > 0 {
+			(*ui.plots)[0].Caption = &caption
+		}
 		if ui.table != nil {
 			ui.SetCaption()
 		}
