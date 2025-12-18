@@ -9,7 +9,7 @@
    
 
 let plot=(...a)=>{
- let p=[],d=[],w=800,h=600,c=0,t="xy",fontratio=0.5455/*roughly font tahoma numbers*/,FA=x=>new Float64Array(x)
+ let p=[],d=[],w=800,h=600,c=0,ncolors,t="xy",fontratio=0.5455/*roughly font tahoma numbers*/,FA=x=>new Float64Array(x)
  let font1=16,font2=12,border=1,ticLength=6
  if(Array.isArray(a[0])&&a[0][0].Type)a=[...a[0],...a.slice(1)];//plot([{Type:..},{Type:..}],"width",..) => plot({Type:..},{Type:..},"width",..)
  for(let i=0;i<a.length;i++){let x=a[i];x.constructor==Float64Array?d.push(x):Array.isArray(x)?d.push(FA(x)):x.Type?p.push(x):"width"==x?w=a[++i]:"height"==x?h=a[++i]:"cols"==x?c=a[++i]:"font1"==x?font1=a[++i]:"font2"==x?font1=a[++i]:"string"==typeof x?t=a[++i]:0}
@@ -22,10 +22,13 @@ let plot=(...a)=>{
 
  let err=x=>{throw new Error(x)}
  let min=Math.min,max=Math.max,hypot=Math.hypot,sin=Math.sin,cos=Math.cos,atan2=Math.atan2,floor=Math.floor,ceil=Math.ceil,round=Math.round;const pi=Math.PI
- let Abs=x=>{let r=FA(x.length/2);for(let i=0;i<r.length;i++)r[i]=hypot(x[2*i],x[2*i+1]); console.log("Abs",r);  return r}
+ let Abs=x=>{let r=FA(x.length/2);for(let i=0;i<r.length;i++)r[i]=hypot(x[2*i],x[2*i+1]);return r}
+ let ReIm=(x,o)=>{let r=FA(x.length/2);for(let i=o;i<r.length;i++)r[i]=x[2*i];return r},Real=x=>ReIm(x,0),Imag=x=>ReIm(x,1)
+ let Ang=x=>{let r=FA(x.length/2);for(let i=0;i<r.length;i++)r[i]=atan2(x[2*i+1],x[2*i])*180/pi;return r}//-180,180
  let mima=a=>{let mi=Infinity,ma=-Infinity;a.forEach(x=>x.forEach(x=>(mi=min(mi,isNaN(x)?mi:x),ma=max(ma,isNaN(x)?ma:x))));return[mi,ma]}
 
  let scale=(x,x0,x1,y0,y1)=>y0+(x-x0)*(y1-y0)/(x1-x0)
+ let axscale=(a,X,Y)=>([X.map(x=>(x=scale(x,a.xmin,a.xmax,0,10000),x<-10000?-10000:x>20000?20000:round(x))),Y.map(y=>(y=scale(y,a.ymax,a.ymin,0,10000),y<-10000?-10000:y>20000?20000:round(y)))])
  let nicenum=(ext,rnd)=>{let e=floor(Math.log10(ext)),f=ext/(10**e),r;return(rnd?((f<1.5)?1:(f<3)?2:(f<7)?5:10):((f<=1)?1:(f<=2)?2:(f<=5)?5:10))*10**e}
  let nicelim=(x,y)=>{let e=nicenum(y-x,false),s=nicenum(e/4,true);return[s*floor(x/s),s*ceil(y/s),s]}
  let ticstr=x=>{let s=String(x),t=x.toPrecision(5);return s.length<t.length?s:t}
@@ -40,21 +43,28 @@ let plot=(...a)=>{
  let labels=p=>{for(let i=0;i<p.length;i++){"Xlabel Ylabel Xunit Yunit".split(" ").forEach(x=>p[i][x]=x?x:"")}}
  let axes=(x,y,w,h,xmin,xmax,ymin,ymax)=>({x:x,y:y,w:w,h:h,xmin:xmin,xmax:xmax,ymin:ymin,ymax:ymax})
  let hs=s=>{const m={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};return s.replace(/[&<>"]/g,c=>m[c])}
+ let xyer=l=>[l.X,l.Y,0/*todo env*/],xyamp=l=>[l.X,Abs(l.C),0],xyang=l=>[l.X,Ang(l.C),0],xypolar=l=>[Imag(l.C),Real(l.C),0]
  
- let text=(x,y,s,a,ver,f2)=>`<text x="${x}" y="${y-2+(f2?font2:font1)*([0,0,0,0.5,1,1,1,0.5,0.5][a])}" class="${(f2?'s ':'')+('185'.includes(a)?'a1':'234'.includes(a)?'a2':'')+(ver?' v':'')}">${hs(s)}</text>`
+ let text=(x,y,s,a,f2)=>`<text x="${x}" y="${y-2+(f2?font2:font1)*([0,0,0,0.5,1,1,1,0.5,0.5][a])}" class="${(f2?'s ':'')+('185'.includes(a)?'a1':'234'.includes(a)?'a2':'')}">${hs(s)}</text>`
+ let vtext=(x,y,s)=>`<g transform="translate(${x} ${y}) rotate(270)"><text class="a1">${hs(s)}</text></g>`
  let line=(x1,y1,x2,y2)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`
- let drawTitle=(a,t,yo)=>t?text(a.x+a.w/2,a.y-ticLength-3-(yo?yo:0),t,1,0,0):""
+ let drawTitle=(a,t,yo)=>t?text(a.x+a.w/2,a.y-ticLength-3-(yo?yo:0),t,1,0):""
  let drawXYTics=(a,xp,yp,xl,yl, l)=>(l=ticLength,line(a.x,a.y-l,a.x+a.w,a.y-l)+line(a.x,a.y+a.h+l,a.x+a.w,a.y+a.h+l)+line(a.x-l,a.y,a.x-l,a.y+a.h)+line(a.x+a.w+l,a.y,a.x+a.w+l,a.y+a.h) +htics(a,yp,yl,a.x-l,a.x)+htics(a,yp,[],a.x+a.w,a.x+a.w+l)+vtics(a,xp,[],a.y-l,a.y)+vtics(a,xp,xl,a.y+a.h,a.y+a.h+l))
- let htics=(a,Y,L,x1,x2)=>Y.map((y,i)=>(y=round(scale(y,a.ymax,a.ymin,a.y,a.y+a.h)),line(x1,y,x2,y)+(L.length?text(x1-3,y,L[i],3,0,1):""))).join("")
- let vtics=(a,X,L,y1,y2)=>X.map((x,i)=>(x=round(scale(x,a.xmin,a.xmax,a.x,a.x+a.w)),line(x,y1,x,y2)+(L.length?text(x,y2+2,L[i],5,0,1):""))).join("")
- let drawXlabel=(a,l,u)=>text(a.x+round(a.w/2),a.y+a.h+ticLength+ticLabelHeight,(l+" "+u).trim(),5,0,0)
- let drawYlabel=(a,l,u,ylw)=>text(a.x-2*ticLength-ylw,a.y+round(a.h/2),(l+" "+u).trim(),5,1,0)
- let drawPolar=(a,rt, r,al)=>(r=floor(a.w/2),cx=a.x+r,cy=a.y+r,r1=r+ticLength/2,r2=r-ticLength/2,al=[1,0,0,7,6,6,5,4,4,3,2,2],console.log("cx,cy,r1,r2",cx,cy,r1,r2),
-  console.log("ymax",a.ymax,"rt",rt),
-  Array(12).fill(0).map((_,i)=>30*i).map((p,i)=>{let cs=cos(p*pi/180),sn=sin(p*pi/180);return line(cx+r1*cs,cy+r1*sn,cx+r2*cs,cy+r2*sn)+text(cx+r1*cs,cy+r1*sn,((90+p)%360)+"",al[(3+i)%12],0,1)}).join("")
-  +rt.map(R=>`<circle cx="${cx}" cy="${cy}" r="${R/a.ymax*r}" stroke-width="1" stroke="black" fill="none"/>`).join("")
-  +line(cx-r,cy,cx+r,cy)+line(cx,cy-r,cx,cy+r)+`<circle cx="${cx}" cy="${cy}" r="${r}" stroke-width="2" stroke="black" fill="none"/>`)
- 
+ let htics=(a,Y,L,x1,x2)=>Y.map((y,i)=>(y=round(scale(y,a.ymax,a.ymin,a.y,a.y+a.h)),line(x1,y,x2,y)+(L.length?text(x1-3,y,L[i],3,1):""))).join("")
+ let vtics=(a,X,L,y1,y2)=>X.map((x,i)=>(x=round(scale(x,a.xmin,a.xmax,a.x,a.x+a.w)),line(x,y1,x,y2)+(L.length?text(x,y2+2,L[i],5,1):""))).join("")
+ let drawXlabel=(a,l,u)=>text(a.x+round(a.w/2),a.y+a.h+ticLength+ticLabelHeight,(l+" "+u).trim(),5,0)
+ let drawYlabel=(a,l,u,ylw)=>vtext(a.x-2*ticLength-ylw,a.y+round(a.h/2),(l+" "+u).trim())
+ let drawPolar=(a,rt, r,al)=>(r=floor(a.w/2),cx=a.x+r,cy=a.y+r,r1=r+ticLength/2,r2=r-ticLength/2,al=[1,0,0,7,6,6,5,4,4,3,2,2],p4=x=>x.toPrecision(4),
+  Array(12).fill(0).map((_,i)=>30*i).map((p,i)=>{let cs=cos(p*pi/180),sn=sin(p*pi/180);return line(p4(cx+r1*cs),p4(cy+r1*sn),p4(cx+r2*cs),p4(cy+r2*sn))+text(p4(cx+r1*cs),p4(cy+r1*sn),((90+p)%360)+"",al[(3+i)%12],1)}).join("")
+  +rt.map(R=>`<circle cx="${cx}" cy="${cy}" r="${R/a.ymax*r}" stroke-width="1" stroke="black" fill="none"/>`).join("")+line(cx-r,cy,cx+r,cy)+line(cx,cy-r,cx,cy+r)+`<circle cx="${cx}" cy="${cy}" r="${r}" stroke-width="2" stroke="black" fill="none"/>`)
+ let linestyle=(p,l,i)=>{let lw=l?.Style?.Line?.Width?l.Style.Line.Width:0,ps=l?.Style?.Marker?.Size?l.Style.Marker.Size:0;[lw,ps]=(!(lw||ps))?(p.Type=="polar"?[0,3]:[2,0]):[lw,ps]; console.log("ps",ps); return[lw,ps,l?.Style?.Color?l.Style.Color:l?.Id?1+l.Id:1+i]}
+ let lineclass=(lw,c)=>`class="c${1+(c-1%ncolors)}"`+(2!=lw?`stroke-width="${lw}"`:"")
+ let drawLines=(a,p,f)=>`<g transform="translate(${a.x} ${a.y}) scale(${a.w/10000} ${a.h/10000})">`+p.Lines.map((l,i)=>/*todo l.Style.Marker.Marker=="bar"*/drawLine(a,p,l,i,f)).join("")+`</g>`
+ let scalepoint=(ps,w)=>round(10000*ps/w)
+ let drawLine=(a,p,l,i,f)=>{let[lw,ps,c]=linestyle(p,l,i),r="",[x,y]=axscale(a,...f(l));x=Array.from(x);/*todo labels,endmarks*/if(lw>0&&x.length)r+=`<path d="M${x[0]+' '+y[0]}`+x.map((x,i)=>`L${x+' '+y[i]}`).join("")+`" ${lineclass(lw,c)}/>`
+  if(ps)r+=`<g class="C${1+(c-1%ncolors)}">`+x.map((x,i)=>`<circle cx="${x}" cy="${y[i]}" r="${scalepoint(ps,a.w)}"/>`).join("")+`</g>`
+  return r}  //todo Style.Line.Arrow Style.Line.EndMarks
+  
  let empty=(p,w,h)=>""
  let xy=(p,w,h)=>{let xt=nicetics(p.Limits.Xmin,p.Limits.Xmax),yt=nicetics(p.Limits.Ymin,p.Limits.Ymax),ylw=ticLabelWidth(yt.Labels);
   let hfix=2*border+3*ticLength+ylabelWidth+ylw+rightXYWidth(xt.Labels.length?xt.Labels[xt.Labels.length-1]:"")
@@ -62,13 +72,13 @@ let plot=(...a)=>{
   let hs=w-hfix,vs=h-vfix,x0=0,y0=0;if(vs>2*hs){y0=floor((vs-2*hs)/2);vs=2*hs;};
   x0+=ylabelWidth+ylw+2*ticLength+border;y0+=titleHeight(p.Title)+ticLength+border;
   let ax=axes(x0,y0,hs,vs,p.Limits.Xmin,p.Limits.Xmax,p.Limits.Ymin,p.Limits.Ymax);
-  console.log("todo drawxy");return drawXYTics(ax,xt.Pos,yt.Pos,xt.Labels,yt.Labels)+drawTitle(ax,p.Title)+drawXlabel(ax,p.Xlabel,p.Xunit)+drawYlabel(ax,p.Ylabel,p.Yunit,ylw)}
+  console.log("todo drawxy");return drawLines(ax,p,xyer)+drawXYTics(ax,xt.Pos,yt.Pos,xt.Labels,yt.Labels)+drawTitle(ax,p.Title)+drawXlabel(ax,p.Xlabel,p.Xunit)+drawYlabel(ax,p.Ylabel,p.Yunit,ylw)}
  let polar=(p,w,h)=>{let rt=nicetics(0,p.Limits.Ymax),ylw=ticLabelWidth(["270"]); console.log("limits",p.Limits,"nt",nicetics(0,p.Limits.Ymax) ,nicetics(p.Limits.Ymin,p.Limits.Ymax) );
   let hfix=2*border+2*ylw
   let vfix=2*border+titleHeight(p.Title)+2*ticLabelHeight
   let hs=w-hfix,vs=h-vfix,d=hs<0&&vs<0?0:hs<vs?hs:vs; console.log("h",h,"vfix",vfix,"vs",vs);  d-=1-(1&d);  console.log("d!",d);    if(d<0)return"";
   let x0=floor((w-hfix-d)/2),y0=floor((h-vfix-d)/2),ax=axes(x0+ylw+border,y0+titleHeight(p.Title)+ticLabelHeight+border,d,d,p.Limits.Xmin,p.Limits.Xmax,p.Limits.Ymin,p.Limits.Ymax);
-  return drawTitle(ax,p.Title,ticLabelHeight-ticLength)+drawPolar(ax,rt.Pos)}
+  return drawLines(ax,p,xypolar)+drawTitle(ax,p.Title,ticLabelHeight-ticLength)+drawPolar(ax,rt.Pos)}
  let ring=(p,w,h)=>""
  let ampang=(p,w,h)=>{let xt=nicetics(p.Limits.Xmin,p.Limits.Xmax),yt=nicetics(p.Limits.Ymin,p.Limits.Ymax),ylw=ticLabelWidth(yt.Labels);
   let hfix=2*border+3*ticLength+ylabelWidth+ylw+rightXYWidth(xt.Labels.length?xt.Labels[xt.Labels.length-1]:"")
@@ -78,11 +88,10 @@ let plot=(...a)=>{
   x0+=ylabelWidth+ylw+2*ticLength+border;y0+=titleHeight(p.Title)+ticLength+border;
   let amp=axes(x0,y0,hs,h1,p.Limits.Xmin,p.Limits.Xmax,p.Limits.Ymin,p.Limits.Ymax)
   let ang=axes(x0,y0+h1+2*ticLength,hs,h2,p.Limits.Xmin,p.Limits.Xmax,-180,180),angs="-180 -90 0 90 180".split(" ")
-  return drawXYTics(amp,xt.Pos,yt.Pos,[],yt.Labels)+drawXYTics(ang,xt.Pos,angs.map(Number),xt.Labels,angs)+drawTitle(amp,p.Title)+drawXlabel(ang,p.Xlabel,p.Xunit)+drawYlabel(amp,p.Ylabel,p.Yunit,ylw)
+  return drawLines(amp,p,xyamp)+drawLines(ang,p,xyang)+drawXYTics(amp,xt.Pos,yt.Pos,[],yt.Labels)+drawXYTics(ang,xt.Pos,angs.map(Number),xt.Labels,angs)+drawTitle(amp,p.Title)+drawXlabel(ang,p.Xlabel,p.Xunit)+drawYlabel(amp,p.Ylabel,p.Yunit,ylw)
  }
  let foto=(p,w,h)=>""
  let textplot=(p,w,h)=>""
- 
  
  let grid=(n,w,h,c, g)=>{g={n:n}
   c<0?(g.colmajor=1,-c):(!c)?c=((n<13)?[4,4,4,4,4,3,3,4,4,5,5,4,4][n]:5):0
@@ -92,10 +101,12 @@ let plot=(...a)=>{
  let xyi=(g,n, i,k,x,y,m)=>{x=0;i=0|n/g.c;k=n%g.c;if(g.colmajor)[i,k]=[k,i]             //{n: 2, r: 1, c: 2, w: 600, h: 500}
   if(i==0|(g.n-1)/g.c){m=1+((g.n-1)%g.c);x=(g.width-m*g.w)/2}
   x+=k*g.w;y=i*g.h;return[x,y]}
- let plots=(p,w,h,c)=>{ 
+ let plots=(p,w,h,c)=>{let colors=p.length?(p[0]?.Style?.Order?p[0].Style.Order.split(","):[]):[];colors=(colors.length?colors:"#003FFF,#03ED3A,#E8000B,#8A2BE2,#FFC400,#00D7FF".split(","));ncolors=colors.length;
   limits(p);labels(p);let g=grid(p.length,w,h,c),r=`<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
   <style>text{font-family:Tahoma,sans-serif;font-size:${font1}px}.a1{text-anchor:middle}.a2{text-anchor:end}.s{font-size:${font2}px}.v{writing-mode:sideways-lr;font-size:${font1}px}
+  ${colors.map((x,i)=>`.c${1+i}{stroke:${x}}`).join("")}${colors.map((x,i)=>`.C${1+i}{fill:${x}}`).join("")}
   line{stroke:black}
+  path{fill:none;stroke:black;stroke-width:2;vector-effect:non-scaling-stroke}
   </style>
   <clipPath id="B"><rect width="${g.w}" height="${g.h}"/></clipPath>`
   let P={"":empty,"xy":xy,"raster":xy,"polar":polar,"ring":ring,"ampang":ampang,"foto":foto,"text":textplot}
