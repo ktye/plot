@@ -23,7 +23,7 @@ let plot=(...a)=>{
  let err=x=>{throw new Error(x)}
  let min=Math.min,max=Math.max,hypot=Math.hypot,sin=Math.sin,cos=Math.cos,atan2=Math.atan2,floor=Math.floor,ceil=Math.ceil,round=Math.round;const pi=Math.PI
  let Abs=x=>{let r=FA(x.length/2);for(let i=0;i<r.length;i++)r[i]=hypot(x[2*i],x[2*i+1]);return r}
- let ReIm=(x,o)=>{let r=FA(x.length/2);for(let i=o;i<r.length;i++)r[i]=x[2*i];return r},Real=x=>ReIm(x,0),Imag=x=>ReIm(x,1)
+ let ReIm=(x,o)=>{let r=FA(x.length/2),i=-1;for(;o<x.length;o+=2)r[++i]=x[o];return r},Real=x=>ReIm(x,0),Imag=x=>ReIm(x,1)
  let Ang=x=>{let r=FA(x.length/2);for(let i=0;i<r.length;i++)r[i]=atan2(x[2*i+1],x[2*i])*180/pi;return r}//-180,180
  let mima=a=>{let mi=Infinity,ma=-Infinity;a.forEach(x=>x.forEach(x=>(mi=min(mi,isNaN(x)?mi:x),ma=max(ma,isNaN(x)?ma:x))));return[mi,ma]}
 
@@ -40,7 +40,7 @@ let plot=(...a)=>{
  let aalimits=p=>{xxlimits(p);let l=p.Limits,x_;l.Ymin=0;if(l.Ymax<=0)[x_,l.Ymax]=autoscale(p.Lines.map(l=>Abs(l.C)));return l}
  let deflimits=l=>{if("undefined"==typeof l)l={};"Equal Xmin Xmax Ymin Ymax Zmin Zmax".split(" ").forEach(s=>{if(!(s in l))l[s]=0});return l}
  let limits=p=>{for(let i=0;i<p.length;i++){p[i].Limits=deflimits(p[i].Limits);let t=p[i].Type;p[i].Limits="xy"==t?xylimits(p[i]):"ampang"==t?aalimits(p[i]):"polar"==t?polarlimits(p[i],0):"ring"==t?polarlimits(p[i],1):{}};if(p[0].Limits.equal)console.log("todo equal-limits")}
- let labels=p=>{for(let i=0;i<p.length;i++){"Xlabel Ylabel Xunit Yunit".split(" ").forEach(x=>p[i][x]=x?x:"")}}
+ let labels=p=>{for(let i=0;i<p.length;i++){"Xlabel Ylabel Xunit Yunit".split(" ").forEach(x=>x in p[i]?0:p[i][x]="")}}
  let axes=(x,y,w,h,xmin,xmax,ymin,ymax)=>({x:x,y:y,w:w,h:h,xmin:xmin,xmax:xmax,ymin:ymin,ymax:ymax})
  let hs=s=>{const m={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};return s.replace(/[&<>"]/g,c=>m[c])}
  let xyer=l=>[l.X,l.Y,0/*todo env*/],xyamp=l=>[l.X,Abs(l.C),0],xyang=l=>[l.X,Ang(l.C),0],xypolar=l=>[Imag(l.C),Real(l.C),0]
@@ -57,7 +57,7 @@ let plot=(...a)=>{
  let drawPolar=(a,rt, r,al)=>(r=floor(a.w/2),cx=a.x+r,cy=a.y+r,r1=r+ticLength/2,r2=r-ticLength/2,al=[1,0,0,7,6,6,5,4,4,3,2,2],p4=x=>x.toPrecision(4),
   Array(12).fill(0).map((_,i)=>30*i).map((p,i)=>{let cs=cos(p*pi/180),sn=sin(p*pi/180);return line(p4(cx+r1*cs),p4(cy+r1*sn),p4(cx+r2*cs),p4(cy+r2*sn))+text(p4(cx+r1*cs),p4(cy+r1*sn),((90+p)%360)+"",al[(3+i)%12],1)}).join("")
   +rt.map(R=>`<circle cx="${cx}" cy="${cy}" r="${R/a.ymax*r}" stroke-width="1" stroke="black" fill="none"/>`).join("")+line(cx-r,cy,cx+r,cy)+line(cx,cy-r,cx,cy+r)+`<circle cx="${cx}" cy="${cy}" r="${r}" stroke-width="2" stroke="black" fill="none"/>`)
- let linestyle=(p,l,i)=>{let lw=l?.Style?.Line?.Width?l.Style.Line.Width:0,ps=l?.Style?.Marker?.Size?l.Style.Marker.Size:0;[lw,ps]=(!(lw||ps))?(p.Type=="polar"?[0,3]:[2,0]):[lw,ps]; console.log("ps",ps); return[lw,ps,l?.Style?.Color?l.Style.Color:l?.Id?1+l.Id:1+i]}
+ let linestyle=(p,l,i)=>{let lw=l?.Style?.Line?.Width?l.Style.Line.Width:0,ps=l?.Style?.Marker?.Size?l.Style.Marker.Size:0;[lw,ps]=(!(lw||ps))?(p.Type=="polar"?[0,3]:[2,0]):[lw,ps];return[lw,ps,l?.Style?.Color?l.Style.Color:l?.Id?1+l.Id:1+i]}
  let lineclass=(lw,c)=>`class="c${1+(c-1%ncolors)}"`+(2!=lw?`stroke-width="${lw}"`:"")
  let drawLines=(a,p,f)=>`<g transform="translate(${a.x} ${a.y}) scale(${a.w/10000} ${a.h/10000})">`+p.Lines.map((l,i)=>/*todo l.Style.Marker.Marker=="bar"*/drawLine(a,p,l,i,f)).join("")+`</g>`
  let scalepoint=(ps,w)=>round(10000*ps/w)
@@ -76,7 +76,7 @@ let plot=(...a)=>{
  let polar=(p,w,h)=>{let rt=nicetics(0,p.Limits.Ymax),ylw=ticLabelWidth(["270"]); console.log("limits",p.Limits,"nt",nicetics(0,p.Limits.Ymax) ,nicetics(p.Limits.Ymin,p.Limits.Ymax) );
   let hfix=2*border+2*ylw
   let vfix=2*border+titleHeight(p.Title)+2*ticLabelHeight
-  let hs=w-hfix,vs=h-vfix,d=hs<0&&vs<0?0:hs<vs?hs:vs; console.log("h",h,"vfix",vfix,"vs",vs);  d-=1-(1&d);  console.log("d!",d);    if(d<0)return"";
+  let hs=w-hfix,vs=h-vfix,d=hs<0&&vs<0?0:hs<vs?hs:vs;d-=1-(1&d);if(d<0)return"";
   let x0=floor((w-hfix-d)/2),y0=floor((h-vfix-d)/2),ax=axes(x0+ylw+border,y0+titleHeight(p.Title)+ticLabelHeight+border,d,d,p.Limits.Xmin,p.Limits.Xmax,p.Limits.Ymin,p.Limits.Ymax);
   return drawLines(ax,p,xypolar)+drawTitle(ax,p.Title,ticLabelHeight-ticLength)+drawPolar(ax,rt.Pos)}
  let ring=(p,w,h)=>""
