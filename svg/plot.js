@@ -58,7 +58,7 @@ let plot=(...a)=>{
   Array(12).fill(0).map((_,i)=>30*i).map((p,i)=>{let cs=cos(p*pi/180),sn=sin(p*pi/180);return line(p4(cx+r1*cs),p4(cy+r1*sn),p4(cx+r2*cs),p4(cy+r2*sn))+text(p4(cx+r1*cs),p4(cy+r1*sn),((90+p)%360)+"",al[(3+i)%12],1)}).join("")
   +rt.map(R=>`<circle cx="${cx}" cy="${cy}" r="${R/a.ymax*r}" stroke-width="1" stroke="black" fill="none"/>`).join("")+line(cx-r,cy,cx+r,cy)+line(cx,cy-r,cx,cy+r)+`<circle cx="${cx}" cy="${cy}" r="${r}" stroke-width="2" stroke="black" fill="none"/>`)
  let linestyle=(p,l,i)=>{let lw=l?.Style?.Line?.Width?l.Style.Line.Width:0,ps=l?.Style?.Marker?.Size?l.Style.Marker.Size:0;[lw,ps]=(!(lw||ps))?(p.Type=="polar"?[0,3]:[2,0]):[lw,ps];return[lw,ps,l?.Style?.Color?l.Style.Color:l?.Id?1+l.Id:1+i]}
- let lineclass=(lw,c)=>`class="c${1+(c-1%ncolors)}"`+(2!=lw?`stroke-width="${lw}"`:"")
+ let lineclass=(lw,c)=>`class="c${1+(c-1)%ncolors}"`+(2!=lw?`stroke-width="${lw}"`:"")
  let drawLines=(a,p,f)=>`<g transform="translate(${a.x} ${a.y}) scale(${a.w/10000} ${a.h/10000})">`+p.Lines.map((l,i)=>/*todo l.Style.Marker.Marker=="bar"*/drawLine(a,p,l,i,f)).join("")+`</g>`
  let scalepoint=(ps,w)=>round(10000*ps/w)
  let drawLine=(a,p,l,i,f)=>{let[lw,ps,c]=linestyle(p,l,i),r="",[x,y]=axscale(a,...f(l));x=Array.from(x);/*todo labels,endmarks*/if(lw>0&&x.length)r+=`<path d="M${x[0]+' '+y[0]}`+x.map((x,i)=>`L${x+' '+y[i]}`).join("")+`" ${lineclass(lw,c)}/>`
