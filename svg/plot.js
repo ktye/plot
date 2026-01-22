@@ -43,7 +43,9 @@ let plot=(...a)=>{
  let labels=p=>{for(let i=0;i<p.length;i++){"Xlabel Ylabel Xunit Yunit".split(" ").forEach(x=>x in p[i]?0:p[i][x]="")}}
  let axes=(x,y,w,h,xmin,xmax,ymin,ymax)=>({x:x,y:y,w:w,h:h,xmin:xmin,xmax:xmax,ymin:ymin,ymax:ymax})
  let hs=s=>{const m={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};return s.replace(/[&<>"]/g,c=>m[c])}
- let xyer=l=>[l.X,l.Y,0/*todo env*/],xyamp=l=>[l.X,Abs(l.C),0],xyang=l=>[l.X,Ang(l.C),0],xypolar=l=>[Imag(l.C),Real(l.C),0]
+ let phjmp=(x,y)=>{let n=0,i=1;for(;i<y.length;i++)if(abs(y[i]-y[i-1])>280)++n;if(!n)return[x,y];let X=FA(x.length+3*n),Y=FA(x.length+3*n),j=1;X[0]=x[0];Y[0]=y[0];
+  for(i=1;i<y.length;i++)abs(y[i]-y[i-1])>280? (X[j]=x[i],Y[j]=y[i]+(y[i]<0?360:-360),X[1+j]=NaN,Y[1+j]=NaN,X[2+j]=X[j-1],Y[2+j]=Y[j-1]+(Y[j-1]<0?360:-360),X[3+j]=x[i],Y[3+j]=y[i],j+=4):(X[j]=x[i],Y[j++]=y[i]);return[X,Y]}
+ let xyer=l=>[l.X,l.Y,0/*todo env*/],xyamp=l=>[l.X,Abs(l.C),0],xyang=l=>[...phjmp(l.X,Ang(l.C)),0],xypolar=l=>[Imag(l.C),Real(l.C),0]
  
  let text=(x,y,s,a,f2)=>`<text x="${x}" y="${y-2+(f2?font2:font1)*([0,0,0,0.5,1,1,1,0.5,0.5][a])}" class="${(f2?'s ':'')+('185'.includes(a)?'a1':'234'.includes(a)?'a2':'')}">${hs(s)}</text>`
  let vtext=(x,y,s)=>`<g transform="translate(${x} ${y}) rotate(270)"><text class="a1">${hs(s)}</text></g>`
@@ -61,7 +63,7 @@ let plot=(...a)=>{
  let lineclass=(lw,c)=>`class="c${1+(c-1)%ncolors}"`+(2!=lw?`stroke-width="${lw}"`:"")
  let drawLines=(a,p,f)=>`<g transform="translate(${a.x} ${a.y}) scale(${a.w/10000} ${a.h/10000})">`+p.Lines.map((l,i)=>/*todo l.Style.Marker.Marker=="bar"*/drawLine(a,p,l,i,f)).join("")+`</g>`
  let scalepoint=(ps,w)=>round(10000*ps/w)
- let drawLine=(a,p,l,i,f)=>{let[lw,ps,c]=linestyle(p,l,i),r="",[x,y]=axscale(a,...f(l));x=Array.from(x);/*todo labels,endmarks*/if(lw>0&&x.length)r+=`<path d="M${x[0]+' '+y[0]}`+x.map((x,i)=>`L${x+' '+y[i]}`).join("")+`" ${lineclass(lw,c)}/>`
+ let drawLine=(a,p,l,i,f)=>{let[lw,ps,c]=linestyle(p,l,i),r="",[x,y]=axscale(a,...f(l));x=Array.from(x);/*todo labels,endmarks*/if(lw>0&&x.length)r+=`<path d="`+ x.map((x,i)=>(isNaN(y[i])?"":(i==0||isNaN(y[i-1])?"M":"L")+x+" "+y[i])).join("")+`" data-id="${'Id'in l?l.Id:-1}" ${lineclass(lw,c)}/>`
   if(ps)r+=`<g class="C${1+(c-1%ncolors)}">`+x.map((x,i)=>`<circle cx="${x}" cy="${y[i]}" r="${scalepoint(ps,a.w)}"/>`).join("")+`</g>`
   return r}  //todo Style.Line.Arrow Style.Line.EndMarks
   
@@ -105,10 +107,11 @@ let plot=(...a)=>{
   limits(p);labels(p);let g=grid(p.length,w,h,c),r=`<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
   <style>text{font-family:Tahoma,sans-serif;font-size:${font1}px}.a1{text-anchor:middle}.a2{text-anchor:end}.s{font-size:${font2}px}.v{writing-mode:sideways-lr;font-size:${font1}px}
   ${colors.map((x,i)=>`.c${1+i}{stroke:${x}}`).join("")}${colors.map((x,i)=>`.C${1+i}{fill:${x}}`).join("")}
+  .hiline{stroke-width:4;vector-effect:non-scaling-stroke}
   line{stroke:black}
   path{fill:none;stroke:black;stroke-width:2;vector-effect:non-scaling-stroke}
   </style>
   <clipPath id="B"><rect width="${g.w}" height="${g.h}"/></clipPath>`
   let P={"":empty,"xy":xy,"raster":xy,"polar":polar,"ring":ring,"ampang":ampang,"foto":foto,"text":textplot}
-  p.forEach((p,i, x,y)=>{[x,y]=xyi(g,i);r+=`<g transform="translate(${x+0.5},${y+0.5})" clip-path="url(#B)">`+((p.Type in P)?(P[p.Type](p,g.w,g.h)):err("no such plot type:"+p.Type))+"</g>"});return r+"</svg>"} 
+  p.forEach((p,i, x,y)=>{[x,y]=xyi(g,i);r+=`<g data-i="${i}" transform="translate(${x+0.5},${y+0.5})" clip-path="url(#B)">`+((p.Type in P)?(P[p.Type](p,g.w,g.h)):err("no such plot type:"+p.Type))+"</g>"});return r+"</svg>"} 
  return plots(p,w,h,c)}
