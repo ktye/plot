@@ -7,7 +7,6 @@
    plot([{Type:..},{Type:..}])
    plot(..,"width",800,"height",400,"cols",2) */
    
-
 let plot=(...a)=>{
  let p=[],d=[],w=800,h=600,c=0,ncolors,t="xy",fontratio=0.5455/*roughly font tahoma numbers*/,FA=x=>new Float64Array(x)
  let font1=16,font2=12,border=1,ticLength=6
@@ -61,7 +60,11 @@ let plot=(...a)=>{
   +rt.map(R=>`<circle cx="${cx}" cy="${cy}" r="${R/a.ymax*r}" stroke-width="1" stroke="black" fill="none"/>`).join("")+line(cx-r,cy,cx+r,cy)+line(cx,cy-r,cx,cy+r)+`<circle cx="${cx}" cy="${cy}" r="${r}" stroke-width="2" stroke="black" fill="none"/>`)
  let linestyle=(p,l,i)=>{let lw=l?.Style?.Line?.Width?l.Style.Line.Width:0,ps=l?.Style?.Marker?.Size?l.Style.Marker.Size:0;[lw,ps]=(!(lw||ps))?(p.Type=="polar"?[0,3]:[2,0]):[lw,ps];return[lw,ps,l?.Style?.Color?l.Style.Color:l?.Id?1+l.Id:1+i]}
  let lineclass=(lw,c)=>`class="c${1+(c-1)%ncolors}"`+(2!=lw?`stroke-width="${lw}"`:"")
- let drawLines=(a,p,f)=>`<g transform="translate(${a.x} ${a.y}) scale(${a.w/10000} ${a.h/10000})">`+p.Lines.map((l,i)=>/*todo l.Style.Marker.Marker=="bar"*/drawLine(a,p,l,i,f)).join("")+`</g>`
+ let textmarker=_=>`<rect x="0" y="0" width="0" height="0" fill="white" class="marker hidden"/><text x="0" y="0" class="marker hidden">TTT</text>`
+ let marker=(rx,ry)=>`<ellipse cx="-10000" cy="-10000" rx="${6*rx}" ry="${6*ry}" fill="none" class="marker hidden"/>` //
+ let zoompanel=_=>`<rect x="0" y="0" width="10000" height="10000" fill="white" opacity="0" onmousedown="zoomdown(this,event)" onmousemove="zoommove(this,event)" />`
+ let zoomrect=_=>`<rect x="0" y="0" width="0" height="0" fill="none" stroke="black" vector-effect="non-scaling-stroke" class="zoom" onmouseup="zoomup(this,event)" />`
+ let drawLines=(a,p,f,t)=>`<g transform="translate(${a.x} ${a.y}) scale(${a.w/10000} ${a.h/10000})" data-xy=${t} data-xmin="${p.Limits.Xmin}" data-xmax="${p.Limits.Xmax}" data-ymin="${p.Limits.Ymin}" data-ymax="${p.Limits.Ymax}">`+zoompanel()+zoomrect()+p.Lines.map((l,i)=>/*todo l.Style.Marker.Marker=="bar"*/drawLine(a,p,l,i,f)).join("")+marker(10000/a.w,10000/a.h)+`</g>`+textmarker()
  let scalepoint=(ps,w)=>round(10000*ps/w)
  let drawLine=(a,p,l,i,f)=>{let[lw,ps,c]=linestyle(p,l,i),r="",[x,y]=axscale(a,...f(l));x=Array.from(x);/*todo labels,endmarks*/if(lw>0&&x.length)r+=`<path d="`+ x.map((x,i)=>(isNaN(y[i])?"":(i==0||isNaN(y[i-1])?"M":"L")+x+" "+y[i])).join("")+`" data-id="${'Id'in l?l.Id:-1}" ${lineclass(lw,c)}/>`
   if(ps)r+=`<g class="C${1+(c-1%ncolors)}">`+x.map((x,i)=>`<circle cx="${x}" cy="${y[i]}" r="${scalepoint(ps,a.w)}"/>`).join("")+`</g>`
@@ -74,13 +77,13 @@ let plot=(...a)=>{
   let hs=w-hfix,vs=h-vfix,x0=0,y0=0;if(vs>2*hs){y0=floor((vs-2*hs)/2);vs=2*hs;};
   x0+=ylabelWidth+ylw+2*ticLength+border;y0+=titleHeight(p.Title)+ticLength+border;
   let ax=axes(x0,y0,hs,vs,p.Limits.Xmin,p.Limits.Xmax,p.Limits.Ymin,p.Limits.Ymax);
-  console.log("todo drawxy");return drawLines(ax,p,xyer)+drawXYTics(ax,xt.Pos,yt.Pos,xt.Labels,yt.Labels)+drawTitle(ax,p.Title)+drawXlabel(ax,p.Xlabel,p.Xunit)+drawYlabel(ax,p.Ylabel,p.Yunit,ylw)}
+  console.log("todo drawxy");return drawLines(ax,p,xyer,"xy")+drawXYTics(ax,xt.Pos,yt.Pos,xt.Labels,yt.Labels)+drawTitle(ax,p.Title)+drawXlabel(ax,p.Xlabel,p.Xunit)+drawYlabel(ax,p.Ylabel,p.Yunit,ylw)}
  let polar=(p,w,h)=>{let rt=nicetics(0,p.Limits.Ymax),ylw=ticLabelWidth(["270"]); console.log("limits",p.Limits,"nt",nicetics(0,p.Limits.Ymax) ,nicetics(p.Limits.Ymin,p.Limits.Ymax) );
   let hfix=2*border+2*ylw
   let vfix=2*border+titleHeight(p.Title)+2*ticLabelHeight
   let hs=w-hfix,vs=h-vfix,d=hs<0&&vs<0?0:hs<vs?hs:vs;d-=1-(1&d);if(d<0)return"";
   let x0=floor((w-hfix-d)/2),y0=floor((h-vfix-d)/2),ax=axes(x0+ylw+border,y0+titleHeight(p.Title)+ticLabelHeight+border,d,d,p.Limits.Xmin,p.Limits.Xmax,p.Limits.Ymin,p.Limits.Ymax);
-  return drawLines(ax,p,xypolar)+drawTitle(ax,p.Title,ticLabelHeight-ticLength)+drawPolar(ax,rt.Pos)}
+  return drawLines(ax,p,xypolar,"po")+drawTitle(ax,p.Title,ticLabelHeight-ticLength)+drawPolar(ax,rt.Pos)}
  let ring=(p,w,h)=>""
  let ampang=(p,w,h)=>{let xt=nicetics(p.Limits.Xmin,p.Limits.Xmax),yt=nicetics(p.Limits.Ymin,p.Limits.Ymax),ylw=ticLabelWidth(yt.Labels);
   let hfix=2*border+3*ticLength+ylabelWidth+ylw+rightXYWidth(xt.Labels.length?xt.Labels[xt.Labels.length-1]:"")
@@ -90,7 +93,7 @@ let plot=(...a)=>{
   x0+=ylabelWidth+ylw+2*ticLength+border;y0+=titleHeight(p.Title)+ticLength+border;
   let amp=axes(x0,y0,hs,h1,p.Limits.Xmin,p.Limits.Xmax,p.Limits.Ymin,p.Limits.Ymax)
   let ang=axes(x0,y0+h1+2*ticLength,hs,h2,p.Limits.Xmin,p.Limits.Xmax,-180,180),angs="-180 -90 0 90 180".split(" ")
-  return drawLines(amp,p,xyamp)+drawLines(ang,p,xyang)+drawXYTics(amp,xt.Pos,yt.Pos,[],yt.Labels)+drawXYTics(ang,xt.Pos,angs.map(Number),xt.Labels,angs)+drawTitle(amp,p.Title)+drawXlabel(ang,p.Xlabel,p.Xunit)+drawYlabel(amp,p.Ylabel,p.Yunit,ylw)
+  return drawLines(amp,p,xyamp,"am")+drawLines(ang,p,xyang,"an")+drawXYTics(amp,xt.Pos,yt.Pos,[],yt.Labels)+drawXYTics(ang,xt.Pos,angs.map(Number),xt.Labels,angs)+drawTitle(amp,p.Title)+drawXlabel(ang,p.Xlabel,p.Xunit)+drawYlabel(amp,p.Ylabel,p.Yunit,ylw)
  }
  let foto=(p,w,h)=>""
  let textplot=(p,w,h)=>""
@@ -108,6 +111,7 @@ let plot=(...a)=>{
   <style>text{font-family:Tahoma,sans-serif;font-size:${font1}px}.a1{text-anchor:middle}.a2{text-anchor:end}.s{font-size:${font2}px}.v{writing-mode:sideways-lr;font-size:${font1}px}
   ${colors.map((x,i)=>`.c${1+i}{stroke:${x}}`).join("")}${colors.map((x,i)=>`.C${1+i}{fill:${x}}`).join("")}
   .hiline{stroke-width:4;vector-effect:non-scaling-stroke}
+  .hidden{display:none}
   line{stroke:black}
   path{fill:none;stroke:black;stroke-width:2;vector-effect:non-scaling-stroke}
   </style>
@@ -115,3 +119,4 @@ let plot=(...a)=>{
   let P={"":empty,"xy":xy,"raster":xy,"polar":polar,"ring":ring,"ampang":ampang,"foto":foto,"text":textplot}
   p.forEach((p,i, x,y)=>{[x,y]=xyi(g,i);r+=`<g data-i="${i}" transform="translate(${x+0.5},${y+0.5})" clip-path="url(#B)">`+((p.Type in P)?(P[p.Type](p,g.w,g.h)):err("no such plot type:"+p.Type))+"</g>"});return r+"</svg>"} 
  return plots(p,w,h,c)}
+
