@@ -65,9 +65,14 @@ let svgplot=(...a)=>{
  let marker=(rx,ry)=>`<ellipse cx="-10000" cy="-10000" rx="${6*rx}" ry="${6*ry}" fill="none" class="marker hidden"/>` //
  let zoompanel=_=>`<rect x="0" y="0" width="10000" height="10000" fill="white" opacity="0" onmousedown="zoomdown(this,event)" onmousemove="zoommove(this,event)" ondblclick="zoomreset(this)" onwheel="zoomwheel(this,event)" />`
  let zoomrect=_=>`<rect x="0" y="0" width="0" height="0" fill="none" stroke="black" vector-effect="non-scaling-stroke" class="zoom" onmouseup="zoomup(this,event)" />`
- let drawLines=(a,p,f,t)=>`<g transform="translate(${a.x} ${a.y}) scale(${a.w/10000} ${a.h/10000})" data-xy=${t} data-xmin="${p.Limits.Xmin}" data-xmax="${p.Limits.Xmax}" data-ymin="${p.Limits.Ymin}" data-ymax="${p.Limits.Ymax}" clip-path="url(#A)" >`+zoompanel()+zoomrect()+p.Lines.map((l,i)=>/*todo l.Style.Marker.Marker=="bar"*/drawLine(a,p,l,i,f)).join("")+marker(10000/a.w,10000/a.h)+`</g>`+textmarker()
+ let drawLines=(a,p,f,t)=>`<g transform="translate(${a.x} ${a.y}) scale(${a.w/10000} ${a.h/10000})" data-xy=${t} data-xmin="${p.Limits.Xmin}" data-xmax="${p.Limits.Xmax}" data-ymin="${p.Limits.Ymin}" data-ymax="${p.Limits.Ymax}" clip-path="url(#A)" >`+zoompanel()+zoomrect()+p.Lines.map((l,i)=>/*todo l.Style.Marker.Marker=="bar"*/drawLine(a,p,l,i,f,t)).join("")+marker(10000/a.w,10000/a.h)+`</g>`+textmarker()
  let scalepoint=(ps,w)=>round(10000*ps/w)
- let drawLine=(a,p,l,i,f)=>{let[lw,ps,c]=linestyle(p,l,i),r="",[x,y]=axscale(a,...f(l));x=Array.from(x);/*todo labels,endmarks*/if(lw>0&&x.length)r+=`<path d="`+ x.map((x,i)=>(isNaN(y[i])?"":(i==0||isNaN(y[i-1])?"M":"L")+x+" "+y[i])).join("")+`" data-id="${'Id'in l?l.Id:-1}" ${lineclass(lw,c)}/>`
+ let drawLine=(a,p,l,i,f,t)=>{let[lw,ps,c]=linestyle(p,l,i),r="",em="",[x,y]=axscale(a,...f(l));x=Array.from(x);
+  if(t!="an"&&l?.Style?.Line?.EndMarks){
+   let h=abs(x[0]-x[1])>abs(y[0]-y[1]),dx=h?0:300,dy=h?300:0;em=`M${x[0]-dx} ${y[0]-dy} L${x[0]+dx} ${y[0]+dy} M${x[1]-dx} ${y[1]-dy} L${x[1]+dx} ${y[1]+dy}`
+   if(l.Label)r+=text(0.5*(x[0]+x[1]),0.5*(y[0]+y[1]),l.Label,1,1)
+  }
+  if(lw>0&&x.length)r+=`<path d="`+ x.map((x,i)=>(isNaN(y[i])?"":(i==0||isNaN(y[i-1])?"M":"L")+x+" "+y[i])).join("")+em+`" data-id="${'Id'in l?l.Id:-1}" ${lineclass(lw,c)}/>`
   if(ps)r+=`<g class="C${1+(c-1%ncolors)}">`+x.map((x,i)=>`<circle cx="${x}" cy="${y[i]}" r="${scalepoint(ps,a.w)}"/>`).join("")+`</g>`
   return r}  //todo Style.Line.Arrow Style.Line.EndMarks
   
@@ -132,7 +137,7 @@ let svgplot=(...a)=>{
   ***draw-rect+shift|ctrl|alt:     measure hor/ver, polar: draw vector
  */
 let plotsvg_,plotsld_,plotcap_,plotopts_,plot_
-let replot=_=>{let r=plotsvg_.getBoundingClientRect();plotsvg_.innerHTML=svgplot(plot_,"width",r.width,"height",r.height,...plotopts_);}
+let replot=_=>{console.log("replot");let r=plotsvg_.getBoundingClientRect();plotsvg_.innerHTML=svgplot(plot_,"width",r.width,"height",r.height,...plotopts_);setlineclicks(plot_);if(plotsld_)plotsld_.style.display="none"}
 let capchange=c=>(unmark(),marklines(Array.from(c.selectedOptions).map(x=>x.dataset.id)))
 let copycap=e=>{console.log("todo copy caption")}
 let zoomcoords=(r,e)=>{let M=r.getScreenCTM(),x=e.clientX,y=e.clientY,p=plotsvg_.createSVGPoint();
@@ -142,14 +147,18 @@ let zoomwheel=(r,e)=>{let z=e.deltaY<0,p=r.parentNode,xy=p.dataset.xy,i=+p.paren
  let[x,y,zoom]=zoomcoords(r,e),scale=(x,x0,x1,y0,y1)=>y0+(x-x0)*(y1-y0)/(x1-x0),X=x=>scale(x,0,10000,xmin,xmax),Y=y=>scale(y,0,10000,ymax,ymin);
  x=X(x);y=Y(y);plot_[i].Limits.Xmin=x-(z?dx/4:dx);plot_[i].Limits.Xmax=x+(z?dx/4:dx);plot_[i].Limits.Ymin=y-(z?dy/4:dy);plot_[i].Limits.Ymax=y+(z?dy/4:dy);replot()}
 let zoomdown=(r,e)=>{if(1!=e.buttons)return;let[x,y,zoom]=zoomcoords(r,e); zoom.dataset.x=x;zoom.dataset.y=y;zoom.width.baseVal.value=0;zoom.height.baseVal.value=0}
-let zoommove=(r,e)=>{if(1!=e.buttons)return;let[x1,y1,zoom]=zoomcoords(r,e),x0=+zoom.dataset.x,y0=+zoom.dataset.y,xy=r.parentNode.dataset.xy;
- [x0,x1]=x0>x1?[x1,x0]:[x0,x1]; [y0,y1]=y0>y1?[y1,y0]:[y0,y1];
- if(xy!="po")[x0,x1,y0,y1]=y1-y0>x1-x0?[0,10000,y0,y1]:[x0,x1,0,10000];
+let zoommove=(r,e)=>{if(1!=e.buttons)return;let[x1,y1,zoom]=zoomcoords(r,e),x0=+zoom.dataset.x,y0=+zoom.dataset.y,X=x1,Y=y1,xy=r.parentNode.dataset.xy,key=e.altKey||e.shiftKey||e.ctrlKey;
+ [x0,x1]=x0>x1?[x1,x0]:[x0,x1]; [y0,y1]=y0>y1?[y1,y0]:[y0,y1];  console.log("key",key)
+ if(xy!="po")[x0,x1,y0,y1]=y1-y0>x1-x0?[key?X:0,key?1+X:10000,y0,y1]:[x0,x1,key?Y:0,key?1+Y:10000]; //snap hor/ver full-rect or line
  zoom.x.baseVal.value=x0;zoom.y.baseVal.value=y0;zoom.width.baseVal.value=x1-x0;zoom.height.baseVal.value=y1-y0}
-let zoomup=(r,e)=>{let p=r.parentNode,xy=p.dataset.xy,i=+p.parentNode.dataset.i,xmin=+p.dataset.xmin,xmax=+p.dataset.xmax,ymin=+p.dataset.ymin,ymax=+p.dataset.ymax;
+let zoomup=(r,e)=>{let p=r.parentNode,xy=p.dataset.xy,i=+p.parentNode.dataset.i,xmin=+p.dataset.xmin,xmax=+p.dataset.xmax,ymin=+p.dataset.ymin,ymax=+p.dataset.ymax,key=e.altKey||e.shiftKey||e.ctrlKey;
  let x0=r.x.baseVal.value,y0=r.y.baseVal.value,x1=x0+r.width.baseVal.value,y1=y0+r.height.baseVal.value
  let scale=(x,x0,x1,y0,y1)=>y0+(x-x0)*(y1-y0)/(x1-x0),X=x=>scale(x,0,10000,xmin,xmax),Y=y=>scale(y,0,10000,ymax,ymin);
- //console.log("p",i,"xy",xy,"newlimits",X(x0),X(x1),Y(y0),Y(y1))
+ let str=x=>{let s=String(x),t=x.toPrecision(4);return s.length<t.length?s:t}
+ if(key){let x=Math.abs(x0-x1)>Math.abs(y0-y1),xx=[X(x0),x?X(x1):X(x0)],yy=[Y(y0),x?Y(y0):Y(y1)],cc=[yy[0],0,yy[1],0],em={Line:{EndMarks:1}};
+  let d=Math.abs(x?X(x0)-X(x1):Y(y0)-Y(y1)),s=str(d),r=60/d;if(x&&"s"==plot_[i].Xunit)s+="s ("+(r>10000?str(0.001*r)+"k":str(r))+"rpm";
+  console.log("label",s);
+  plot_[i].Lines.push(xy=="xy"?{Id:-1,X:xx,Y:yy,Style:em,Label:s}:{Id:-1,X:xx,C:cc,Style:em,Label:s});replot();  return}
  x0=X(x0);x1=X(x1);y0=Y(y0);y1=Y(y1);
  console.log("xyxy",x0,x1,y0,y1);
  plot_[i].Limits.Xmin=x0;plot_[i].Limits.Xmax=x1;plot_[i].Limits.Ymin=y1;plot_[i].Limits.Ymax=y0
@@ -158,6 +167,35 @@ let unmark=_=>{plotsld_.style.display="none";setcapheight();Array.from(plotsvg_.
 let marklines=ids=>{let p=Array.from(plotsvg_.querySelectorAll("path"));
   p.forEach(x=>{x.classList.remove("hiline");if(ids.includes(x.dataset.id)){x.classList.add("hiline");x.parentNode.appendChild(x)/*paintlast*/}})}
 let togglesingleplot=t=>{plot_.single=plot_.single?0:1+(+t.parentNode.dataset.i);replot()}
+let setlineclicks=p=>{ //sld cap Lines
+ let lineclick=e=>{let t=e.target;if(!(t.dataset?.id))return; unmark();
+ plotcap_.selectedIndex=-1;Array.from(plotcap_.querySelectorAll(`[data-id="${t.dataset.id}"]`)).forEach(x=>x.selected=true);
+  //mouse position in svg:offsetX,offsetY. apply 2 translations(matrix elements e&f) in g1 and g0 and 1 scale(matrix elements a&d) in g1.
+  let li=Number(t.dataset.id)
+  let g1=t.parentElement,m1=g1.transform.baseVal.getItem(0).matrix,s1=g1.transform.baseVal.getItem(1).matrix,xy=g1.dataset.xy
+  let g0=g1.parentElement,m0=g0.transform.baseVal.getItem(0).matrix,pi=Number(g0.dataset.i)
+  let ex=e.offsetX,ey=e.offsetY,x1=m1.e,y1=m1.f,x0=m0.e,y0=m0.f
+  let[xmin,xmax,ymin,ymax]=[g1.dataset.xmin,g1.dataset.xmax,g1.dataset.ymin,g1.dataset.ymax].map(Number)
+  let sx=s1.a,sy=s1.d,xc=ex-x1-x0,yc=ey-y1-y0
+  let l=p[pi].Lines.filter(l=>l.Id==li);if(l.length>0){l=l[0];
+   let[xx,yy]=xy=="xy"?[l.X,l.Y]:"am"?[l.X,Abs(l.C)]:"an"?[l.X,Ang(l.C)]:"po"?[Imag(l.C),Real(l.C)]:[0,0]
+   let scale=(x,x0,x1,y0,y1)=>y0+(x-x0)*(y1-y0)/(x1-x0)
+   let sc=(X,Y)=>([X.map(x=>sx*(x=scale(x,xmin,xmax,0,10000),x<-10000?-10000:x>20000?20000:Math.round(x))),Y.map(y=>sy*(y=scale(y,ymax,ymin,0,10000),y<-10000?-10000:y>20000?20000:Math.round(y)))])
+   if(xx){
+    let D=Infinity,I=-1;[X,Y]=sc(xx,yy);X.forEach((x,i)=>{let y=Y[i],d=(x-xc)*(x-xc)+(y-yc)*(y-yc);if(d<D){D=d;I=i}});
+    if(I>-1){let seti=I=>{
+      let tt=xy=="po"?[0,0]:[xx[I],yy[I]].map(x=>x.toPrecision(3)).join(", ");
+      let m=g1.querySelector("ellipse");m.removeAttribute("class");m.classList.add("marker",t.classList[0].toUpperCase());
+      let R=g0.querySelector("rect.marker");R.removeAttribute("class");R.classList.add("marker");
+      let T=g0.querySelector("text.marker");T.removeAttribute("class");T.classList.add("marker","a1",t.classList[0].toUpperCase());
+      m.cx.baseVal.value=X[I]/sx;m.cy.baseVal.value=Y[I]/sy;m.parentNode.appendChild(m);
+      T.setAttribute("x",X[I]+x1);T.setAttribute("y",Y[I]+y1<50?Y[I]+y1+25:Y[I]+y1-10);T.textContent=tt;
+      let r=T.getBBox();R.setAttribute("x",r.x);R.setAttribute("y",r.y);R.setAttribute("width",r.width);R.setAttribute("height",r.height);}
+     plotsld_.style.display="";plotsld_.min=0;plotsld_.max=X.length-1;plotsld_.step=1;plotsld_.value=I;plotsld_.onchange=e=>seti(+e.target.value);setcapheight();seti(I);
+    }}}
+  marklines([t.dataset.id])}
+ Array.from(plotsvg_.querySelectorAll("path")).forEach(x=>{if(!isNaN(parseInt(x.dataset?.id)))x.onclick=lineclick})
+}
 let setcapheight=_=>{} //overwrite to adjust height of select 
 
 let plot=(p,c,svg,sld,det,txt,cap,...a)=>{ //svg(svg) sld(range-input) det(details) txt(pre) cap(select multiple)
@@ -175,36 +213,6 @@ let plot=(p,c,svg,sld,det,txt,cap,...a)=>{ //svg(svg) sld(range-input) det(detai
   
   cap.innerHTML=r.map((s,i)=>`<option data-id="${i>1?i-2:''}" style="${1==i?roww:i?rowi(i-2):rowb}">${hs(s).replaceAll(" ","&nbsp;")}</option>`).join("\n")
   setcapheight()
- }
- 
- let setlineclicks=p=>{ 
-  let lineclick=e=>{let t=e.target;if(!(t.dataset?.id))return; unmark();
-  cap.selectedIndex=-1;Array.from(cap.querySelectorAll(`[data-id="${t.dataset.id}"]`)).forEach(x=>x.selected=true);
-   //mouse position in svg:offsetX,offsetY. apply 2 translations(matrix elements e&f) in g1 and g0 and 1 scale(matrix elements a&d) in g1.
-   let li=Number(t.dataset.id)
-   let g1=t.parentElement,m1=g1.transform.baseVal.getItem(0).matrix,s1=g1.transform.baseVal.getItem(1).matrix,xy=g1.dataset.xy
-   let g0=g1.parentElement,m0=g0.transform.baseVal.getItem(0).matrix,pi=Number(g0.dataset.i)
-   let ex=e.offsetX,ey=e.offsetY,x1=m1.e,y1=m1.f,x0=m0.e,y0=m0.f
-   let[xmin,xmax,ymin,ymax]=[g1.dataset.xmin,g1.dataset.xmax,g1.dataset.ymin,g1.dataset.ymax].map(Number)
-   let sx=s1.a,sy=s1.d,xc=ex-x1-x0,yc=ey-y1-y0
-   let l=p[pi].Lines.filter(l=>l.Id==li);if(l.length>0){l=l[0];
-    let[xx,yy]=xy=="xy"?[l.X,l.Y]:"am"?[l.X,Abs(l.C)]:"an"?[l.X,Ang(l.C)]:"po"?[Imag(l.C),Real(l.C)]:[0,0]
-    let scale=(x,x0,x1,y0,y1)=>y0+(x-x0)*(y1-y0)/(x1-x0)
-    let sc=(X,Y)=>([X.map(x=>sx*(x=scale(x,xmin,xmax,0,10000),x<-10000?-10000:x>20000?20000:Math.round(x))),Y.map(y=>sy*(y=scale(y,ymax,ymin,0,10000),y<-10000?-10000:y>20000?20000:Math.round(y)))])
-    if(xx){
-     let D=Infinity,I=-1;[X,Y]=sc(xx,yy);X.forEach((x,i)=>{let y=Y[i],d=(x-xc)*(x-xc)+(y-yc)*(y-yc);if(d<D){D=d;I=i}});
-     if(I>-1){let seti=I=>{
-       let tt=xy=="po"?[0,0]:[xx[I],yy[I]].map(x=>x.toPrecision(3)).join(", ");
-       let m=g1.querySelector("ellipse");m.removeAttribute("class");m.classList.add("marker",t.classList[0].toUpperCase());
-       let R=g0.querySelector("rect.marker");R.removeAttribute("class");R.classList.add("marker");
-       let T=g0.querySelector("text.marker");T.removeAttribute("class");T.classList.add("marker","a1",t.classList[0].toUpperCase());
-       m.cx.baseVal.value=X[I]/sx;m.cy.baseVal.value=Y[I]/sy;m.parentNode.appendChild(m);
-       T.setAttribute("x",X[I]+x1);T.setAttribute("y",Y[I]+y1<50?Y[I]+y1+25:Y[I]+y1-10);T.textContent=tt;
-       let r=T.getBBox();R.setAttribute("x",r.x);R.setAttribute("y",r.y);R.setAttribute("width",r.width);R.setAttribute("height",r.height);}
-      sld.style.display="";sld.min=0;sld.max=X.length-1;sld.step=1;sld.value=I;sld.onchange=e=>seti(+e.target.value);setcapheight();seti(I);
-     }}}
-   marklines([t.dataset.id])}
-  Array.from(svg.querySelectorAll("path")).forEach(x=>{if(!isNaN(parseInt(x.dataset?.id)))x.onclick=lineclick})
  }
  
 
