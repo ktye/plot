@@ -74,7 +74,7 @@ let svgplot=(...a)=>{
   if(ps)r+=`<g data-id="${'Id'in l?l.Id:-1}" class="C${1+(c-1%ncolors)} c${1+(c-1%ncolors)}">`+x.map((x,i)=>`<circle cx="${x}" cy="${y[i]}" r="${scalepoint(ps,a.w)}"/>`).join("")+`</g>`
   return r}  //todo Style.Line.Arrow Style.Line.EndMarks
  let drawLabels=(a,p,f,t)=>p.Lines.map((l,i)=>drawLineLabels(a,p,l,i,f,t)).join("")
- let drawLineLabels=(a,p,l,i,f,t, L,x,y,al)=>"an"==t?"":l.Label?((L=p.Limits),([x,y]=f(l)),al=x[0]==x[1]?((L.Xmax-x[0])/(L.Xmax-L.Xmin)<0.3?3:7):1,x=scale(0.5*(x[0]+x[1]),L.Xmin,L.Xmax,a.x,a.x+a.w),y=scale(0.5*(y[0]+y[1]),L.Ymax,L.Ymin,a.y,a.y+a.h),text(3==al?x-5:7==al?x+5:x,1==al?y-5:5==al?y+5:y,l.Label,al,0,1)):""
+ let drawLineLabels=(a,p,l,i,f,t, L,x,y,al)=>"an"==t?"":l.Label?((L=p.Limits),([x,y]=f(l)),al=x[0]==x[1]?((L.Xmax-x[0])/(L.Xmax-L.Xmin)<0.3?3:7):1,x=scale(0.5*(x[0]+x[1]),L.Xmin,L.Xmax,a.x,a.x+a.w),y=scale(0.5*(y[0]+y[1]),L.Ymax,L.Ymin,a.y,a.y+a.h),`<rect x="0" y="0" width="0" height="0" class="labelbg"/>`+text(3==al?x-5:7==al?x+5:x,1==al?y-5:5==al?y+5:y,l.Label,al,0,1)):""
   
  let empty=(p,w,h)=>""
  let xy=(p,w,h)=>{let xt=nicetics(p.Limits.Xmin,p.Limits.Xmax),yt=nicetics(p.Limits.Ymin,p.Limits.Ymax),ylw=ticLabelWidth(yt.Labels);
@@ -120,6 +120,7 @@ let svgplot=(...a)=>{
   .hiline{stroke-width:4;vector-effect:non-scaling-stroke}
   .hipoint{stroke-width:300}
   .hidden{display:none}
+  .labelbg{fill:white}
   line{stroke:black}
   path{fill:none;stroke:black;stroke-width:2;vector-effect:non-scaling-stroke}
   </style>
@@ -144,7 +145,7 @@ let FA=x=>new Float64Array(x)
 let Abs=x=>{let r=FA(x.length/2);for(let i=0;i<r.length;i++)r[i]=hypot(x[2*i],x[2*i+1]);return r}
 let ReIm=(x,o)=>{let r=FA(x.length/2),i=-1;for(;o<x.length;o+=2)r[++i]=x[o];return r},Real=x=>ReIm(x,0),Imag=x=>ReIm(x,1)
 let Ang=x=>{let r=FA(x.length/2);for(let i=0;i<r.length;i++)r[i]=atan2(x[2*i+1],x[2*i])*180/Math.PI;return r}//-180,180
-let replot=_=>{let r=plotsvg_.getBoundingClientRect();plotsvg_.innerHTML=svgplot(plot_,"width",r.width,"height",r.height,...plotopts_);setlineclicks(plot_);if(plotsld_)plotsld_.style.display="none"}
+let replot=_=>{let r=plotsvg_.getBoundingClientRect();plotsvg_.innerHTML=svgplot(plot_,"width",r.width,"height",r.height,...plotopts_);setbackgrounds(plotsvg_);setlineclicks(plot_);if(plotsld_)plotsld_.style.display="none"}
 let capchange=c=>(unmark(),marklines(Array.from(c.selectedOptions).map(x=>x.dataset.id)))
 let capdblclick=(e,id)=>(id=e.target.dataset.id,id?hiline(id,0):0)    //{let id=e.target.dataset.id;if(!id)return;let p=plotsvg_.querySelector(`[data-id="${id}"]`);if(p&&p.onclick)p.onclick({target:"path"==p.nodeName?p:p.firstChild/*circle*/})}
 let copycap=e=>{console.log("todo copy caption")}
@@ -164,7 +165,7 @@ let zoomup=(r,e,vect)=>{let p=r.parentNode,xy=p.dataset.xy,i=+p.parentNode.datas
  let x0=(vect?r.x1:r.x).baseVal.value,y0=(vect?r.y1:r.y).baseVal.value,x1=vect?r.x2.baseVal.value:x0+r.width.baseVal.value,y1=vect?r.y2.baseVal.value:y0+r.height.baseVal.value
  let scale=(x,x0,x1,y0,y1)=>y0+(x-x0)*(y1-y0)/(x1-x0),X=x=>scale(x,0,10000,xmin,xmax),Y=y=>scale(y,0,10000,ymax,ymin);
  let str=x=>{let s=String(x),t=x.toPrecision(4);return s.length<t.length?s:t}
- if(vect){x0=X(x0);y0=Y(y0);let dx=X(x1)-x0,dy=Y(y1)-y0;[x0,y0,dx,dy]=[y0,x0,dy,dx];let r=Math.hypot(dy,dx),a=(360+180/Math.PI*Math.atan2(dy,dx))%360; plot_[i].Lines.push({Id:-1,C:[x0,y0,x0+dx,y0+dy],Style:{Line:{Arrow:1,Width:2}}});replot();return}
+ if(vect){x0=X(x0);y0=Y(y0);let dx=X(x1)-x0,dy=Y(y1)-y0;[x0,y0,dx,dy]=[y0,x0,dy,dx];let r=Math.hypot(dy,dx),a=(360+180/Math.PI*Math.atan2(dy,dx))%360,s=r.toPrecision(3)+"a"+a.toFixed(0); plot_[i].Lines.push({Id:-1,C:[x0,y0,x0+dx,y0+dy],Label:s,Style:{Line:{Arrow:1,Width:2}}});replot();return} //xxx Label
  if(key){let x=Math.abs(x0-x1)>Math.abs(y0-y1),xx=[X(x0),x?X(x1):X(x0)],yy=[Y(y0),x?Y(y0):Y(y1)],cc=[yy[0],0,yy[1],0],em={Line:{EndMarks:1}};
   let d=Math.abs(x?X(x0)-X(x1):Y(y0)-Y(y1)),s=str(d),r=60/d;if(x&&"s"==plot_[i].Xunit)s+="s ("+(r>10000?str(0.001*r)+"k":str(r))+"rpm)";
   plot_[i].Lines.push(xy=="xy"?{Id:-1,X:xx,Y:yy,Style:em,Label:s}:{Id:-1,X:xx,C:cc,Style:em,Label:s});replot();  return}
@@ -183,7 +184,7 @@ let hiline=(id,pt)=>{id=String(id); //highlight line by id (and mark point if no
      let[al,dy]=Math.hypot(y,x)/r<0.5?["a1",0]:ang<20||ang>340?["a1",30]:ang<45?["a2",30]:ang<140?["a2",0]:ang<220?["a1",0]:["",0];
      let T=g0.querySelector("text.marker.po");T.removeAttribute("class");T.classList.add("marker","po","s","C"+(1+Number(id)));if(al)T.classList.add(al);T.setAttribute("x",scale(y,-r,r,x0,x0+w));T.setAttribute("y",-10+dy+scale(x,-r,r,y0+w,y0));T.textContent=s
      let R=g0.querySelector("rect.marker.po");R.removeAttribute("class");R.classList.add("marker","po");
-     let re=T.getBBox();R.setAttribute("x",re.x);R.setAttribute("y",re.y);R.setAttribute("width",re.width);R.setAttribute("height",re.height);slider(i,l.C.length/2)}}}
+     whiteTextRect(T,R);slider(i,l.C.length/2)}}}
  let marklinepoint=(t,i)=>{
   let g1=t.parentElement,m1=g1.transform.baseVal.getItem(0).matrix,s1=g1.transform.baseVal.getItem(1).matrix,xy=g1.dataset.xy,[xmin,xmax,ymin,ymax]=[g1.dataset.xmin,g1.dataset.xmax,"an"==xy?-180:g1.dataset.ymin,"an"==xy?180:g1.dataset.ymax].map(Number)
   let g0=g1.parentElement,pi=Number(g0.dataset.i);
@@ -214,7 +215,10 @@ let setlineclicks=p=>{
  let g=Array.from(plotsvg_.querySelectorAll("g"   )).filter(g=>"id"in g.dataset).forEach(x=>x.onclick=pointclick)
  let a=Array.from(plotsvg_.querySelectorAll("path")).filter(a=>"id"in a.dataset).forEach(x=>x.onclick=lineclick)
  if(plotsld_)plotsld_.onwheel=e=>(e.target.value=Math.min(+e.target.max,Math.max(0,(+e.target.value)-Math.sign(e.deltaY))),e.target.onchange(e));}
+let whiteTextRect=(t,r)=>{console.log("textbg",t,r);let re=t.getBBox();r.setAttribute("x",re.x);r.setAttribute("y",re.y);r.setAttribute("width",re.width);r.setAttribute("height",re.height)}
+let setbackgrounds=svg=>{let a=Array.from(svg.querySelectorAll(".labelbg")); console.log("setbackgrounds",a); a.forEach(r=>whiteTextRect(r.nextElementSibling,r))} //calculate label backgrounds dynamically
 let setcapheight=_=>{} //overwrite to adjust height of select 
+
 
 let plot=(p,c,svg,sld,det,txt,cap,...a)=>{ //svg(svg) sld(range-input) det(details) txt(pre) cap(select multiple)
  plotsvg_=svg;plotsld_=sld;plotcap_=cap;plotopts_=a,plot_=p;p.single=0 //psld pdet ptxt pcap
@@ -236,5 +240,5 @@ let plot=(p,c,svg,sld,det,txt,cap,...a)=>{ //svg(svg) sld(range-input) det(detai
 
  let r=svg.getBoundingClientRect();
  svg.innerHTML=svgplot(p,"width",r.width,"height",r.height,...a);
- setlineclicks(p);if(sld)sld.style.display="none";if(c&&cap)caption(c);
+ setbackgrounds(svg);setlineclicks(p);if(sld)sld.style.display="none";if(c&&cap)caption(c);
 }
