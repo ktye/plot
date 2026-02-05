@@ -7,7 +7,7 @@
    svgplot([{Type:..},{Type:..}])
    svgplot(..,"width",800,"height",400,"cols",2) */
    
-let svgplot=(...a)=>{
+let svgplot=(...a)=>{ //plots
  let p=[],d=[],w=800,h=600,c=0,ncolors,t="xy",fontratio=0.5455/*roughly font tahoma numbers*/
  let font1=16,font2=12,border=1,ticLength=6,single=0
  if(Array.isArray(a[0])&&a[0][0].Type){single=a[0].single,a=[...a[0],...a.slice(1)]};  //plot([{Type:..},{Type:..}],"width",..) => plot({Type:..},{Type:..},"width",..)
@@ -27,8 +27,7 @@ let svgplot=(...a)=>{
  let axscale=(a,X,Y)=>([X.map(x=>(x=scale(x,a.xmin,a.xmax,0,10000),x<-10000?-10000:x>20000?20000:round(x))),Y.map(y=>(y=scale(y,a.ymax,a.ymin,0,10000),y<-10000?-10000:y>20000?20000:round(y)))])
  let nicenum=(ext,rnd)=>{let e=floor(Math.log10(ext)),f=ext/(10**e),r;return(rnd?((f<1.5)?1:(f<3)?2:(f<7)?5:10):((f<=1)?1:(f<=2)?2:(f<=5)?5:10))*10**e}
  let nicelim=(x,y)=>{let e=nicenum(y-x,false),s=nicenum(e/4,true);return[s*floor(x/s),s*ceil(y/s),s]}
- let ticstr=x=>{let s=String(x),t=x.toPrecision(5),g=String(Number(t)),a=[s,t,g];a.sort((x,y)=>x.length-y.length);return a[0]}
- let nicetics=(x,y)=>{let [p,_,s]=nicelim(x,y),r=[],i=0;while(p+i*s<=y){if(p+i*s>=x)r.push(p+i*s);i++};return{Pos:r,Labels:r.map(ticstr)}}   
+ let nicetics=(x,y)=>{let [p,_,s]=nicelim(x,y),r=[],i=0;while(p+i*s<=y){if(p+i*s>=x)r.push(p+i*s);i++};return{Pos:r,Labels:r.map(shortnum)}}   
  let autoscale=a=>nicelim(...mima(a)),autoscalr=a=>{let[x,y]=mima(a);return nicelim(0,y)}
  let polarlimits=(p,ring)=>{let l=p.Limits;if(ring)console.log("todo ring-limits");let y0,y1=l.Ymax;if(p.Limits.Ymax<=0)[y0,y1]=autoscalr(p.Lines.map(l=>Abs(l.C)));[l.Xmin,l.Xmax,l.Ymin,l.Ymax]=[-y1,y1,-y1,y1];return l}
  let xxlimits=p=>{let l=p.Limits;if(l.Xmin==l.Xmax)[p.Limits.Xmin,p.Limits.Xmax]=autoscale(p.Lines.map(l=>l.X))}
@@ -37,7 +36,7 @@ let svgplot=(...a)=>{
  let deflimits=l=>{if("undefined"==typeof l)l={};"Equal Xmin Xmax Ymin Ymax Zmin Zmax".split(" ").forEach(s=>{if(!(s in l))l[s]=0});return l}
  let limits=p=>{for(let i=0;i<p.length;i++){p[i].Limits=deflimits(p[i].Limits);let t=p[i].Type;p[i].Limits="xy"==t?xylimits(p[i]):"ampang"==t?aalimits(p[i]):"polar"==t?polarlimits(p[i],0):"ring"==t?polarlimits(p[i],1):{}};if(p[0].Limits.equal)console.log("todo equal-limits")}
  let labels=p=>{for(let i=0;i<p.length;i++){"Xlabel Ylabel Xunit Yunit".split(" ").forEach(x=>x in p[i]?0:p[i][x]="")}}
- let axes=(x,y,w,h,xmin,xmax,ymin,ymax)=>({x:x,y:y,w:w,h:h,xmin:xmin,xmax:xmax,ymin:ymin,ymax:ymax})
+ let axes=(pi,xy,x,y,w,h,xmin,xmax,ymin,ymax)=>({pi:pi,xy:xy,x:x,y:y,w:w,h:h,xmin:xmin,xmax:xmax,ymin:ymin,ymax:ymax})
  let hs=s=>{const m={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};return s.replace(/[&<>"]/g,c=>m[c])}
  let phjmp=(x,y)=>{let n=0,i=1;for(;i<y.length;i++)if(abs(y[i]-y[i-1])>280)++n;if(!n)return[x,y];let X=FA(x.length+3*n),Y=FA(x.length+3*n),j=1;X[0]=x[0];Y[0]=y[0];
   for(i=1;i<y.length;i++)abs(y[i]-y[i-1])>280? (X[j]=x[i],Y[j]=y[i]+(y[i]<0?360:-360),X[1+j]=NaN,Y[1+j]=NaN,X[2+j]=X[j-1],Y[2+j]=Y[j-1]+(Y[j-1]<0?360:-360),X[3+j]=x[i],Y[3+j]=y[i],j+=4):(X[j]=x[i],Y[j++]=y[i]);return[X,Y]}
@@ -53,52 +52,49 @@ let svgplot=(...a)=>{
  let drawXlabel=(a,l,u)=>text(a.x+round(a.w/2),a.y+a.h+ticLength+ticLabelHeight,(l+" "+u).trim(),5,0)
  let drawYlabel=(a,l,u,ylw)=>vtext(a.x-2*ticLength-ylw,a.y+round(a.h/2),(l+" "+u).trim())
  let drawPolar=(a,rt,unit, r,al)=>(r=floor(a.w/2),cx=a.x+r,cy=a.y+r,r1=r+ticLength/2,r2=r-ticLength/2,r3=r+2*ticLength,al=[1,0,0,7,6,6,5,4,4,3,2,2],p4=x=>x.toPrecision(4),
-  cs=cos(40*pi/180),sn=sin(40*pi/180),scl=line(p4(cx+r*cs),p4(cy+r*sn),p4(cx+r3*cs),p4(cy+r3*sn))+text(p4(cx+r3*cs),p4(cy+r3*sn),ticstr(a.ymax),6,0,`ondblclick="editlimit(this,'Ymax')"`)+text(p4(cx+r3*cs),p4(cy+r3*sn+font1),""+unit,6),
+  cs=cos(40*pi/180),sn=sin(40*pi/180),scl=line(p4(cx+r*cs),p4(cy+r*sn),p4(cx+r3*cs),p4(cy+r3*sn))+text(p4(cx+r3*cs),p4(cy+r3*sn),shortnum(a.ymax),6,0,`ondblclick="editlimit(this,'Ymax')"`)+text(p4(cx+r3*cs),p4(cy+r3*sn+font1),""+unit,6),
   Array(12).fill(0).map((_,i)=>30*i).map((p,i)=>{let cs=cos(p*pi/180),sn=sin(p*pi/180);return line(p4(cx+r1*cs),p4(cy+r1*sn),p4(cx+r2*cs),p4(cy+r2*sn))+text(p4(cx+r1*cs),p4(cy+r1*sn),((90+p)%360)+"",al[(3+i)%12],1)}).join("")
   +rt.map(R=>`<circle cx="${cx}" cy="${cy}" r="${R/a.ymax*r}" stroke-width="1" stroke="black" fill="none"/>`).join("")+line(cx-r,cy,cx+r,cy)+line(cx,cy-r,cx,cy+r)+scl+`<circle cx="${cx}" cy="${cy}" r="${r}" stroke-width="2" stroke="black" fill="none"/>`)
  let linestyle=(p,l,i)=>{let lw=l?.Style?.Line?.Width?l.Style.Line.Width:0,ps=l?.Style?.Marker?.Size?l.Style.Marker.Size:0;[lw,ps]=(!(lw||ps))?(p.Type=="polar"?[0,3]:[2,0]):[lw,ps];return[lw,ps,l?.Style?.Color?l.Style.Color:l?.Id?1+l.Id:1+i]}
  let lineclass=(lw,c)=>`class="c${1+(c-1)%ncolors}"`+(2!=lw?`stroke-width="${lw}"`:"")
  let textmarker=xy=>`<rect x="0" y="0" width="0" height="0" fill="white" class="marker hidden ${xy}"/><text x="0" y="0" class="marker hidden ${xy}">TTT</text>`
  let marker=(rx,ry)=>`<ellipse cx="-10000" cy="-10000" rx="${6*rx}" ry="${6*ry}" fill="none" class="marker hidden"/>` //
- let zoompanel=_=>`<rect x="0" y="0" width="10000" height="10000" fill="white" opacity="0" onmousedown="zoomdown(this,event)" onmousemove="zoommove(this,event)"  ondblclick="clickpoint(this,event)" onwheel="zoomwheel(this,event)" />`
- let zoomrect=_=>`<rect x="0" y="0" width="0" height="0" fill="none" stroke="black" vector-effect="non-scaling-stroke" class="zoom" onmouseup="zoomup(this,event,0)" />`
- let vector=t=>"po"!=t?"":`<line x1="0" y1="0" x2="0" y2="0" class="vector" marker-end="url(#arrow0)" style="display:none" onmouseup="zoomup(this,event,1)"/>`
- let drawLines=(a,p,f,t)=>`<g transform="translate(${a.x} ${a.y}) scale(${a.w/10000} ${a.h/10000})" data-xy=${t} data-xmin="${p.Limits.Xmin}" data-xmax="${p.Limits.Xmax}" data-ymin="${p.Limits.Ymin}" data-ymax="${p.Limits.Ymax}" clip-path="url(#A)" >`/*+zoompanel()+zoomrect()+vector(t)*/+p.Lines.map((l,i)=>/*todo l.Style.Marker.Marker=="bar"*/drawLine(a,p,l,i,f,t)).join("")+marker(10000/a.w,10000/a.h)+zoompanel()+vector(t)+zoomrect()+`</g>`+drawLabels(a,p,f,t)+textmarker(t)
+ let zoompanel=a=>`<rect x="${a.x}" y="${a.y}" width="${a.w}" height="${a.h}" data-pi="${a.pi}" data-xy="${a.xy}" data-xmin="${a.xmin}" data-xmax="${a.xmax}" data-ymin="${a.ymin}" data-ymax="${a.ymax}" fill="white" opacity="0" onmousedown="zoomdown(this,event)" onmousemove="zoommove(this,event)" onmouseleave="zoomleave(this,event)" oncontextmenu="zoomreset(this,event)" onmouseup="zoomup(this,event)" ondblclick="clickpoint(this,event)" onwheel="zoomwheel(this,event)" />`
+ let zoomrect=_=>`<rect x="0" y="0" width="0" height="0" fill="none" stroke="black" vector-effect="non-scaling-stroke" class="zoom"/>`
+ let vector=t=>"po"!=t?"":`<line x1="0" y1="0" x2="0" y2="0" class="vector" marker-end="url(#arrow0)" style="display:none"/>`
+ let drawLines=(a,p,f,t)=>`<g transform="translate(${a.x} ${a.y}) scale(${a.w/10000} ${a.h/10000})" data-xy=${t} data-xmin="${p.Limits.Xmin}" data-xmax="${p.Limits.Xmax}" data-ymin="${p.Limits.Ymin}" data-ymax="${p.Limits.Ymax}" clip-path="url(#A)" >`+p.Lines.map((l,i)=>/*todo l.Style.Marker.Marker=="bar"*/drawLine(a,p,l,i,f,t)).join("")+marker(10000/a.w,10000/a.h)+`</g>`+drawLabels(a,p,f,t)+textmarker(t)+vector(t)+zoomrect()+zoompanel(a)
  let scalepoint=(ps,w)=>round(10000*ps/w)
  let drawLine=(a,p,l,i,f,t)=>{let[lw,ps,c]=linestyle(p,l,i),r="",em="",[x,y]=axscale(a,...f(l));x=Array.from(x);
-  if(t!="an"&&l?.Style?.Line?.EndMarks){
-   let h=abs(x[0]-x[1])>abs(y[0]-y[1]),dx=h?0:300,dy=h?300:0;em=`M${x[0]-dx} ${y[0]-dy} L${x[0]+dx} ${y[0]+dy} M${x[1]-dx} ${y[1]-dy} L${x[1]+dx} ${y[1]+dy}`
-   if(l.Label)r+=text(0.5*(x[0]+x[1]),0.5*(y[0]+y[1]),l.Label,1,1)
-  }
+  if(t!="an"&&l?.Style?.Line?.EndMarks){let h=abs(x[0]-x[1])>abs(y[0]-y[1]),dx=h?0:300,dy=h?300:0;em=`M${x[0]-dx} ${y[0]-dy} L${x[0]+dx} ${y[0]+dy} M${x[1]-dx} ${y[1]-dy} L${x[1]+dx} ${y[1]+dy}`}
   if(lw>0&&x.length)r+=`<path d="`+ x.map((x,i)=>(isNaN(y[i])?"":(i==0||isNaN(y[i-1])?"M":"L")+x+" "+y[i])).join("")+em+`" data-id="${l?.Id?l.Id:-1}" ${lineclass(lw,c)} ${l?.Style?.Line?.Arrow?'marker-end="url(#arrow'+(1+(c-1)%ncolors)+')"':''}/>`
   if(ps)r+=`<g data-id="${'Id'in l?l.Id:-1}" class="C${1+(c-1%ncolors)} c${1+(c-1%ncolors)}">`+x.map((x,i)=>`<circle cx="${x}" cy="${y[i]}" r="${scalepoint(ps,a.w)}"/>`).join("")+`</g>`
-  return r}  //todo Style.Line.Arrow Style.Line.EndMarks
+  return r}
  let drawLabels=(a,p,f,t)=>p.Lines.map((l,i)=>drawLineLabels(a,p,l,i,f,t)).join("")
  let drawLineLabels=(a,p,l,i,f,t, L,x,y,al)=>"an"==t?"":l.Label?((L=p.Limits),([x,y]=f(l)),al=x[0]==x[1]?((L.Xmax-x[0])/(L.Xmax-L.Xmin)<0.3?3:7):1,x=scale(0.5*(x[0]+x[1]),L.Xmin,L.Xmax,a.x,a.x+a.w),y=scale(0.5*(y[0]+y[1]),L.Ymax,L.Ymin,a.y,a.y+a.h),`<rect x="0" y="0" width="0" height="0" class="labelbg"/>`+text(3==al?x-5:7==al?x+5:x,1==al?y-5:5==al?y+5:y,l.Label,al,0,1)):""
   
- let empty=(p,w,h)=>""
- let xy=(p,w,h)=>{let xt=nicetics(p.Limits.Xmin,p.Limits.Xmax),yt=nicetics(p.Limits.Ymin,p.Limits.Ymax),ylw=ticLabelWidth(yt.Labels);
+ let empty=(p,pi,w,h)=>""
+ let xy=(p,pi,w,h)=>{let xt=nicetics(p.Limits.Xmin,p.Limits.Xmax),yt=nicetics(p.Limits.Ymin,p.Limits.Ymax),ylw=ticLabelWidth(yt.Labels);
   let hfix=2*border+3*ticLength+ylabelWidth+ylw+rightXYWidth(xt.Labels.length?xt.Labels[xt.Labels.length-1]:"")
   let vfix=2*border+2*ticLength+titleHeight(p.Title)+ticLabelHeight+xlabelHeight(p.Xlabel+p.Xunit);
   let hs=w-hfix,vs=h-vfix,x0=0,y0=0;if(vs>2*hs){y0=floor((vs-2*hs)/2);vs=2*hs;};
   x0+=ylabelWidth+ylw+2*ticLength+border;y0+=titleHeight(p.Title)+ticLength+border;
-  let ax=axes(x0,y0,hs,vs,p.Limits.Xmin,p.Limits.Xmax,p.Limits.Ymin,p.Limits.Ymax);
+  let ax=axes(pi,"xy",x0,y0,hs,vs,p.Limits.Xmin,p.Limits.Xmax,p.Limits.Ymin,p.Limits.Ymax);
   console.log("todo drawxy");return drawLines(ax,p,xyer,"xy")+drawXYTics(ax,xt.Pos,yt.Pos,xt.Labels,yt.Labels)+drawTitle(ax,p.Title)+drawXlabel(ax,p.Xlabel,p.Xunit)+drawYlabel(ax,p.Ylabel,p.Yunit,ylw)}
- let polar=(p,w,h)=>{let rt=nicetics(0,p.Limits.Ymax),ylw=ticLabelWidth(["270"]);
+ let polar=(p,pi,w,h)=>{let rt=nicetics(0,p.Limits.Ymax),ylw=ticLabelWidth(["270"]);
   let hfix=2*border+2*ylw
   let vfix=2*border+titleHeight(p.Title)+2*ticLabelHeight
   let hs=w-hfix,vs=h-vfix,d=hs<0&&vs<0?0:hs<vs?hs:vs;d-=1-(1&d);if(d<0)return"";
-  let x0=floor((w-hfix-d)/2),y0=floor((h-vfix-d)/2),ax=axes(x0+ylw+border,y0+titleHeight(p.Title)+ticLabelHeight+border,d,d,p.Limits.Xmin,p.Limits.Xmax,p.Limits.Ymin,p.Limits.Ymax);
+  let x0=floor((w-hfix-d)/2),y0=floor((h-vfix-d)/2),ax=axes(pi,"po",x0+ylw+border,y0+titleHeight(p.Title)+ticLabelHeight+border,d,d,p.Limits.Xmin,p.Limits.Xmax,p.Limits.Ymin,p.Limits.Ymax);
   return drawPolar(ax,rt.Pos,p.Yunit)+drawTitle(ax,p.Title,ticLabelHeight-ticLength)+drawLines(ax,p,xypolar,"po")}
- let ring=(p,w,h)=>""
- let ampang=(p,w,h)=>{let xt=nicetics(p.Limits.Xmin,p.Limits.Xmax),yt=nicetics(p.Limits.Ymin,p.Limits.Ymax),ylw=ticLabelWidth(yt.Labels);
+ let ring=(p,pi,w,h)=>""
+ let ampang=(p,pi,w,h)=>{let xt=nicetics(p.Limits.Xmin,p.Limits.Xmax),yt=nicetics(p.Limits.Ymin,p.Limits.Ymax),ylw=ticLabelWidth(yt.Labels);
   let hfix=2*border+3*ticLength+ylabelWidth+ylw+rightXYWidth(xt.Labels.length?xt.Labels[xt.Labels.length-1]:"")
   let vfix=2*border+4*ticLength+titleHeight(p.Title)+ticLabelHeight+xlabelHeight(p.Xlabel+p.Xunit)
   let x0=0,y0=0,hs=w-hfix,vs=h-vfix;  //if(hs>1.5*vs){x0=floor(hs-(1.5*vs)/2);hs=ceil(1.5*vs)}else if(vs>2*hs){y0=floor(hs-(2*vs)/2);vs=2*hs}
   let aw=hs,h1=ceil(2*vs/3),h2=vs-h1;
   x0+=ylabelWidth+ylw+2*ticLength+border;y0+=titleHeight(p.Title)+ticLength+border;
-  let amp=axes(x0,y0,hs,h1,p.Limits.Xmin,p.Limits.Xmax,p.Limits.Ymin,p.Limits.Ymax)
-  let ang=axes(x0,y0+h1+2*ticLength,hs,h2,p.Limits.Xmin,p.Limits.Xmax,-180,180),angs="-180 -90 0 90 180".split(" ")
+  let amp=axes(pi,"am",x0,y0,hs,h1,p.Limits.Xmin,p.Limits.Xmax,p.Limits.Ymin,p.Limits.Ymax)
+  let ang=axes(pi,"an",x0,y0+h1+2*ticLength,hs,h2,p.Limits.Xmin,p.Limits.Xmax,-180,180),angs="-180 -90 0 90 180".split(" ")
   return drawLines(amp,p,xyamp,"am")+drawLines(ang,p,xyang,"an")+drawXYTics(amp,xt.Pos,yt.Pos,[],yt.Labels)+drawXYTics(ang,xt.Pos,angs.map(Number),xt.Labels,angs)+drawTitle(amp,p.Title)+drawXlabel(ang,p.Xlabel,p.Xunit)+drawYlabel(amp,p.Ylabel,p.Yunit,ylw)
  }
  let foto=(p,w,h)=>""
@@ -128,12 +124,12 @@ let svgplot=(...a)=>{
   <!--clipPath id="B"><rect width="${g.w}" height="${g.h}"/></clipPath-->
   <clipPath id="A"  clipPathUnits="userSpaceOnUse"><rect width="10000" height="10000"/></clipPath>`
   let P={"":empty,"xy":xy,"raster":xy,"polar":polar,"ring":ring,"ampang":ampang,"foto":foto,"text":textplot}
-  p.forEach((p,i, x,y)=>{[x,y]=xyi(g,i);r+=`<g data-i="${i+(single?single-1:0)}" transform="translate(${x+0.5},${y+0.5})" >`+((p.Type in P)?(P[p.Type](p,g.w,g.h)):err("no such plot type:"+p.Type))+"</g>"});return r+"</svg>"}
+  p.forEach((p,i, x,y)=>{[x,y]=xyi(g,i);let pi=i+(single?single-1:0);r+=`<g data-i="${pi}" transform="translate(${x+0.5},${y+0.5})" >`+((p.Type in P)?(P[p.Type](p,pi,g.w,g.h)):err("no such plot type:"+p.Type))+"</g>"});return r+"</svg>"}
  return plots(single?[p[single-1]]:p,w,h,c)}
  
 
 /*callbacks
-  click:               mark line (thick, bring to top), select caption row, show slider, mark point, show coords legend
+  double-click:        search closest point, mark line (thick, bring to top), select caption row, show slider, mark point, show coords legend
   select caption rows: mark line(s)
   caption doubleclick: mark line and show first point
   dblclick-title:      toggle highlight single axes
@@ -146,31 +142,60 @@ let FA=x=>new Float64Array(x)
 let Abs=x=>{let r=FA(x.length/2);for(let i=0;i<r.length;i++)r[i]=hypot(x[2*i],x[2*i+1]);return r}
 let ReIm=(x,o)=>{let r=FA(x.length/2),i=-1;for(;o<x.length;o+=2)r[++i]=x[o];return r},Real=x=>ReIm(x,0),Imag=x=>ReIm(x,1)
 let Ang=x=>{let r=FA(x.length/2);for(let i=0;i<r.length;i++)r[i]=atan2(x[2*i+1],x[2*i])*180/Math.PI;return r}//-180,180
-let replot=_=>{let r=plotsvg_.getBoundingClientRect();plotsvg_.innerHTML=svgplot(plot_,"width",r.width,"height",r.height,...plotopts_);setbackgrounds(plotsvg_);setlineclicks(plot_);if(plotsld_)plotsld_.style.display="none"}
+let shortnum=x=>{let s=String(x),t=x.toPrecision(5),g=String(Number(t)),a=[s,t,g];a.sort((x,y)=>x.length-y.length);return a[0]}
+let replot=_=>{let r=plotsvg_.getBoundingClientRect();plotsvg_.innerHTML=svgplot(plot_,"width",r.width,"height",r.height,...plotopts_);setbackgrounds(plotsvg_);/*setlineclicks(plot_)*/;if(plotsld_)plotsld_.style.display="none"}
 let capchange=c=>(unmark(),marklines(Array.from(c.selectedOptions).map(x=>x.dataset.id)))
 let capdblclick=(e,id)=>(id=e.target.dataset.id,id?hiline(id,0):0)    //{let id=e.target.dataset.id;if(!id)return;let p=plotsvg_.querySelector(`[data-id="${id}"]`);if(p&&p.onclick)p.onclick({target:"path"==p.nodeName?p:p.firstChild/*circle*/})}
 let copycap=e=>{console.log("todo copy caption")}
-let zoomcoords=(r,e)=>{let M=r.getScreenCTM(),x=e.clientX,y=e.clientY,p=plotsvg_.createSVGPoint();
-  p.x=x;p.y=y;p=p.matrixTransform(M.inverse());return[p.x,p.y,r.parentElement.querySelector(".zoom"),r.parentElement.querySelector(".vector")]}
-let zoomreset=r=>{plot_[+r.parentNode.parentNode.dataset.i].Limits={};replot()}
+
+let zoomreset=(r,e)=>{e.preventDefault();e.stopPropagation();plot_[+r.dataset.pi].Limits={};zoomclear(r);replot()}
+
+let zoomcoords=(r,e)=>{let b=r.getBoundingClientRect(),x=e.clientX-b.left,y=e.clientY-b.top,w=b.width,h=b.height,xy=r.dataset.xy,xmin=+r.dataset.xmin,xmax=+r.dataset.xmax,ymin=+r.dataset.ymin,ymax=+r.dataset.ymax;
+ let scale=(x,x0,x1,y0,y1)=>y0+(x-x0)*(y1-y0)/(x1-x0),X=x=>scale(x,0,w,xmin,xmax),Y=y=>scale(y,0,h,"an"==xy?180:ymax,"an"==xy?-180:ymin),xx=scale(x,0,w,0,10000),yy=scale(x,0,h,0,10000);
+ return[x+r.x.baseVal.value,y+r.y.baseVal.value,xx,yy,X(x),Y(y),r.parentElement.querySelector(".zoom"),r.parentElement.querySelector(".vector")]}    //px(rel to parent), axis 0..10000 and xmin/xmax..  //let M=r.getScreenCTM(),x=e.clientX,y=e.clientY,p=plotsvg_.createSVGPoint();p.x=x;p.y=y;p=p.matrixTransform(M.inverse());return[x,y/*p.x,p.y*/...]
+
+
+
+//todo
 let zoomwheel=(r,e)=>{let z=e.deltaY<0,p=r.parentNode,xy=p.dataset.xy,i=+p.parentNode.dataset.i,xmin=+p.dataset.xmin,xmax=+p.dataset.xmax,ymin=+p.dataset.ymin,ymax=+p.dataset.ymax,dx=xmax-xmin,dy=ymax-ymin;
  let[x,y,zoom]=zoomcoords(r,e),scale=(x,x0,x1,y0,y1)=>y0+(x-x0)*(y1-y0)/(x1-x0),X=x=>scale(x,0,10000,xmin,xmax),Y=y=>scale(y,0,10000,ymax,ymin);
  x=X(x);y=Y(y);plot_[i].Limits.Xmin=x-(z?dx/4:dx);plot_[i].Limits.Xmax=x+(z?dx/4:dx);plot_[i].Limits.Ymin=y-(z?dy/4:dy);plot_[i].Limits.Ymax=y+(z?dy/4:dy);replot()}
-let zoomdown=(r,e)=>{if(1!=e.buttons)return;let[x,y,zoom,vect]=zoomcoords(r,e);zoom.dataset.x=x;zoom.dataset.y=y;zoom.width.baseVal.value=0;zoom.height.baseVal.value=0;if(vect){vect.x1.baseVal.value=x;vect.y1.baseVal.value=y;vect.x2.baseVal.value=x;vect.y2.baseVal.value=y};pd(e)}
-let zoommove=(r,e)=>{if(1!=e.buttons)return;console.log("zoommove");let[x1,y1,zoom,vect]=zoomcoords(r,e),x0=+zoom.dataset.x,y0=+zoom.dataset.y,X=x1,Y=y1,xy=r.parentNode.dataset.xy,key=e.altKey||e.shiftKey||e.ctrlKey; (vect?vect:zoom).style.display="";
+
+let zoomdown=(r,e)=>{if(1!=e.buttons)return;let[x,y,xx,yy,X,Y,zoom,vect]=zoomcoords(r,e);r.dataset.snap="";r.dataset.zoomstate="0";r.dataset.x0=x;r.dataset.y0=y;r.dataset.X0=X;r.dataset.Y0=Y;  zoom.width.baseVal.value=0;zoom.height.baseVal.value=0;if(vect){vect.x1.baseVal.value=x;vect.y1.baseVal.value=y;vect.x2.baseVal.value=x;vect.y2.baseVal.value=y};pd(e)}
+
+let zoommove=(r,e)=>{if(1!=e.buttons||!r.dataset.zoomstate)return; r.dataset.zoomstate="1";let[x1,y1,_x,_y,X,Y,zoom,vect]=zoomcoords(r,e),xy=r.dataset.xy,x0=r.dataset.x0,y0=r.dataset.y0,xx=x1,yy=y1,key=e.altKey||e.shiftKey||e.ctrlKey; r.dataset.X1=X,r.dataset.Y1=Y; (vect?vect:zoom).style.display="";  //x0=+zoom.dataset.x,y0=+zoom.dataset.y,newx=x1,newy=y1,
  if(vect){vect.x2.baseVal.value=x1;vect.y2.baseVal.value=y1;(key?zoom:vect).style.display="none"}
  [x0,x1]=x0>x1?[x1,x0]:[x0,x1]; [y0,y1]=y0>y1?[y1,y0]:[y0,y1];
- if(xy!="po")[x0,x1,y0,y1]=y1-y0>x1-x0?[key?X:0,key?1+X:10000,y0,y1]:[x0,x1,key?Y:0,key?1+Y:10000]; //snap hor/ver full-rect or line
+ if(xy!="po"){let X0=r.x.baseVal.value,Y0=r.y.baseVal.value,W=r.width.baseVal.value,H=r.height.baseVal.value,snap=x1-x0>y1-y0?"x":"y";r.dataset.snap=snap;[x0,x1,y0,y1]=snap=="y"?[key?xx:X0,key?1+xx:X0+W,y0,y1]:[x0,x1,key?yy:Y0,key?1+yy:Y0+H]} //snap hor/ver full-rect or line
  zoom.x.baseVal.value=x0;zoom.y.baseVal.value=y0;zoom.width.baseVal.value=x1-x0;zoom.height.baseVal.value=y1-y0}
+
+let zoomleave=(r,e)=>{if(1!=e.buttons||"1"!=r.dataset.zoomstate)return; 
+ let[x,y,xx,yy,X,Y,zoom,vect]=zoomcoords(r,e),xmin=+r.dataset.xmin,xmax=+r.dataset.xmax,ymin=+r.dataset.ymin,ymax=+r.dataset.ymax,clamp=(x,a,b)=>x<a?a:x>b?b:x;
+ r.dataset.X1=clamp(X,+r.dataset.xmin,+r.dataset.xmax);r.dataset.Y1=clamp(Y,+r.dataset.ymin,+r.dataset.ymax); console.log("zoomleave"); return zoomup(r,e)}
+
+let zoomup=(r,e)=>{ 
+ if("1"==r.dataset.zoomstate){
+  let pi=r.dataset.pi,xy=r.dataset.xy,x0=+r.dataset.X0,y0=+r.dataset.Y0,x1=+r.dataset.X1,y1=+r.dataset.Y1,key=e.altKey||e.shiftKey||e.ctrlKey
+  if(key&&"po"==xy){let dx=y1-y0,dy=x1-x0;[x0,y0]=[y0,x0]/*polar*/;let R=Math.hypot(dy,dx),a=(360+180/Math.PI*Math.atan2(dy,dx))%360,s=R.toPrecision(3)+"a"+a.toFixed(0); plot_[pi].Lines.push({Id:-1,C:[x0,y0,x0+dx,y0+dy],Label:s,Style:{Line:{Arrow:1,Width:2}}});zoomclear(r);replot();return}
+  [x0,x1]=x0>x1?[x1,x0]:[x0,x1];[y0,y1]=y0>y1?[y1,y0]:[y0,y1];
+  if(key){let xdir="x"==r.dataset.snap;[x0,x1,y0,y1]=xdir?[x0,x1,y1,y1]:[x1,x1,y0,y1];let cc=[y0,0,y1,0],em={Line:{EndMarks:1}};let d=(xdir?x1-x0:y1-y0),s=shortnum(d),R=60/d;if(xdir&&"s"==plot_[pi].Xunit)s+="s ("+(R>10000?shortnum(0.001*R)+"k":shortnum(R))+"rpm)";plot_[pi].Lines.push(xy=="xy"?{Id:-1,X:xx,Y:yy,Style:em,Label:s}:{Id:-1,X:[x0,x1],C:cc,Style:em,Label:s});zoomclear(r);replot();return}
+  [x0,x1]=("y"==r.dataset.snap)?[+r.dataset.xmin,+r.dataset.xmax]:[x0,x1];[y0,y1]=("x"==r.dataset.snap)?[+r.dataset.ymin,+r.dataset.ymax]:[y0,y1];
+  plot_[pi].Limits.Xmin=x0;plot_[pi].Limits.Xmax=x1;plot_[pi].Limits.Ymin=y0;plot_[pi].Limits.Ymax=y1; zoomclear(r); replot()  }}
+
+let zoomclear=r=>{r.dataset.zoomstate="";let re=r.parentElement.querySelector(".zoom"),ln=r.parentElement.querySelector(".vector");if(re)re.style.display="none";if(ln)ln.style.display="none"}
+
+/*
 let zoomup=(r,e,vect)=>{let p=r.parentNode,xy=p.dataset.xy,i=+p.parentNode.dataset.i,xmin=+p.dataset.xmin,xmax=+p.dataset.xmax,ymin=+p.dataset.ymin,ymax=+p.dataset.ymax,key=e.altKey||e.shiftKey||e.ctrlKey;
  let x0=(vect?r.x1:r.x).baseVal.value,y0=(vect?r.y1:r.y).baseVal.value,x1=vect?r.x2.baseVal.value:x0+r.width.baseVal.value,y1=vect?r.y2.baseVal.value:y0+r.height.baseVal.value
  let scale=(x,x0,x1,y0,y1)=>y0+(x-x0)*(y1-y0)/(x1-x0),X=x=>scale(x,0,10000,xmin,xmax),Y=y=>scale(y,0,10000,ymax,ymin);
  let str=x=>{let s=String(x),t=x.toPrecision(4);return s.length<t.length?s:t}
  if(vect){x0=X(x0);y0=Y(y0);let dx=X(x1)-x0,dy=Y(y1)-y0;[x0,y0,dx,dy]=[y0,x0,dy,dx];let r=Math.hypot(dy,dx),a=(360+180/Math.PI*Math.atan2(dy,dx))%360,s=r.toPrecision(3)+"a"+a.toFixed(0); plot_[i].Lines.push({Id:-1,C:[x0,y0,x0+dx,y0+dy],Label:s,Style:{Line:{Arrow:1,Width:2}}});replot();return} //xxx Label
  if(key){let x=Math.abs(x0-x1)>Math.abs(y0-y1),xx=[X(x0),x?X(x1):X(x0)],yy=[Y(y0),x?Y(y0):Y(y1)],cc=[yy[0],0,yy[1],0],em={Line:{EndMarks:1}};
-  let d=Math.abs(x?X(x0)-X(x1):Y(y0)-Y(y1)),s=str(d),r=60/d;if(x&&"s"==plot_[i].Xunit)s+="s ("+(r>10000?str(0.001*r)+"k":str(r))+"rpm)";
+  let d=Math.abs(x?X(x0)-X(x1):Y(y0)-Y(y1)),s=str(d),r=60/d;if(xdir&&"s"==plot_[i].Xunit)s+="s ("+(r>10000?str(0.001*r)+"k":str(r))+"rpm)";
   plot_[i].Lines.push(xy=="xy"?{Id:-1,X:xx,Y:yy,Style:em,Label:s}:{Id:-1,X:xx,C:cc,Style:em,Label:s});replot();  return}
  x0=X(x0);x1=X(x1);y0=Y(y0);y1=Y(y1);plot_[i].Limits.Xmin=x0;plot_[i].Limits.Xmax=x1;plot_[i].Limits.Ymin=y1;plot_[i].Limits.Ymax=y0;r.width.baseVal.value=0;r.height.baseVal.value=0;replot();}
+*/
+
 let clickpoint=(t,e)=>{console.log("click point")//l
  let ex=e.offsetX,ey=e.offsetY,g1=e.target.parentNode,m1=g1.transform.baseVal.getItem(0).matrix,s1=g1.transform.baseVal.getItem(1).matrix,xy=g1.dataset.xy,far=17
  let g0=g1.parentElement,m0=g0.transform.baseVal.getItem(0).matrix,pi=plot_[+g0.dataset.i],x1=m1.e,y1=m1.f,x0=m0.e,y0=m0.f,sx=s1.a,sy=s1.d,xc=ex-x1-x0,yc=ey-y1-y0
@@ -212,6 +237,14 @@ let hiline=(id,pt)=>{id=String(id); //highlight line by id (and mark point if no
  unmark();Array.from(plotsvg_.querySelectorAll(".hipoint")).forEach(x=>x.classList.remove("hipoint"));
  if(pt!=undefined){p.forEach(p=>marklinepoint(p,pt));g.forEach(g=>markcircle(g,pt))}}
 let togglesingleplot=t=>{plot_.single=plot_.single?0:1+(+t.parentNode.dataset.i);replot()}
+let whiteTextRect=(t,r)=>{let re=t.getBBox();r.setAttribute("x",re.x);r.setAttribute("y",re.y);r.setAttribute("width",re.width);r.setAttribute("height",re.height)}
+let setbackgrounds=svg=>{let a=Array.from(svg.querySelectorAll(".labelbg"));a.forEach(r=>whiteTextRect(r.nextElementSibling,r))  //calculate label backgrounds dynamically
+ Array.from(svg.querySelectorAll("text")).filter(x=>x.ondblclick).forEach(x=>x.parentNode.appendChild(x))                        //bring clickable axis limits to front
+}
+let setcapheight=_=>{} //overwrite to adjust height of select 
+
+
+/*
 let setlineclicks=p=>{ console.log("todo rm setlineclicks"); return
  let pointclick=e=>{let t=e.target,p=t.parentNode,id=p.dataset.id,pt=Array.from(p.childNodes).findIndex(x=>x==t);hiline(id,pt);hirow(id)}
  let lineclick=e=> {let t=e.target,id=t.dataset.id,ex=e.offsetX,ey=e.offsetY; //calculate point index from coordinates
@@ -225,11 +258,7 @@ let setlineclicks=p=>{ console.log("todo rm setlineclicks"); return
  let g=Array.from(plotsvg_.querySelectorAll("g"   )).filter(g=>"id"in g.dataset).forEach(x=>x.onclick=pointclick)
  let a=Array.from(plotsvg_.querySelectorAll("path")).filter(a=>"id"in a.dataset).forEach(x=>x.onclick=lineclick)
  if(plotsld_)plotsld_.onwheel=e=>(e.target.value=Math.min(+e.target.max,Math.max(0,(+e.target.value)-Math.sign(e.deltaY))),e.target.onchange(e));}
-let whiteTextRect=(t,r)=>{let re=t.getBBox();r.setAttribute("x",re.x);r.setAttribute("y",re.y);r.setAttribute("width",re.width);r.setAttribute("height",re.height)}
-let setbackgrounds=svg=>{let a=Array.from(svg.querySelectorAll(".labelbg"));a.forEach(r=>whiteTextRect(r.nextElementSibling,r))  //calculate label backgrounds dynamically
- Array.from(svg.querySelectorAll("text")).filter(x=>x.ondblclick).forEach(x=>x.parentNode.appendChild(x))                        //bring clickable axis limits to front
-}
-let setcapheight=_=>{} //overwrite to adjust height of select 
+*/
 
 
 let plot=(p,c,svg,sld,det,txt,cap,...a)=>{ //svg(svg) sld(range-input) det(details) txt(pre) cap(select multiple)
@@ -252,5 +281,5 @@ let plot=(p,c,svg,sld,det,txt,cap,...a)=>{ //svg(svg) sld(range-input) det(detai
 
  let r=svg.getBoundingClientRect();
  svg.innerHTML=svgplot(p,"width",r.width,"height",r.height,...a);
- setbackgrounds(svg);setlineclicks(p);if(sld)sld.style.display="none";if(c&&cap)caption(c);
+ setbackgrounds(svg);/*setlineclicks(p);*/if(sld)sld.style.display="none";if(c&&cap)caption(c);
 }
