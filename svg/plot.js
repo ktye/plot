@@ -70,7 +70,8 @@ let svgplot=(...a)=>{ //plots
   if(ps)r+=`<g data-id="${'Id'in l?l.Id:-1}" class="C${1+(c-1%ncolors)} c${1+(c-1%ncolors)}">`+x.map((x,i)=>`<circle cx="${x}" cy="${y[i]}" r="${scalepoint(ps,a.w)}"/>`).join("")+`</g>`
   return r}
  let drawLabels=(a,p,f,t)=>p.Lines.map((l,i)=>drawLineLabels(a,p,l,i,f,t)).join("")
- let drawLineLabels=(a,p,l,i,f,t, L,x,y,al)=>"an"==t?"":l.Label?((L=p.Limits),([x,y]=f(l)),al=x[0]==x[1]?((L.Xmax-x[0])/(L.Xmax-L.Xmin)<0.3?3:7):1,x=scale(0.5*(x[0]+x[1]),L.Xmin,L.Xmax,a.x,a.x+a.w),y=scale(0.5*(y[0]+y[1]),L.Ymax,L.Ymin,a.y,a.y+a.h),`<rect x="0" y="0" width="0" height="0" class="labelbg"/>`+text(3==al?x-5:7==al?x+5:x,1==al?y-5:5==al?y+5:y,l.Label,al,0,1)):""
+ let drawLineLabels=(a,p,l,i,f,t)=>{if("an"==t||!l.Label)return"";let X,Y,L=p.Limits,[x,y]=f(l),q=Math.atan2(y[1]-y[0],x[1]-x[0])*180/Math.PI,Q={a:[5,1],b:[6,2],c:[4,0],d:[7,3]};x=scale(X=0.5*(x[0]+x[1]),L.Xmin,L.Xmax,a.x,a.x+a.w);y=scale(Y=0.5*(y[0]+y[1]),L.Ymax,L.Ymin,a.y,a.y+a.h);q=(q<-170?"a":q<-100?"b":q<-80?"c":q<-10?"d":q<10?"a":q<80?"b":q<100?"c":q<170?"d":"a")
+  let left=(X-L.Xmin)/(L.Xmax-L.Xmin)>0.6,down=(Y-L.Ymin)/(L.Ymax-L.Ymin)>0.8,[al,dx,dy]=q=="a"?(down?[5,0,10]:[1,0,-10]):q=="b"?(left?[2,-1,-1]:[6,3,1]):q=="c"?(left?[3,-5,0]:[7,5,0]):(left?[0,0,0]:[4,0,0]);return `<rect x="0" y="0" width="0" height="0" class="labelbg"/>`+text(x+dx,y+dy,l.Label,al,1,1)}
   
  let empty=(p,pi,w,h)=>""
  let xy=(p,pi,w,h)=>{let xt=nicetics(p.Limits.Xmin,p.Limits.Xmax),yt=nicetics(p.Limits.Ymin,p.Limits.Ymax),ylw=ticLabelWidth(yt.Labels);
@@ -149,60 +150,33 @@ let capdblclick=(e,id)=>(id=e.target.dataset.id,id?hiline(id,0):0)    //{let id=
 let copycap=e=>{console.log("todo copy caption")}
 
 let zoomreset=(r,e)=>{e.preventDefault();e.stopPropagation();plot_[+r.dataset.pi].Limits={};zoomclear(r);replot()}
-
 let zoomcoords=(r,e)=>{let b=r.getBoundingClientRect(),x=e.clientX-b.left,y=e.clientY-b.top,w=b.width,h=b.height,xy=r.dataset.xy,xmin=+r.dataset.xmin,xmax=+r.dataset.xmax,ymin=+r.dataset.ymin,ymax=+r.dataset.ymax;
- let scale=(x,x0,x1,y0,y1)=>y0+(x-x0)*(y1-y0)/(x1-x0),X=x=>scale(x,0,w,xmin,xmax),Y=y=>scale(y,0,h,"an"==xy?180:ymax,"an"==xy?-180:ymin),xx=scale(x,0,w,0,10000),yy=scale(x,0,h,0,10000);
+ let scale=(x,x0,x1,y0,y1)=>y0+(x-x0)*(y1-y0)/(x1-x0),X=x=>scale(x,0,w,xmin,xmax),Y=y=>scale(y,0,h,"an"==xy?180:ymax,"an"==xy?-180:ymin),xx=scale(x,0,w,0,10000),yy=scale(y,0,h,0,10000);
  return[x+r.x.baseVal.value,y+r.y.baseVal.value,xx,yy,X(x),Y(y),r.parentElement.querySelector(".zoom"),r.parentElement.querySelector(".vector")]}    //px(rel to parent), axis 0..10000 and xmin/xmax..  //let M=r.getScreenCTM(),x=e.clientX,y=e.clientY,p=plotsvg_.createSVGPoint();p.x=x;p.y=y;p=p.matrixTransform(M.inverse());return[x,y/*p.x,p.y*/...]
-
-
-
-//todo
-let zoomwheel=(r,e)=>{let z=e.deltaY<0,p=r.parentNode,xy=p.dataset.xy,i=+p.parentNode.dataset.i,xmin=+p.dataset.xmin,xmax=+p.dataset.xmax,ymin=+p.dataset.ymin,ymax=+p.dataset.ymax,dx=xmax-xmin,dy=ymax-ymin;
- let[x,y,zoom]=zoomcoords(r,e),scale=(x,x0,x1,y0,y1)=>y0+(x-x0)*(y1-y0)/(x1-x0),X=x=>scale(x,0,10000,xmin,xmax),Y=y=>scale(y,0,10000,ymax,ymin);
- x=X(x);y=Y(y);plot_[i].Limits.Xmin=x-(z?dx/4:dx);plot_[i].Limits.Xmax=x+(z?dx/4:dx);plot_[i].Limits.Ymin=y-(z?dy/4:dy);plot_[i].Limits.Ymax=y+(z?dy/4:dy);replot()}
-
-let zoomdown=(r,e)=>{if(1!=e.buttons)return;let[x,y,xx,yy,X,Y,zoom,vect]=zoomcoords(r,e);r.dataset.snap="";r.dataset.zoomstate="0";r.dataset.x0=x;r.dataset.y0=y;r.dataset.X0=X;r.dataset.Y0=Y;  zoom.width.baseVal.value=0;zoom.height.baseVal.value=0;if(vect){vect.x1.baseVal.value=x;vect.y1.baseVal.value=y;vect.x2.baseVal.value=x;vect.y2.baseVal.value=y};pd(e)}
-
-let zoommove=(r,e)=>{if(1!=e.buttons||!r.dataset.zoomstate)return; r.dataset.zoomstate="1";let[x1,y1,_x,_y,X,Y,zoom,vect]=zoomcoords(r,e),xy=r.dataset.xy,x0=r.dataset.x0,y0=r.dataset.y0,xx=x1,yy=y1,key=e.altKey||e.shiftKey||e.ctrlKey; r.dataset.X1=X,r.dataset.Y1=Y; (vect?vect:zoom).style.display="";  //x0=+zoom.dataset.x,y0=+zoom.dataset.y,newx=x1,newy=y1,
- if(vect){vect.x2.baseVal.value=x1;vect.y2.baseVal.value=y1;(key?zoom:vect).style.display="none"}
+let zoomwheel=(r,e)=>{let z=e.deltaY<0?0.5:2,xy=r.dataset.xy,i=+r.dataset.pi,xmin=+r.dataset.xmin,xmax=+r.dataset.xmax,ymin=+r.dataset.ymin,ymax=+r.dataset.ymax     
+ let[,,,,x,y,zoom]=zoomcoords(r,e);if(xy=="po")[x,y]=[0,0];let f=(x,mi,ma)=>{let d=ma-mi,c=(x-mi)/d;mi=x-z*c*d;return[mi,mi+z*d]};[plot_[i].Limits.Xmin,plot_[i].Limits.Xmax]=f(x,xmin,xmax);if(xy!="an")[plot_[i].Limits.Ymin,plot_[i].Limits.Ymax]=f(y,ymin,ymax);  replot()}
+let zoomdown=(r,e)=>{if(1!=e.buttons)return;let[x,y,,,X,Y,zoom,vect]=zoomcoords(r,e);r.dataset.snap="";r.dataset.zoomstate="0";r.dataset.x0=x;r.dataset.y0=y;r.dataset.X0=X;r.dataset.Y0=Y;  zoom.width.baseVal.value=0;zoom.height.baseVal.value=0;if(vect){vect.x1.baseVal.value=x;vect.y1.baseVal.value=y;vect.x2.baseVal.value=x;vect.y2.baseVal.value=y};pd(e)}
+let zoommove=(r,e)=>{if(1!=e.buttons||!r.dataset.zoomstate)return; r.dataset.zoomstate="1";let[x1,y1,,,X,Y,zoom,vect]=zoomcoords(r,e),xy=r.dataset.xy,x0=r.dataset.x0,y0=r.dataset.y0,xx=x1,yy=y1,key=e.altKey||e.shiftKey||e.ctrlKey; r.dataset.X1=X,r.dataset.Y1=Y; (vect?vect:zoom).style.display="";  //x0=+zoom.dataset.x,y0=+zoom.dataset.y,newx=x1,newy=y1,
+ r.dataset.d2=(x1-x0)*(x1-x0)+(y1-y0)*(y1-y0);if(vect){vect.x2.baseVal.value=x1;vect.y2.baseVal.value=y1;(key?zoom:vect).style.display="none"}
  [x0,x1]=x0>x1?[x1,x0]:[x0,x1]; [y0,y1]=y0>y1?[y1,y0]:[y0,y1];
  if(xy!="po"){let X0=r.x.baseVal.value,Y0=r.y.baseVal.value,W=r.width.baseVal.value,H=r.height.baseVal.value,snap=x1-x0>y1-y0?"x":"y";r.dataset.snap=snap;[x0,x1,y0,y1]=snap=="y"?[key?xx:X0,key?1+xx:X0+W,y0,y1]:[x0,x1,key?yy:Y0,key?1+yy:Y0+H]} //snap hor/ver full-rect or line
  zoom.x.baseVal.value=x0;zoom.y.baseVal.value=y0;zoom.width.baseVal.value=x1-x0;zoom.height.baseVal.value=y1-y0}
-
 let zoomleave=(r,e)=>{if(1!=e.buttons||"1"!=r.dataset.zoomstate)return; 
- let[x,y,xx,yy,X,Y,zoom,vect]=zoomcoords(r,e),xmin=+r.dataset.xmin,xmax=+r.dataset.xmax,ymin=+r.dataset.ymin,ymax=+r.dataset.ymax,clamp=(x,a,b)=>x<a?a:x>b?b:x;
- r.dataset.X1=clamp(X,+r.dataset.xmin,+r.dataset.xmax);r.dataset.Y1=clamp(Y,+r.dataset.ymin,+r.dataset.ymax); console.log("zoomleave"); return zoomup(r,e)}
-
+ let[x,y,,,X,Y,zoom,vect]=zoomcoords(r,e),xmin=+r.dataset.xmin,xmax=+r.dataset.xmax,ymin=+r.dataset.ymin,ymax=+r.dataset.ymax,clamp=(x,a,b)=>x<a?a:x>b?b:x;
+ r.dataset.X1=clamp(X,+r.dataset.xmin,+r.dataset.xmax);r.dataset.Y1=clamp(Y,+r.dataset.ymin,+r.dataset.ymax); return zoomup(r,e)}
 let zoomup=(r,e)=>{ 
- if("1"==r.dataset.zoomstate){
+ if("1"==r.dataset.zoomstate){ if(17>+r.dataset.d2){zoomclear(r);return};
   let pi=r.dataset.pi,xy=r.dataset.xy,x0=+r.dataset.X0,y0=+r.dataset.Y0,x1=+r.dataset.X1,y1=+r.dataset.Y1,key=e.altKey||e.shiftKey||e.ctrlKey
   if(key&&"po"==xy){let dx=y1-y0,dy=x1-x0;[x0,y0]=[y0,x0]/*polar*/;let R=Math.hypot(dy,dx),a=(360+180/Math.PI*Math.atan2(dy,dx))%360,s=R.toPrecision(3)+"a"+a.toFixed(0); plot_[pi].Lines.push({Id:-1,C:[x0,y0,x0+dx,y0+dy],Label:s,Style:{Line:{Arrow:1,Width:2}}});zoomclear(r);replot();return}
   [x0,x1]=x0>x1?[x1,x0]:[x0,x1];[y0,y1]=y0>y1?[y1,y0]:[y0,y1];
   if(key){let xdir="x"==r.dataset.snap;[x0,x1,y0,y1]=xdir?[x0,x1,y1,y1]:[x1,x1,y0,y1];let cc=[y0,0,y1,0],em={Line:{EndMarks:1}};let d=(xdir?x1-x0:y1-y0),s=shortnum(d),R=60/d;if(xdir&&"s"==plot_[pi].Xunit)s+="s ("+(R>10000?shortnum(0.001*R)+"k":shortnum(R))+"rpm)";plot_[pi].Lines.push(xy=="xy"?{Id:-1,X:xx,Y:yy,Style:em,Label:s}:{Id:-1,X:[x0,x1],C:cc,Style:em,Label:s});zoomclear(r);replot();return}
   [x0,x1]=("y"==r.dataset.snap)?[+r.dataset.xmin,+r.dataset.xmax]:[x0,x1];[y0,y1]=("x"==r.dataset.snap)?[+r.dataset.ymin,+r.dataset.ymax]:[y0,y1];
-  plot_[pi].Limits.Xmin=x0;plot_[pi].Limits.Xmax=x1;plot_[pi].Limits.Ymin=y0;plot_[pi].Limits.Ymax=y1; zoomclear(r); replot()  }}
-
+  plot_[pi].Limits.Xmin=x0;plot_[pi].Limits.Xmax=x1;if(xy!="an"){plot_[pi].Limits.Ymin=y0;plot_[pi].Limits.Ymax=y1}; zoomclear(r); replot()  }}
 let zoomclear=r=>{r.dataset.zoomstate="";let re=r.parentElement.querySelector(".zoom"),ln=r.parentElement.querySelector(".vector");if(re)re.style.display="none";if(ln)ln.style.display="none"}
-
-/*
-let zoomup=(r,e,vect)=>{let p=r.parentNode,xy=p.dataset.xy,i=+p.parentNode.dataset.i,xmin=+p.dataset.xmin,xmax=+p.dataset.xmax,ymin=+p.dataset.ymin,ymax=+p.dataset.ymax,key=e.altKey||e.shiftKey||e.ctrlKey;
- let x0=(vect?r.x1:r.x).baseVal.value,y0=(vect?r.y1:r.y).baseVal.value,x1=vect?r.x2.baseVal.value:x0+r.width.baseVal.value,y1=vect?r.y2.baseVal.value:y0+r.height.baseVal.value
- let scale=(x,x0,x1,y0,y1)=>y0+(x-x0)*(y1-y0)/(x1-x0),X=x=>scale(x,0,10000,xmin,xmax),Y=y=>scale(y,0,10000,ymax,ymin);
- let str=x=>{let s=String(x),t=x.toPrecision(4);return s.length<t.length?s:t}
- if(vect){x0=X(x0);y0=Y(y0);let dx=X(x1)-x0,dy=Y(y1)-y0;[x0,y0,dx,dy]=[y0,x0,dy,dx];let r=Math.hypot(dy,dx),a=(360+180/Math.PI*Math.atan2(dy,dx))%360,s=r.toPrecision(3)+"a"+a.toFixed(0); plot_[i].Lines.push({Id:-1,C:[x0,y0,x0+dx,y0+dy],Label:s,Style:{Line:{Arrow:1,Width:2}}});replot();return} //xxx Label
- if(key){let x=Math.abs(x0-x1)>Math.abs(y0-y1),xx=[X(x0),x?X(x1):X(x0)],yy=[Y(y0),x?Y(y0):Y(y1)],cc=[yy[0],0,yy[1],0],em={Line:{EndMarks:1}};
-  let d=Math.abs(x?X(x0)-X(x1):Y(y0)-Y(y1)),s=str(d),r=60/d;if(xdir&&"s"==plot_[i].Xunit)s+="s ("+(r>10000?str(0.001*r)+"k":str(r))+"rpm)";
-  plot_[i].Lines.push(xy=="xy"?{Id:-1,X:xx,Y:yy,Style:em,Label:s}:{Id:-1,X:xx,C:cc,Style:em,Label:s});replot();  return}
- x0=X(x0);x1=X(x1);y0=Y(y0);y1=Y(y1);plot_[i].Limits.Xmin=x0;plot_[i].Limits.Xmax=x1;plot_[i].Limits.Ymin=y1;plot_[i].Limits.Ymax=y0;r.width.baseVal.value=0;r.height.baseVal.value=0;replot();}
-*/
-
-let clickpoint=(t,e)=>{console.log("click point")//l
- let ex=e.offsetX,ey=e.offsetY,g1=e.target.parentNode,m1=g1.transform.baseVal.getItem(0).matrix,s1=g1.transform.baseVal.getItem(1).matrix,xy=g1.dataset.xy,far=17
- let g0=g1.parentElement,m0=g0.transform.baseVal.getItem(0).matrix,pi=plot_[+g0.dataset.i],x1=m1.e,y1=m1.f,x0=m0.e,y0=m0.f,sx=s1.a,sy=s1.d,xc=ex-x1-x0,yc=ey-y1-y0
- let[xmin,xmax,ymin,ymax]=[g1.dataset.xmin,g1.dataset.xmax,xy=="an"?-180:g1.dataset.ymin,xy=="an"?180:g1.dataset.ymax].map(Number)
- let sc=(X,Y)=>([X.map(x=>sx*(x=scale(x,xmin,xmax,0,10000),x<-10000?-10000:x>20000?20000:Math.round(x))),Y.map(y=>sy*(y=scale(y,ymax,ymin,0,10000),y<-10000?-10000:y>20000?20000:Math.round(y)))])
- let a=Array.from(g1.childNodes).filter(x=>"id"in x.dataset&&(+x.dataset.id)>=0),ids=a.map(x=>x.dataset.id).toReversed()
- for(id of ids){let l=pi.Lines.find(l=>l.Id==id);if(!l)continue;let[xx,yy]=xy=="po"?[Imag(l.C),Real(l.C)]:"am"?[l.X,Abs(l.C)]:"an"?[l.X,Ang(l.C)]:[l.X,l.Y];if(xx){let[X,Y]=sc(xx,yy);for(let i in X){let x=X[i],y=Y[i],d=(x-xc)*(x-xc)+(y-yc)*(y-yc);if(d<far){hiline(id,i);hirow(id);return}}}}}
+let clickpoint=(r,e)=>{let[xc,yc,,,,]=zoomcoords(r,e),xy=r.dataset.xy,i=r.dataset.pi,pi=plot_[+i],xmin=+r.dataset.xmin,xmax=+r.dataset.xmax,ymin=+r.dataset.ymin,ymax=+r.dataset.ymax,xa=r.x.baseVal.value,ya=r.y.baseVal.value,w=r.width.baseVal.value,h=r.height.baseVal.value,far=17;
+ let g=Array.from(plotsvg_.querySelectorAll(`[data-xy="${xy}"]`)).filter(x=>x.nodeName=="g"&&x.parentNode.dataset.i==i);if(g.length!=1)return;g=g[0];
+ let a=Array.from(g.childNodes).filter(x=>"id"in x.dataset&&(+x.dataset.id)>=0),ids=a.map(x=>x.dataset.id).toReversed(),sc=(X,Y)=>([X.map(x=>scale(x,xmin,xmax,xa,xa+w)),Y.map(y=>scale(y,ymin,ymax,ya+h,ya))]);
+ for(id of ids){let l=pi.Lines.find(l=>l.Id==id);if(!l)continue;let[xx,yy]=xy=="po"?[Imag(l.C),Real(l.C)]:"am"?[l.X,Abs(l.C)]:"an"?[l.X,Ang(l.C)]:[l.X,l.Y];if(xx){let[X,Y]=sc(xx,yy);for(let i in X){let x=X[i],y=Y[i],d=(x-xc)*(x-xc)+(y-yc)*(y-yc); if(d<far){hiline(id,i);hirow(id);return}}}}} 
 let editlimit=(t,xy)=>{let r=prompt(`new ${xy} value:`,t.textContent);let v=parseFloat(r),i=+t.parentNode.dataset.i;if(r===null)return;if(!isNaN(v)){plot_[i].Limits[xy]=v}else{plot_[i].Limits={}}; replot()}
 
 
@@ -240,25 +214,10 @@ let togglesingleplot=t=>{plot_.single=plot_.single?0:1+(+t.parentNode.dataset.i)
 let whiteTextRect=(t,r)=>{let re=t.getBBox();r.setAttribute("x",re.x);r.setAttribute("y",re.y);r.setAttribute("width",re.width);r.setAttribute("height",re.height)}
 let setbackgrounds=svg=>{let a=Array.from(svg.querySelectorAll(".labelbg"));a.forEach(r=>whiteTextRect(r.nextElementSibling,r))  //calculate label backgrounds dynamically
  Array.from(svg.querySelectorAll("text")).filter(x=>x.ondblclick).forEach(x=>x.parentNode.appendChild(x))                        //bring clickable axis limits to front
+ if(plotsld_)plotsld_.onwheel=e=>(e.target.value=Math.min(+e.target.max,Math.max(0,(+e.target.value)-Math.sign(e.deltaY))),e.target.onchange(e));
 }
 let setcapheight=_=>{} //overwrite to adjust height of select 
 
-
-/*
-let setlineclicks=p=>{ console.log("todo rm setlineclicks"); return
- let pointclick=e=>{let t=e.target,p=t.parentNode,id=p.dataset.id,pt=Array.from(p.childNodes).findIndex(x=>x==t);hiline(id,pt);hirow(id)}
- let lineclick=e=> {let t=e.target,id=t.dataset.id,ex=e.offsetX,ey=e.offsetY; //calculate point index from coordinates
-  let g1=t.parentElement,m1=g1.transform.baseVal.getItem(0).matrix,s1=g1.transform.baseVal.getItem(1).matrix,xy=g1.dataset.xy
-  let g0=g1.parentElement,m0=g0.transform.baseVal.getItem(0).matrix,pi=Number(g0.dataset.i),x1=m1.e,y1=m1.f,x0=m0.e,y0=m0.f,sx=s1.a,sy=s1.d,xc=ex-x1-x0,yc=ey-y1-y0
-  let[xmin,xmax,ymin,ymax]=[g1.dataset.xmin,g1.dataset.xmax,xy=="an"?-180:g1.dataset.ymin,xy=="an"?180:g1.dataset.ymax].map(Number)
-  let l=plot_[pi].Lines.filter(l=>l.Id==id);if(l.length>0){l=l[0];
-   let[xx,yy]=xy=="xy"?[l.X,l.Y]:"am"?[l.X,Abs(l.C)]:"an"?[l.X,Ang(l.C)]:[0,0]
-   let sc=(X,Y)=>([X.map(x=>sx*(x=scale(x,xmin,xmax,0,10000),x<-10000?-10000:x>20000?20000:Math.round(x))),Y.map(y=>sy*(y=scale(y,ymax,ymin,0,10000),y<-10000?-10000:y>20000?20000:Math.round(y)))])
-   if(xx){let D=Infinity,I=-1;[X,Y]=sc(xx,yy);X.forEach((x,i)=>{let y=Y[i],d=(x-xc)*(x-xc)+(y-yc)*(y-yc);if(d<D){D=d;I=i}});hiline(id,I);hirow(id)}}}
- let g=Array.from(plotsvg_.querySelectorAll("g"   )).filter(g=>"id"in g.dataset).forEach(x=>x.onclick=pointclick)
- let a=Array.from(plotsvg_.querySelectorAll("path")).filter(a=>"id"in a.dataset).forEach(x=>x.onclick=lineclick)
- if(plotsld_)plotsld_.onwheel=e=>(e.target.value=Math.min(+e.target.max,Math.max(0,(+e.target.value)-Math.sign(e.deltaY))),e.target.onchange(e));}
-*/
 
 
 let plot=(p,c,svg,sld,det,txt,cap,...a)=>{ //svg(svg) sld(range-input) det(details) txt(pre) cap(select multiple)
