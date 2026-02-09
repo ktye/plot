@@ -80,7 +80,7 @@ let svgplot=(...a)=>{ //plots
   let hs=w-hfix,vs=h-vfix,x0=0,y0=0;if(vs>2*hs){y0=floor((vs-2*hs)/2);vs=2*hs;};
   x0+=ylabelWidth+ylw+2*ticLength+border;y0+=titleHeight(p.Title)+ticLength+border;
   let ax=axes(pi,"xy",x0,y0,hs,vs,p.Limits.Xmin,p.Limits.Xmax,p.Limits.Ymin,p.Limits.Ymax);
-  console.log("todo drawxy");return drawLines(ax,p,xyer,"xy")+drawXYTics(ax,xt.Pos,yt.Pos,xt.Labels,yt.Labels)+drawTitle(ax,p.Title)+drawXlabel(ax,p.Xlabel,p.Xunit)+drawYlabel(ax,p.Ylabel,p.Yunit,ylw)}
+  return drawLines(ax,p,xyer,"xy")+drawXYTics(ax,xt.Pos,yt.Pos,xt.Labels,yt.Labels)+drawTitle(ax,p.Title)+drawXlabel(ax,p.Xlabel,p.Xunit)+drawYlabel(ax,p.Ylabel,p.Yunit,ylw)}
  let polar=(p,pi,w,h)=>{let rt=nicetics(0,p.Limits.Ymax),ylw=ticLabelWidth(["270"]);
   let hfix=2*border+2*ylw
   let vfix=2*border+titleHeight(p.Title)+2*ticLabelHeight
@@ -164,12 +164,12 @@ let zoommove=(r,e)=>{if(1!=e.buttons||!r.dataset.zoomstate)return; r.dataset.zoo
 let zoomleave=(r,e)=>{if(1!=e.buttons||"1"!=r.dataset.zoomstate)return; 
  let[x,y,,,X,Y,zoom,vect]=zoomcoords(r,e),xmin=+r.dataset.xmin,xmax=+r.dataset.xmax,ymin=+r.dataset.ymin,ymax=+r.dataset.ymax,clamp=(x,a,b)=>x<a?a:x>b?b:x;
  r.dataset.X1=clamp(X,+r.dataset.xmin,+r.dataset.xmax);r.dataset.Y1=clamp(Y,+r.dataset.ymin,+r.dataset.ymax); return zoomup(r,e)}
-let zoomup=(r,e)=>{ 
+let zoomup=(r,e)=>{
  if("1"==r.dataset.zoomstate){ if(17>+r.dataset.d2){zoomclear(r);return};
   let pi=r.dataset.pi,xy=r.dataset.xy,x0=+r.dataset.X0,y0=+r.dataset.Y0,x1=+r.dataset.X1,y1=+r.dataset.Y1,key=e.altKey||e.shiftKey||e.ctrlKey
   if(key&&"po"==xy){let dx=y1-y0,dy=x1-x0;[x0,y0]=[y0,x0]/*polar*/;let R=Math.hypot(dy,dx),a=(360+180/Math.PI*Math.atan2(dy,dx))%360,s=R.toPrecision(3)+"a"+a.toFixed(0); plot_[pi].Lines.push({Id:-1,C:[x0,y0,x0+dx,y0+dy],Label:s,Style:{Line:{Arrow:1,Width:2}}});zoomclear(r);replot();return}
   [x0,x1]=x0>x1?[x1,x0]:[x0,x1];[y0,y1]=y0>y1?[y1,y0]:[y0,y1];
-  if(key){let xdir="x"==r.dataset.snap;[x0,x1,y0,y1]=xdir?[x0,x1,y1,y1]:[x1,x1,y0,y1];let cc=[y0,0,y1,0],em={Line:{EndMarks:1}};let d=(xdir?x1-x0:y1-y0),s=shortnum(d),R=60/d;if(xdir&&"s"==plot_[pi].Xunit)s+="s ("+(R>10000?shortnum(0.001*R)+"k":shortnum(R))+"rpm)";plot_[pi].Lines.push(xy=="xy"?{Id:-1,X:xx,Y:yy,Style:em,Label:s}:{Id:-1,X:[x0,x1],C:cc,Style:em,Label:s});zoomclear(r);replot();return}
+  if(key){let xdir="x"==r.dataset.snap;[x0,x1,y0,y1]=xdir?[x0,x1,y1,y1]:[x1,x1,y0,y1];let cc=[y0,0,y1,0],em={Line:{EndMarks:1}};let d=(xdir?x1-x0:y1-y0),s=shortnum(d),R=60/d;if(xdir&&"s"==plot_[pi].Xunit)s+="s ("+(R>10000?shortnum(0.001*R)+"k":shortnum(R))+"rpm)";plot_[pi].Lines.push(xy=="xy"?{Id:-1,X:[xdir?x0:x1,x1],Y:[xdir?y1:y0,y1],Style:em,Label:s}:{Id:-1,X:[x0,x1],C:cc,Style:em,Label:s});zoomclear(r);replot();return}
   [x0,x1]=("y"==r.dataset.snap)?[+r.dataset.xmin,+r.dataset.xmax]:[x0,x1];[y0,y1]=("x"==r.dataset.snap)?[+r.dataset.ymin,+r.dataset.ymax]:[y0,y1];
   plot_[pi].Limits.Xmin=x0;plot_[pi].Limits.Xmax=x1;if(xy!="an"){plot_[pi].Limits.Ymin=y0;plot_[pi].Limits.Ymax=y1}; zoomclear(r); replot()  }}
 let zoomclear=r=>{r.dataset.zoomstate="";let re=r.parentElement.querySelector(".zoom"),ln=r.parentElement.querySelector(".vector");if(re)re.style.display="none";if(ln)ln.style.display="none"}
