@@ -67,7 +67,7 @@ let svgplot=(...a)=>{ //plots
  let scalepoint=(ps,w)=>round(10000*ps/w)
  let drawLine=(a,p,l,i,f,t)=>{let[lw,ps,c]=linestyle(p,l,i),r="",em="",[x,y]=axscale(a,...f(l));x=Array.from(x);
   if(t!="an"&&l?.Style?.Line?.EndMarks){let h=abs(x[0]-x[1])>abs(y[0]-y[1]),dx=h?0:300,dy=h?300:0;em=`M${x[0]-dx} ${y[0]-dy} L${x[0]+dx} ${y[0]+dy} M${x[1]-dx} ${y[1]-dy} L${x[1]+dx} ${y[1]+dy}`}
-  if(lw>0&&x.length)r+=`<path d="`+ x.map((x,i)=>(isNaN(y[i])?"":(i==0||isNaN(y[i-1])?"M":"L")+x+" "+y[i])).join("")+(l.Y?"":"Z")+em+`" data-id="${l?.Id?l.Id:-1}" ${l.Y||t=="po"?lineclass(lw,c):linefill(c)} ${l?.Style?.Line?.Arrow?'marker-end="url(#arrow'+(1+(c-1)%ncolors)+')"':''}/>`
+  if(lw>0&&x.length)r+=`<path d="`+ x.map((x,i)=>(isNaN(y[i])?"":(i==0||isNaN(y[i-1])?"M":"L")+x+" "+y[i])).join("")+(t=="po"||l.Y?"":"Z")+em+`" data-id="${l?.Id?l.Id:-1}" ${l.Y||t=="po"?lineclass(lw,c):linefill(c)} ${l?.Style?.Line?.Arrow?'marker-end="url(#arrow'+(1+(c-1)%ncolors)+')"':''}/>`
   if(ps)r+=`<g data-id="${'Id'in l?l.Id:-1}" class="C${1+(c-1)%ncolors} c${1+(c-1)%ncolors}">`+x.map((x,i)=>`<circle cx="${x}" cy="${y[i]}" r="${scalepoint(ps,a.w)}"/>`).join("")+`</g>`
   return r}
  let drawLabels=(a,p,f,t)=>p.Lines.map((l,i)=>drawLineLabels(a,p,l,i,f,t)).join("")
