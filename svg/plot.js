@@ -60,14 +60,14 @@ let svgplot=(...a)=>{ //plots
  let lineclass=(lw,c)=>`class="c${1+(c-1)%ncolors}"`+(2!=lw?`stroke-width="${lw}"`:""),linefill=c=>`class="C${1+(c-1)%ncolors} c${1+(c-1)%ncolors}" style="stroke-width:1"`
  let textmarker=xy=>`<rect x="0" y="0" width="0" height="0" fill="white" class="marker hidden ${xy}"/><text x="0" y="0" class="marker hidden ${xy}">TTT</text>`
  let marker=(rx,ry)=>`<ellipse cx="-10000" cy="-10000" rx="${6*rx}" ry="${6*ry}" fill="none" class="marker hidden"/>` //
- let zoompanel=a=>`<rect x="${a.x}" y="${a.y}" width="${a.w}" height="${a.h}" data-pi="${a.pi}" data-xy="${a.xy}" data-xmin="${a.xmin}" data-xmax="${a.xmax}" data-ymin="${a.ymin}" data-ymax="${a.ymax}" fill="white" opacity="0" onmousedown="zoomdown(this,event)" onmousemove="zoommove(this,event)" onmouseleave="zoomleave(this,event)" oncontextmenu="zoomreset(this,event)" onmouseup="zoomup(this,event)" ondblclick="clickpoint(this,event)" onwheel="zoomwheel(this,event)" />`
+ let zoompanel=a=>`<rect x="${a.x}" y="${a.y}" width="${a.w}" height="${a.h}" data-pi="${a.pi}" data-xy="${a.xy}" data-xmin="${a.xmin}" data-xmax="${a.xmax}" data-ymin="${a.ymin}" data-ymax="${a.ymax}" fill="white" opacity="0" onmousedown="zoomdown(this,event)" onmousemove="zoommove(this,event)" onmouseleave="zoomleave(this,event)" onmouseup="zoomup(this,event)" ondblclick="clickpoint(this,event)" onwheel="zoomwheel(this,event)" />`
  let zoomrect=_=>`<rect x="0" y="0" width="0" height="0" fill="none" stroke="black" vector-effect="non-scaling-stroke" class="zoom"/>`
  let vector=t=>"po"!=t?"":`<line x1="0" y1="0" x2="0" y2="0" class="vector" marker-end="url(#arrow0)" style="display:none"/>`
  let drawLines=(a,p,f,t)=>`<g transform="translate(${a.x} ${a.y}) scale(${a.w/10000} ${a.h/10000})" data-xy=${t} data-xmin="${p.Limits.Xmin}" data-xmax="${p.Limits.Xmax}" data-ymin="${p.Limits.Ymin}" data-ymax="${p.Limits.Ymax}" clip-path="url(#A)" >`+p.Lines.map((l,i)=>/*todo l.Style.Marker.Marker=="bar"*/drawLine(a,p,l,i,f,t)).join("")+marker(10000/a.w,10000/a.h)+`</g>`+drawLabels(a,p,f,t)+textmarker(t)+vector(t)+zoomrect()+zoompanel(a)
  let scalepoint=(ps,w)=>round(10000*ps/w)
  let drawLine=(a,p,l,i,f,t)=>{let[lw,ps,c]=linestyle(p,l,i),r="",em="",[x,y]=axscale(a,...f(l));x=Array.from(x);
   if(t!="an"&&l?.Style?.Line?.EndMarks){let h=abs(x[0]-x[1])>abs(y[0]-y[1]),dx=h?0:300,dy=h?300:0;em=`M${x[0]-dx} ${y[0]-dy} L${x[0]+dx} ${y[0]+dy} M${x[1]-dx} ${y[1]-dy} L${x[1]+dx} ${y[1]+dy}`}
-  if(lw>0&&x.length)r+=`<path d="`+ x.map((x,i)=>(isNaN(y[i])?"":(i==0||isNaN(y[i-1])?"M":"L")+x+" "+y[i])).join("")+(t=="po"||l.Y?"":"Z")+em+`" data-id="${l?.Id?l.Id:-1}" ${l.Y||t=="po"?lineclass(lw,c):linefill(c)} ${l?.Style?.Line?.Arrow?'marker-end="url(#arrow'+(1+(c-1)%ncolors)+')"':''}/>`
+  if(lw>0&&x.length)r+=`<path d="`+ x.map((x,i)=>(isNaN(y[i])?"":(i==0||isNaN(y[i-1])?"M":"L")+x+" "+y[i])).join("")+(t=="po"||l.Y?"":"Z")+em+`" data-id="${l?.Id?l.Id:-1}" ${l.Y||t=="po"?lineclass(lw,c):linefill(c)} ${l?.Style?.Line?.Arrow?'marker-end="url(#arrow'+max(0,(1+(c-1)%ncolors))+')"':''}/>`
   if(ps)r+=`<g data-id="${'Id'in l?l.Id:-1}" class="C${1+(c-1)%ncolors} c${1+(c-1)%ncolors}">`+x.map((x,i)=>`<circle cx="${x}" cy="${y[i]}" r="${scalepoint(ps,a.w)}"/>`).join("")+`</g>`
   return r}
  let drawLabels=(a,p,f,t)=>p.Lines.map((l,i)=>drawLineLabels(a,p,l,i,f,t)).join("")
@@ -101,7 +101,6 @@ let svgplot=(...a)=>{ //plots
  }
  let foto=(p,w,h)=>""
  let textplot=(p,w,h)=>""
- 
  let grid=(n,w,h,c, g)=>{g={n:n}
   c<0?(g.colmajor=1,-c):(!c)?c=((n<13)?[4,4,4,4,4,3,3,4,4,5,5,4,4][n]:5):0
   g.r=1;g.c=(n<c?n:(g.r=0|n/c,c));
@@ -111,8 +110,7 @@ let svgplot=(...a)=>{ //plots
   if(i==0|(g.n-1)/g.c){m=1+((g.n-1)%g.c);x=(g.width-m*g.w)/2}
   x+=k*g.w;y=i*g.h;return[x,y]}
  let plots=(p,w,h,c)=>{let colors=p.length?(p[0]?.Style?.Order?p[0].Style.Order.split(","):[]):[];colors=(colors.length?colors:"#003FFF,#03ED3A,#E8000B,#8A2BE2,#FFC400,#00D7FF".split(","));ncolors=colors.length;
-  limits(p);labels(p);let g=grid(p.length,w,h,c),r=`<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-  <style>text{font-family:Tahoma,sans-serif;font-size:${font1}px}.a1{text-anchor:middle}.a2{text-anchor:end}.s{font-size:${font2}px}.v{writing-mode:sideways-lr;font-size:${font1}px}
+  limits(p);labels(p);let g=grid(p.length,w,h,c),r=`<style>text{font-family:Tahoma,sans-serif;font-size:${font1}px}.a1{text-anchor:middle}.a2{text-anchor:end}.s{font-size:${font2}px}.v{writing-mode:sideways-lr;font-size:${font1}px}
   ${colors.map((x,i)=>`.c${1+i}{stroke:${x}}`).join("")}${colors.map((x,i)=>`.C${1+i}{fill:${x}}`).join("")}
   .vector{vector-effect:non-scaling-stroke}
   .hiline{stroke-width:4;vector-effect:non-scaling-stroke}
@@ -126,7 +124,8 @@ let svgplot=(...a)=>{ //plots
   <!--clipPath id="B"><rect width="${g.w}" height="${g.h}"/></clipPath-->
   <clipPath id="A"  clipPathUnits="userSpaceOnUse"><rect width="10000" height="10000"/></clipPath>`
   let P={"":empty,"xy":xy,"raster":xy,"polar":polar,"ring":ring,"ampang":ampang,"foto":foto,"text":textplot}
-  p.forEach((p,i, x,y)=>{[x,y]=xyi(g,i);let pi=i+(single?single-1:0);r+=`<g data-i="${pi}" transform="translate(${x+0.5},${y+0.5})" >`+((p.Type in P)?(P[p.Type](p,pi,g.w,g.h)):err("no such plot type:"+p.Type))+"</g>"});return r+"</svg>"}
+  plotlay_=g.r+"x"+g.c
+  p.forEach((p,i, x,y)=>{[x,y]=xyi(g,i);let pi=i+(single?single-1:0);r+=`<g data-i="${pi}" transform="translate(${x+0.5},${y+0.5})" >`+((p.Type in P)?(P[p.Type](p,pi,g.w,g.h)):err("no such plot type:"+p.Type))+"</g>"});return r}
  return plots(single?[p[single-1]]:p,w,h,c)}
  
 
@@ -139,7 +138,7 @@ let svgplot=(...a)=>{ //plots
   draw-rect:           show rectange (xy/amp/ang snap to hor/ver), set limits on mouseup, replot
   ***draw-rect+shift|ctrl|alt:     measure hor/ver, polar: draw vector
  */
-let plotsvg_,plotsld_,plotcap_,plotopts_,plot_
+let plotsvg_,plotsld_,plotcap_,plottab_,plotopts_,plot_,plotlay_
 let FA=x=>new Float64Array(x)
 let Abs=x=>{let r=FA(x.length/2);for(let i=0;i<r.length;i++)r[i]=hypot(x[2*i],x[2*i+1]);return r}
 let ReIm=(x,o)=>{let r=FA(x.length/2),i=-1;for(;o<x.length;o+=2)r[++i]=x[o];return r},Real=x=>ReIm(x,0),Imag=x=>ReIm(x,1)
@@ -148,9 +147,8 @@ let shortnum=x=>{let s=String(x),t=x.toPrecision(4).replace("e+","e"),g=String(N
 let replot=_=>{let r=plotsvg_.getBoundingClientRect();plotsvg_.innerHTML=svgplot(plot_,"width",r.width,"height",r.height,...plotopts_);setbackgrounds(plotsvg_);/*setlineclicks(plot_)*/;if(plotsld_)plotsld_.style.display="none"}
 let capchange=c=>(unmark(),marklines(Array.from(c.selectedOptions).map(x=>x.dataset.id)))
 let capdblclick=(e,id)=>(id=e.target.dataset.id,id?hiline(id,0):0)    //{let id=e.target.dataset.id;if(!id)return;let p=plotsvg_.querySelector(`[data-id="${id}"]`);if(p&&p.onclick)p.onclick({target:"path"==p.nodeName?p:p.firstChild/*circle*/})}
-let copycap=e=>{console.log("todo copy caption")}
 
-let zoomreset=(r,e)=>{e.preventDefault();e.stopPropagation();plot_[+r.dataset.pi].Limits={};zoomclear(r);replot()}
+let zoomreset=e=>{e.preventDefault();e.stopPropagation();plot_.forEach(p=>p.Limits={});/*zoomclear(r);*/replot()}
 let zoomcoords=(r,e)=>{let b=r.getBoundingClientRect(),x=e.clientX-b.left,y=e.clientY-b.top,w=b.width,h=b.height,xy=r.dataset.xy,xmin=+r.dataset.xmin,xmax=+r.dataset.xmax,ymin=+r.dataset.ymin,ymax=+r.dataset.ymax;
  let scale=(x,x0,x1,y0,y1)=>y0+(x-x0)*(y1-y0)/(x1-x0),X=x=>scale(x,0,w,xmin,xmax),Y=y=>scale(y,0,h,"an"==xy?180:ymax,"an"==xy?-180:ymin),xx=scale(x,0,w,0,10000),yy=scale(y,0,h,0,10000);
  return[x+r.x.baseVal.value,y+r.y.baseVal.value,xx,yy,X(x),Y(y),r.parentElement.querySelector(".zoom"),r.parentElement.querySelector(".vector")]}    //px(rel to parent), axis 0..10000 and xmin/xmax..  //let M=r.getScreenCTM(),x=e.clientX,y=e.clientY,p=plotsvg_.createSVGPoint();p.x=x;p.y=y;p=p.matrixTransform(M.inverse());return[x,y/*p.x,p.y*/...]
@@ -220,10 +218,9 @@ let setbackgrounds=svg=>{let a=Array.from(svg.querySelectorAll(".labelbg"));a.fo
 let setcapheight=_=>{} //overwrite to adjust height of select 
 
 
-
 let plot=(p,c,svg,sld,det,txt,cap,...a)=>{ //svg(svg) sld(range-input) det(details) txt(pre) cap(select multiple)
  plotsvg_=svg;plotsld_=sld;plotcap_=cap;plotopts_=a,plot_=p;p.single=0 //psld pdet ptxt pcap
- let hs=t=>t.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;")
+ let hs=t=>t.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;"),ce=x=>document.createElement(x)
  let caption=c=>{if(c.text){if(txt)txt.textContent=c.text;if(det){det.open=1;det.style.display=""}}else{if(det){det.open=0;det.style.display="none"}}
   let fill=x=>{let n=Math.max(...x.map(x=>x.length)),f=x=>x+" ".repeat(n-x.length);return x.map(f)},tr=(x,i)=>(i=x.indexOf("\\"))<0?x:x.slice(0,i)
   let icol=n=>fill(["#","",...Array(n).fill(0).map((_,i)=>String(1+i))]) //todo custom numbers
@@ -233,13 +230,15 @@ let plot=(p,c,svg,sld,det,txt,cap,...a)=>{ //svg(svg) sld(range-input) det(detai
   let rowb="border-left:.5em solid black;padding-left:.2em;background:black;color:white;position:sticky;top:0"
   let roww="border-left:.5em solid white;padding-left:.2em"
   let rowi=i=>`border-left:.5em solid ${colors[i%colors.length]};padding-left:.2em`
-  
   cap.innerHTML=r.map((s,i)=>`<option data-id="${i>1?i-2:''}" style="${1==i?roww:i?rowi(i-2):rowb}">${hs(s).replaceAll(" ","&nbsp;")}</option>`).join("\n")
-  setcapheight()
- }
+  setcapheight()}
+ let captiontab=c=>{let q=Object.keys(c).filter(x=>x!="text"),n=c[q[0]].length,r="",h=q.map(x=>`<th>${hs(x)}</th>`).join("")
+  for(let i=0;i<n;i++)r+=`<tr>`+q.map(x=>`<td>${hs(c[x][i])}</td>`).join("")+`</tr>`
+  return`<html><body><table style="font-family:monospace"><tr>${h}</tr>${r}</table></body></html>`};plottab_=c?captiontab(c):""
  
-
+ 
  let r=svg.getBoundingClientRect();
  svg.innerHTML=svgplot(p,"width",r.width,"height",r.height,...a);
+ svg.setAttribute("viewBox",`0 0 ${r.width} ${r.height}`)
  setbackgrounds(svg);/*setlineclicks(p);*/if(sld)sld.style.display="none";if(c&&cap)caption(c);
 }
