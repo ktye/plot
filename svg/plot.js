@@ -67,7 +67,7 @@ let svgplot=(...a)=>{ //plots
  let scalepoint=(ps,w)=>round(10000*ps/w)
  let drawLine=(a,p,l,i,f,t)=>{let[lw,ps,c]=linestyle(p,l,i),r="",em="",[x,y]=axscale(a,...f(l));x=Array.from(x);
   if(t!="an"&&l?.Style?.Line?.EndMarks){let h=abs(x[0]-x[1])>abs(y[0]-y[1]),dx=h?0:300,dy=h?300:0;em=`M${x[0]-dx} ${y[0]-dy} L${x[0]+dx} ${y[0]+dy} M${x[1]-dx} ${y[1]-dy} L${x[1]+dx} ${y[1]+dy}`}
-  if(lw>0&&x.length)r+=`<path d="`+ x.map((x,i)=>(isNaN(y[i])?"":(i==0||isNaN(y[i-1])?"M":"L")+x+" "+y[i])).join("")+(t=="po"||l.Y?"":"Z")+em+`" data-id="${l?.Id?l.Id:-1}" ${l.Y||t=="po"?lineclass(lw,c):linefill(c)} ${l?.Style?.Line?.Arrow?'marker-end="url(#arrow'+max(0,(1+(c-1)%ncolors))+')"':''}/>`
+  if(lw>0&&x.length)r+=`<path d="`+ x.map((x,i)=>(isNaN(y[i])?"":(i==0||isNaN(y[i-1])?"M":"L")+x+" "+y[i])).join("")+(t!="xy"||l.Y?"":"Z")+em+`" data-id="${l?.Id?l.Id:-1}" ${l.Y||t!="xy"?lineclass(lw,c):linefill(c)} ${l?.Style?.Line?.Arrow?'marker-end="url(#arrow'+max(0,(1+(c-1)%ncolors))+')"':''}/>`
   if(ps)r+=`<g data-id="${'Id'in l?l.Id:-1}" class="C${1+(c-1)%ncolors} c${1+(c-1)%ncolors}">`+x.map((x,i)=>`<circle cx="${x}" cy="${y[i]}" r="${scalepoint(ps,a.w)}"/>`).join("")+`</g>`
   return r}
  let drawLabels=(a,p,f,t)=>p.Lines.map((l,i)=>drawLineLabels(a,p,l,i,f,t)).join("")
@@ -221,21 +221,20 @@ let setcapheight=_=>{} //overwrite to adjust height of select
 let plot=(p,c,svg,sld,det,txt,cap,...a)=>{ //svg(svg) sld(range-input) det(details) txt(pre) cap(select multiple)
  plotsvg_=svg;plotsld_=sld;plotcap_=cap;plotopts_=a,plot_=p;p.single=0 //psld pdet ptxt pcap
  let hs=t=>t.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;"),ce=x=>document.createElement(x)
+ let colors="#003FFF,#03ED3A,#E8000B,#8A2BE2,#FFC400,#00D7FF".split(","),ncolors=colors.length
  let caption=c=>{if(c.text){if(txt)txt.textContent=c.text;if(det){det.open=1;det.style.display=""}}else{if(det){det.open=0;det.style.display="none"}}
   let fill=x=>{let n=Math.max(...x.map(x=>x.length)),f=x=>x+" ".repeat(n-x.length);return x.map(f)},tr=(x,i)=>(i=x.indexOf("\\"))<0?x:x.slice(0,i)
   let icol=n=>fill(["#","",...Array(n).fill(0).map((_,i)=>String(1+i))]) //todo custom numbers
   let q=Object.keys(c).filter(x=>x!="text"),t=q.map(x=>fill([tr(x),...c[x]]));t=[icol(t[0].length-2),...t];r=[]
   for(let i=0;i<t[0].length;i++)r.push(t.map(x=>x[i]).join("│"))
-  let colors="#003FFF,#03ED3A,#E8000B,#8A2BE2,#FFC400,#00D7FF".split(","),ncolors=colors.length
   let rowb="border-left:.5em solid black;padding-left:.2em;background:black;color:white;position:sticky;top:0"
   let roww="border-left:.5em solid white;padding-left:.2em"
   let rowi=i=>`border-left:.5em solid ${colors[i%colors.length]};padding-left:.2em`
   cap.innerHTML=r.map((s,i)=>`<option data-id="${i>1?i-2:''}" style="${1==i?roww:i?rowi(i-2):rowb}">${hs(s).replaceAll(" ","&nbsp;")}</option>`).join("\n")
   setcapheight()}
- let captiontab=c=>{let q=Object.keys(c).filter(x=>x!="text"),n=c[q[0]].length,r="",h=q.map(x=>`<th>${hs(x)}</th>`).join("")
-  for(let i=0;i<n;i++)r+=`<tr>`+q.map(x=>`<td>${hs(c[x][i])}</td>`).join("")+`</tr>`
-  return`<html><body><table style="font-family:monospace"><tr>${h}</tr>${r}</table></body></html>`};plottab_=c?captiontab(c):""
- 
+ let captiontab=c=>{let q=Object.keys(c).filter(x=>x!="text"),n=c[q[0]].length,r="",h="<th>#</th>"+q.map(x=>`<th>${hs(x)}</th>`).join("")
+  for(let i=0;i<n;i++)r+=`<tr><td><span style="color:${i?colors[(i-1)%ncolors]:'black'}">${i?'&#8226; ':''}</span>${0==i?"":i-1}</td>`+q.map(x=>`<td>${hs(c[x][i])}</td>`).join("")+`</tr>`
+  return`<html><body><table style="font-family:Consolas,monospace"><tr>${h}</tr>${r}</table></body></html>`};plottab_=c?captiontab(c):""
  
  let r=svg.getBoundingClientRect();
  svg.innerHTML=svgplot(p,"width",r.width,"height",r.height,...a);
