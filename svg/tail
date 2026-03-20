@@ -1,0 +1,29 @@
+</script>
+<body>
+<textarea id="editor" onchange="execute()" style="position:absolute;left:0;top:0;width:80vw;height:30vh;resize:none;border:none;outline:none" wrap="off"></textarea>
+<table id="filetable" style="position:absolute;left:80vw;top:0;width:20vw;height:30vh;background:#eee"></table>
+<svg id="svg" style="position:absolute;left:0;top:30vh;width:100vw;height:50vh"></svg>
+<pre id="outdiv" style="position:absolute;left:0;top:80vh;width:100vw;height:20vh;background:black;color:white;margin:0;overflow:auto;line-height:1"></pre>
+<a id="_dl" style="display:none"></a>
+
+<script>
+let pd=e=>{if(e){e.preventDefault();e.stopPropagation()}}
+let hs=t=>t.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;"),nbsp=x=>x.replaceAll(" ","&nbsp;")
+let af=x=>Array.from(x),oc=(f,e)=>(e.onclick=f,e),ge=x=>document.getElementById(x)
+let su=x=>t_.decode(x),t_=new TextDecoder("utf-8"),us=x=>_t.encode(x),_t=new TextEncoder("utf-8")
+let sw=(s,w)=>s.startsWith(w),ew=(s,e)=>s.endsWith(e)
+let O=s=>{let o=outdiv.textContent;outdiv.textContent+=(o.length&&!ew(o,"\n")?"\n":"")+String(s);outdiv.scrollTop=outdiv.scrollHeight}
+
+let FILE={}; //name:uint8array
+let addfile=(name,u)=>{FILE[name]=u},showfiles=_=>{let k=Object.keys(FILE);filetable.innerHTML=k.map((x,i)=>i>10?"":`<tr><td class="link" onclick="downloadfile(this)">${hs(x)}</td><td>${FILE[x].length}</td></tr>`).join("\n")+(k.length>10?"..":"")}
+
+window.ondragover=e=>pd(e);
+window.ondrop=async e=>{pd(e);l=e.dataTransfer.files;for(let i=0;i<l.length;i++){let f=l.item(i),u=new Uint8Array(await f.arrayBuffer());ew(f.name,".j")||ew(f.name,".js")?(editor.value=su(u),execute()):addfile(f.name,u)};showfiles()}
+let writefile=(name,u)=>{u="string"==typeof(u)?us(u):u;FILE[name]=u;showfiles()}
+let download=(t,name)=>{let x=new Blob([t],{type:"text/plain;charset=utf-8"});_dl.href=URL.createObjectURL(x);_dl.download=name;_dl.click()},downloadfile=x=>(x=x.textContent,download(FILE[x],x))
+let execute=_=>{outdiv.textContent="";try{eval(editor.value)}catch(e){O(e.message);console.log(e)}}
+
+plot=(...a)=>{let r=svg.getBoundingClientRect();svg.innerHTML=svgplot("width",r.width,"height",r.height,...a);svg.setAttribute("viewBox",`0 0 ${r.width} ${r.height}`)}
+
+</script>
+</body></html>

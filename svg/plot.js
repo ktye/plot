@@ -6,7 +6,19 @@
    svgplot({Type:"polar",Lines:[..]},{Type:..})
    svgplot([{Type:..},{Type:..}])
    svgplot(..,"width",800,"height",400,"cols",2) */
-   
+
+let min=Math.min,max=Math.max,exp=Math.exp,log=Math.log,abs=Math.abs,sqrt=Math.sqrt,hypot=Math.hypot,sin=Math.sin,cos=Math.cos,atan2=Math.atan2,floor=Math.floor,ceil=Math.ceil,round=Math.round;const pi=Math.PI
+let scale=(x,x0,x1,y0,y1)=>y0+(x-x0)*(y1-y0)/(x1-x0)
+
+let FA=x=>new Float64Array(x),JS=JSON.stringify
+let Abs=x=>{let r=FA(x.length/2);for(let i=0;i<r.length;i++)r[i]=hypot(x[2*i],x[2*i+1]);return r}
+let ReIm=(x,o)=>{let r=FA(x.length/2),i=-1;for(;o<x.length;o+=2)r[++i]=x[o];return r},Real=x=>ReIm(x,0),Imag=x=>ReIm(x,1)
+let Ang=x=>{let r=FA(x.length/2);for(let i=0;i<r.length;i++)r[i]=atan2(x[2*i+1],x[2*i])*180/Math.PI;return r}//-180,180
+let shortnum=x=>{let s=String(x),t=x.toPrecision(4).replace("e+","e"),g=String(Number(t)),a=[s,t,g];a.sort((x,y)=>x.length-y.length);return a[0]}
+let iota=n=>{let r=Array(n);for(let i=0;i<n;i++)r[i]=i;return r}
+let Sum=x=>{let a=0,b=0,n=x.length>>1;for(let i=0;i<x.length;i+=2){a+=x[i];b+=x[1+i]};return[a/n,b/n]},sum=x=>{let r=0,i;for(i=0;i<x.length;i++)r+=x[i];return r}
+let Mean=u=>{let re=0,im=0,n=u.length/2;for(let i=0;i<u.length;i+=2){re+=u[i];im+=u[1+i]};return[re/n,im/n]},mean=x=>{let s=0,n=x.length,i;for(i=0;i<n;i++)s+=x[i];return s/n}
+
 let svgplot=(...a)=>{ //plots
  let p=[],d=[],w=800,h=600,c=0,ncolors,t="xy",fontratio=0.5455/*roughly font tahoma numbers*/
  let font1=16,font2=12,border=1,ticLength=6,single=0
@@ -20,10 +32,8 @@ let svgplot=(...a)=>{ //plots
   p.Type=t;p=[p]}
 
  let err=x=>{throw new Error(x)}
- let min=Math.min,max=Math.max,abs=Math.abs,hypot=Math.hypot,sin=Math.sin,cos=Math.cos,atan2=Math.atan2,floor=Math.floor,ceil=Math.ceil,round=Math.round;const pi=Math.PI
  let mima=a=>{let mi=Infinity,ma=-Infinity;a.forEach(x=>x.forEach(x=>(mi=min(mi,isNaN(x)?mi:x),ma=max(ma,isNaN(x)?ma:x))));return[mi,ma]}
 
- let scale=(x,x0,x1,y0,y1)=>y0+(x-x0)*(y1-y0)/(x1-x0)
  let axscale=(a,X,Y)=>([X.map(x=>(x=scale(x,a.xmin,a.xmax,0,10000),x<-10000?-10000:x>20000?20000:round(x))),Y.map(y=>(y=scale(y,a.ymax,a.ymin,0,10000),y<-10000?-10000:y>20000?20000:round(y)))])
  let nicenum=(ext,rnd)=>{let e=floor(Math.log10(ext)),f=ext/(10**e),r;return(rnd?((f<1.5)?1:(f<3)?2:(f<7)?5:10):((f<=1)?1:(f<=2)?2:(f<=5)?5:10))*10**e}
  let nicelim=(x,y)=>{let e=nicenum(y-x,false),s=nicenum(e/4,true);return[s*floor(x/s),s*ceil(y/s),s]}
@@ -143,18 +153,13 @@ let svgplot=(...a)=>{ //plots
   ***draw-rect+shift|ctrl|alt:     measure hor/ver, polar: draw vector
  */
 let plotsvg_,plotsld_,plotcap_,plottab_,plotopts_,plot_,plotlay_
-let FA=x=>new Float64Array(x)
-let Abs=x=>{let r=FA(x.length/2);for(let i=0;i<r.length;i++)r[i]=hypot(x[2*i],x[2*i+1]);return r}
-let ReIm=(x,o)=>{let r=FA(x.length/2),i=-1;for(;o<x.length;o+=2)r[++i]=x[o];return r},Real=x=>ReIm(x,0),Imag=x=>ReIm(x,1)
-let Ang=x=>{let r=FA(x.length/2);for(let i=0;i<r.length;i++)r[i]=atan2(x[2*i+1],x[2*i])*180/Math.PI;return r}//-180,180
-let shortnum=x=>{let s=String(x),t=x.toPrecision(4).replace("e+","e"),g=String(Number(t)),a=[s,t,g];a.sort((x,y)=>x.length-y.length);return a[0]}
 let replot=_=>{let r=plotsvg_.getBoundingClientRect();plotsvg_.innerHTML=svgplot(plot_,"width",r.width,"height",r.height,...plotopts_);setbackgrounds(plotsvg_);/*setlineclicks(plot_)*/;if(plotsld_)plotsld_.style.display="none"}
 let capchange=c=>(unmark(),marklines(Array.from(c.selectedOptions).map(x=>x.dataset.id)))
 let capdblclick=(e,id)=>(id=e.target.dataset.id,id?hiline(id,0):0)    //{let id=e.target.dataset.id;if(!id)return;let p=plotsvg_.querySelector(`[data-id="${id}"]`);if(p&&p.onclick)p.onclick({target:"path"==p.nodeName?p:p.firstChild/*circle*/})}
 
 let zoomreset=e=>{e.preventDefault();e.stopPropagation();plot_.forEach(p=>p.Limits={});/*zoomclear(r);*/replot()}
 let zoomcoords=(r,e)=>{let b=r.getBoundingClientRect(),x=e.clientX-b.left,y=e.clientY-b.top,w=b.width,h=b.height,xy=r.dataset.xy,xmin=+r.dataset.xmin,xmax=+r.dataset.xmax,ymin=+r.dataset.ymin,ymax=+r.dataset.ymax;
- let scale=(x,x0,x1,y0,y1)=>y0+(x-x0)*(y1-y0)/(x1-x0),X=x=>scale(x,0,w,xmin,xmax),Y=y=>scale(y,0,h,"an"==xy?180:ymax,"an"==xy?-180:ymin),xx=scale(x,0,w,0,10000),yy=scale(y,0,h,0,10000);
+ let X=x=>scale(x,0,w,xmin,xmax),Y=y=>scale(y,0,h,"an"==xy?180:ymax,"an"==xy?-180:ymin),xx=scale(x,0,w,0,10000),yy=scale(y,0,h,0,10000);
  return[x+r.x.baseVal.value,y+r.y.baseVal.value,xx,yy,X(x),Y(y),r.parentElement.querySelector(".zoom"),r.parentElement.querySelector(".vector")]}    //px(rel to parent), axis 0..10000 and xmin/xmax..  //let M=r.getScreenCTM(),x=e.clientX,y=e.clientY,p=plotsvg_.createSVGPoint();p.x=x;p.y=y;p=p.matrixTransform(M.inverse());return[x,y/*p.x,p.y*/...]
 let zoomwheel=(r,e)=>{let z=e.deltaY<0?0.5:2,xy=r.dataset.xy,i=+r.dataset.pi,xmin=+r.dataset.xmin,xmax=+r.dataset.xmax,ymin=+r.dataset.ymin,ymax=+r.dataset.ymax     
  let[,,,,x,y,zoom]=zoomcoords(r,e);if(xy=="po")[x,y]=[0,0];let f=(x,mi,ma)=>{let d=ma-mi,c=(x-mi)/d;mi=x-z*c*d;return[mi,mi+z*d]};[plot_[i].Limits.Xmin,plot_[i].Limits.Xmax]=f(x,xmin,xmax);if(xy!="an")[plot_[i].Limits.Ymin,plot_[i].Limits.Ymax]=f(y,ymin,ymax);  replot()}
