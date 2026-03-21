@@ -1,9 +1,15 @@
 </script>
 <body>
-<textarea id="editor" onchange="execute()" style="position:absolute;left:0;top:0;width:80vw;height:30vh;resize:none;border:none;outline:none" wrap="off"></textarea>
-<table id="filetable" style="position:absolute;left:80vw;top:0;width:20vw;height:30vh;background:#eee"></table>
-<svg id="svg" style="position:absolute;left:0;top:30vh;width:100vw;height:50vh"></svg>
-<pre id="outdiv" style="position:absolute;left:0;top:80vh;width:100vw;height:20vh;background:black;color:white;margin:0;overflow:auto;line-height:1"></pre>
+<pre style="position:absolute;top:0;right:0;text-align:right;margin:0;line-height:1;z-index:9;"><span class="a" id="sbut" onclick="layout(this)">S</span><span class="a" id="fbut" onclick="layout(this)">F</span><br/><span class="a" id="pbut" onclick="layout(this)">P</span><br/><span class="a" id="obut" onclick="layout(this)">O</span></pre>
+<div style="position:absolute;top:0;left:0;width:100vw;height:100vh;display:flex;flex-direction:column">
+ <div id="tdiv" style="display:flex;width:100vw;flex-grow:1">
+  <textarea id="editor" onchange="execute()" style="flex-grow:4;resize:none;border:none;outline:none" wrap="off" spellcheck="false"></textarea>
+  <table id="filetable" style="flex-grow:1;height:fit-content;padding-right:1em;background:#eee"></table>
+ </div>
+ <svg id="svg" style="flex-grow:2;border:1px solid #ddd"></svg>
+ <pre id="outdiv" style="flex-grow:1;background:black;color:white;margin:0;overflow:auto;line-height:1"></pre>
+</div>
+</div>
 <a id="_dl" style="display:none"></a>
 
 <script>
@@ -14,16 +20,28 @@ let su=x=>t_.decode(x),t_=new TextDecoder("utf-8"),us=x=>_t.encode(x),_t=new Tex
 let sw=(s,w)=>s.startsWith(w),ew=(s,e)=>s.endsWith(e)
 let O=s=>{let o=outdiv.textContent;outdiv.textContent+=(o.length&&!ew(o,"\n")?"\n":"")+String(s);outdiv.scrollTop=outdiv.scrollHeight}
 
-let FILE={}; //name:uint8array
-let addfile=(name,u)=>{FILE[name]=u},showfiles=_=>{let k=Object.keys(FILE);filetable.innerHTML=k.map((x,i)=>i>10?"":`<tr><td class="link" onclick="downloadfile(this)">${hs(x)}</td><td>${FILE[x].length}</td></tr>`).join("\n")+(k.length>10?"..":"")}
+let FILE={["out.txt"]:0}; //name:uint8array
+let addfile=(name,u)=>{FILE[name]=u},showfiles=_=>{let k=Object.keys(FILE).slice(0,10);filetable.innerHTML=k.map((x,i)=>`<tr><td class="link" onclick="downloadfile(this)">${hs(x)}</td><td>${x=="out.txt"?"":FILE[x].length}</td></tr>`).join("\n")+(Object.keys(FILE).length>10?"..":"")}
 
 window.ondragover=e=>pd(e);
 window.ondrop=async e=>{pd(e);l=e.dataTransfer.files;for(let i=0;i<l.length;i++){let f=l.item(i),u=new Uint8Array(await f.arrayBuffer());ew(f.name,".j")||ew(f.name,".js")?(editor.value=su(u),execute()):addfile(f.name,u)};showfiles()}
 let writefile=(name,u)=>{u="string"==typeof(u)?us(u):u;FILE[name]=u;showfiles()}
-let download=(t,name)=>{let x=new Blob([t],{type:"text/plain;charset=utf-8"});_dl.href=URL.createObjectURL(x);_dl.download=name;_dl.click()},downloadfile=x=>(x=x.textContent,download(FILE[x],x))
+let download=(t,name)=>{let x=new Blob([t],{type:"text/plain;charset=utf-8"});_dl.href=URL.createObjectURL(x);_dl.download=name;_dl.click()},downloadfile=x=>(x=x.textContent,download(x=="out.txt"?us(outdiv.textContent):FILE[x],x))
 let execute=_=>{outdiv.textContent="";try{eval(editor.value)}catch(e){O(e.message);console.log(e)}}
 
 plot=(...a)=>{let r=svg.getBoundingClientRect();svg.innerHTML=svgplot("width",r.width,"height",r.height,...a);svg.setAttribute("viewBox",`0 0 ${r.width} ${r.height}`)}
+
+let layout=x=>{x.classList.toggle("a");x.classList.toggle("b")
+ let a=x=>x.classList.contains("a"),f=(x,y)=>y.style.display=a(x)?"":"none"
+ f(sbut,editor);f(fbut,filetable),f(pbut,svg),f(obut,outdiv)
+ tdiv.style.display=a(sbut)||a(fbut)?"flex":"none"
+}
+
+addfile("alpha.txt",us("beta"))
+addfile("betaalpha.txt",us("beta"))
+addfile("betwernerha.txt",us("beta"))
+addfile("alpha.txt",us("beta"))
+showfiles()
 
 </script>
 </body></html>
