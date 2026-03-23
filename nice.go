@@ -30,7 +30,13 @@ func NiceTics(min, max float64) Tics {
 	}
 
 	// We increase the precision, until all labels are different.
-	for prec := 2; prec < 7; prec++ {
+	prec := int(math.Floor(math.Log10(spacing))) // e.g. for spacing 0.005 start with prec=3
+	if prec > 0 {
+		prec = 2
+	} else {
+		prec = -prec
+	}
+	for ; prec < 7; prec++ {
 		t.Labels = make([]string, len(t.Pos))
 		ambiguous := false
 		for i := range t.Labels {
