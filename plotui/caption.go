@@ -63,6 +63,12 @@ func (ui *Plot) SetCaption() {
 	}
 }
 
+func (ui *Plot) FullPrecision() {
+	ui.fullprec = true
+	defer func() { ui.fullprec = false }()
+	ui.SetCaption()
+}
+
 func (ui *Plot) lineClicked() {
 	if ui.ignore {
 		return
@@ -99,7 +105,11 @@ func (ui *Plot) CaptionStrings() ([]string, int, error) {
 		return nil, 0, fmt.Errorf("caption is empty")
 	}
 	var b bytes.Buffer
-	if lineOffset, err := ui.caption.WriteTable(&b, plot.Numbers); err != nil {
+	flags := uint(plot.Numbers)
+	if ui.fullprec {
+		flags |= plot.FullPrec
+	}
+	if lineOffset, err := ui.caption.WriteTable(&b, flags); err != nil {
 		return nil, 0, err
 	} else {
 		s := strings.Split(string(b.Bytes()), "\n")

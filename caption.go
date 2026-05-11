@@ -18,6 +18,7 @@ const (
 	HtmlColors                  // Add a block character with the data color.
 	Uni                         // Unicode borders and right align of numbers
 	Rtf                         // Write as rich text
+	FullPrec                    // Ignore column formats and use full precision
 )
 
 // Caption represents the caption table of a Plot.
@@ -311,7 +312,7 @@ func (c *Caption) WriteTable(w io.Writer, flags uint) (int, error) {
 			}
 			var s string
 			format := "%v"
-			if column.Format != "" {
+			if column.Format != "" && flags&FullPrec == 0 {
 				format = column.Format
 			}
 			switch t := column.Data.(type) {
@@ -332,7 +333,7 @@ func (c *Caption) WriteTable(w io.Writer, flags uint) (int, error) {
 					s = fmt.Sprintf(format, v[row])
 				}
 			case []complex128:
-				if column.Format == "" {
+				if column.Format == "" || flags&FullPrec != 0 {
 					format = "%v@%v"
 				}
 				v := column.Data.([]complex128)

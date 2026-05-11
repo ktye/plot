@@ -30,6 +30,7 @@ type Plot struct {
 	slidePoints     int // slide over lines (value 0) or points (value > 0, enabled by a pointclick)
 	lineOffset      int
 	ignore          bool
+	fullprec        bool
 	caption         *plot.Caption
 	plots           *plot.Plots
 	iplots          plot.Iplots
