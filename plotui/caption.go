@@ -63,9 +63,8 @@ func (ui *Plot) SetCaption() {
 	}
 }
 
-func (ui *Plot) FullPrecision() {
-	ui.fullprec = true
-	defer func() { ui.fullprec = false }()
+func (ui *Plot) FullPrecision(full bool) {
+	ui.fullprec = full
 	ui.SetCaption()
 }
 
