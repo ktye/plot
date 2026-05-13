@@ -163,6 +163,49 @@ func (c *Caption) RemoveColumns(remCols map[string]bool) {
 	c.Columns = columns
 }
 
+func (c *Caption) RemoveRows(delrow map[int]bool) {
+	if len(delrow) == 0 {
+		return
+	}
+	n := c.Rows() - len(delrow)
+	for i, col := range c.Columns {
+		switch v := col.Data.(type) {
+		case []string:
+			r := make([]string, 0, n)
+			for i, x := range v {
+				if delrow[i] == false {
+					r = append(r, x)
+				}
+			}
+			c.Columns[i].Data = r
+		case []int:
+			r := make([]int, 0, n)
+			for i, x := range v {
+				if delrow[i] == false {
+					r = append(r, x)
+				}
+			}
+			c.Columns[i].Data = r
+		case []float64:
+			r := make([]float64, 0, n)
+			for i, x := range v {
+				if delrow[i] == false {
+					r = append(r, x)
+				}
+			}
+			c.Columns[i].Data = r
+		case []complex128:
+			r := make([]complex128, 0, n)
+			for i, x := range v {
+				if delrow[i] == false {
+					r = append(r, x)
+				}
+			}
+			c.Columns[i].Data = r
+		}
+	}
+}
+
 // Color returns the color marker for the given row (including the lead text),
 // which may be nil.
 func (c *Caption) Color(row int, lineOffset int) color.Color {
@@ -328,7 +371,7 @@ func (c *Caption) WriteTable(w io.Writer, flags uint) (int, error) {
 					goto E
 				}
 				if math.IsNaN(v[row]) {
-					s = ""
+					s = "-"
 				} else {
 					s = fmt.Sprintf(format, v[row])
 				}
@@ -341,7 +384,7 @@ func (c *Caption) WriteTable(w io.Writer, flags uint) (int, error) {
 					goto E
 				}
 				if cmplx.IsNaN(v[row]) {
-					s = ""
+					s = "-"
 				} else {
 					s = xmath.Absang(v[row], format)
 				}
