@@ -68,6 +68,7 @@ let svgplot=(...a)=>{ //plots
   +rt.map(R=>`<circle cx="${cx}" cy="${cy}" r="${R/a.ymax*r}" stroke-width="1" stroke="black" fill="none"/>`).join("")+line(cx-r,cy,cx+r,cy)+line(cx,cy-r,cx,cy+r)+scl+`<circle cx="${cx}" cy="${cy}" r="${r}" stroke-width="2" stroke="black" fill="none"/>`)
  let linestyle=(p,l,i)=>{let lw=l?.Style?.Line?.Width?l.Style.Line.Width:0,ps=l?.Style?.Marker?.Size?l.Style.Marker.Size:0;[lw,ps]=(!(lw||ps))?(p.Type=="polar"?[0,3]:[2,0]):[lw,ps];return[lw,ps,l?.Style?.Color?l.Style.Color:l?.Id?l.Id:1+i]}
  let lineclass=(lw,c)=>`class="c${1+(c-1)%ncolors}"`+(2!=lw?`stroke-width="${lw}"`:""),linefill=c=>`class="C${1+(c-1)%ncolors} c${1+(c-1)%ncolors}" style="stroke-width:1"`
+ let pointmarker=l=>l?.Style?.Marker?.Marker=="circle"?"style='fill:none;stroke-width:100'":""
  let textmarker=xy=>`<rect x="0" y="0" width="0" height="0" fill="white" class="marker hidden ${xy}"/><text x="0" y="0" class="marker hidden ${xy}">TTT</text>`
  let marker=(rx,ry)=>`<ellipse cx="-10000" cy="-10000" rx="${6*rx}" ry="${6*ry}" fill="none" class="marker hidden"/>` //
  let zoompanel=a=>`<rect x="${a.x}" y="${a.y}" width="${a.w}" height="${a.h}" data-pi="${a.pi}" data-xy="${a.xy}" data-xmin="${a.xmin}" data-xmax="${a.xmax}" data-ymin="${a.ymin}" data-ymax="${a.ymax}" fill="white" opacity="0" onmousedown="zoomdown(this,event)" onmousemove="zoommove(this,event)" onmouseleave="zoomleave(this,event)" onmouseup="zoomup(this,event)" ondblclick="clickpoint(this,event)" onwheel="zoomwheel(this,event)" />`
@@ -78,7 +79,7 @@ let svgplot=(...a)=>{ //plots
  let drawLine=(a,p,l,i,f,t)=>{let[lw,ps,c]=linestyle(p,l,i),r="",em="",[x,y]=axscale(a,...f(l));x=Array.from(x);
   if(t!="an"&&l?.Style?.Line?.EndMarks){let h=abs(x[0]-x[1])>abs(y[0]-y[1]),dx=h?0:300,dy=h?300:0;em=`M${x[0]-dx} ${y[0]-dy} L${x[0]+dx} ${y[0]+dy} M${x[1]-dx} ${y[1]-dy} L${x[1]+dx} ${y[1]+dy}`}
   if(lw>0&&x.length)r+=`<path d="`+ x.map((x,i)=>(isNaN(y[i])?"":(i==0||isNaN(y[i-1])?"M":"L")+x+" "+y[i])).join("")+(t!="xy"||l.Y?"":"Z")+em+`" data-id="${l?.Id?l.Id:-1}" ${l.Y||t!="xy"?lineclass(lw,c):linefill(c)} ${l?.Style?.Line?.Arrow?'marker-end="url(#arrow'+max(0,(1+(c-1)%ncolors))+')"':''}/>`
-  if(ps)r+=`<g data-id="${'Id'in l?l.Id:-1}" class="C${1+(c-1)%ncolors} c${1+(c-1)%ncolors}">`+x.map((x,i)=>`<circle cx="${x}" cy="${y[i]}" r="${scalepoint(ps,a.w)}"/>`).join("")+`</g>`;return r}
+  if(ps)r+=`<g data-id="${'Id'in l?l.Id:-1}" class="C${1+(c-1)%ncolors} c${1+(c-1)%ncolors}">`+x.map((x,i)=>`<circle ${pointmarker(l)} cx="${x}" cy="${y[i]}" r="${scalepoint(ps,a.w)}"/>`).join("")+`</g>`;return r}
  let drawBars=(a,p,f)=>{let r="",i,l,n=p.Lines.length,X0=[],X1=[],Y0=[],Y1=[],I=[]; //draw short bars last
   for(i=0;i<n;i++){l=p.Lines[i];let[x,y]=axscale(a,...f(l)),j;for(j=0;j<x.length;j+=2){X0.push(x[j]);X1.push(x[1+j]);Y0.push(y[j]);Y1.push(y[1+j]);I.push(l?.Id?l.Id:-1)}}
   let atx=(x,y)=>y.map(i=>x[i]),j=Array(X0.length).fill(0).map((_,i)=>i);j.sort((a,b)=>(a=Y1[a])<(b=Y1[b])?-1:a>b?1:0);X0=atx(X0,j);X1=atx(X1,j);Y0=atx(Y0,j);Y1=atx(Y1,j);I=atx(I,j);
