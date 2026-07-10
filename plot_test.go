@@ -238,6 +238,43 @@ var bars Plot = Plot{
 	},
 }
 
+func TestLong(t *testing.T) {
+	n := 10000
+	x, sn, cs := make([]float64, n), make([]float64, n), make([]float64, n)
+	for i := 0; i < n; i++ {
+		x[i] = 0.1 * float64(i)
+		sn[i], cs[i] = math.Sin(x[i]), math.Cos(x[i])
+	}
+	lim := Limits{Xmin: 450, Xmax: 460, Ymin: 0.1, Ymax: 0.95}
+	p0 := Plot{Type: XY, Limits: lim, Lines: []Line{Line{Id: 0, X: x, Y: sn}, Line{Id: 1, X: x, Y: cs}}}
+	p := Plots{p0}
+	w, h := 400, 300
+
+	b, e := p.Png(w, h, 0, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	writeTest(b, "long.png")
+
+	b, e = p.Svg(w, h, 0, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	writeTest(b, "long.svg")
+
+	b, e = p.Wmf(w, h, 0, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	writeTest(b, "long.wmf")
+
+	b, e = p.Emf(w, h, 0, nil, "", 0, 0)
+	if e != nil {
+		t.Fatal(e)
+	}
+	writeTest(b, "long.emf")
+}
+
 func linspace(min, max float64, n int) []float64 {
 	y := make([]float64, n)
 	for i := range y {

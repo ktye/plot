@@ -477,7 +477,8 @@ func (a axes) drawLine(xy xyer, cs vg.CoordinateSystem, l Line, z int, isHighlig
 				d.Color(c)
 				d.FloatText(t)
 			}
-			d.FloatPath(vg.FloatPath{X: x, Y: y, Z: z, CoordinateSystem: cs, LineWidth: width})
+			//d.FloatPath(vg.FloatPath{X: x, Y: y, Z: z, CoordinateSystem: cs, LineWidth: width})
+			vg.DrawClippedFloatPath(d, vg.FloatPath{X: x, Y: y, Z: z, CoordinateSystem: cs, LineWidth: width})
 			if l.Style.Line.Arrow != 0 {
 				d.ArrowHead(vg.ArrowHead{X: x, Y: y, CoordinateSystem: cs, LineWidth: width, Arrow: l.Style.Line.Arrow})
 			}

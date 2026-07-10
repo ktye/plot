@@ -380,6 +380,10 @@ type CoordinateSystem struct {
 	X0, Y0, X1, Y1 float64
 }
 
+func (cs CoordinateSystem) Inside(x, y float64) bool {
+	return (x < cs.X0 || x > cs.X1 || y < cs.Y1 || y > cs.Y0) == false
+}
+
 // FloatTics are unconnected lines given in floating points coordinates.
 // The lines are drawn perpendicular to the given direction.
 type FloatTics struct {
@@ -642,4 +646,56 @@ func clip(f float64) float64 {
 		return float64(minInt) / 64.0
 	}
 	return f
+}
+
+// DrawClippedFloatPath draws only line segements within the viewable area.
+// If the path exceeds the limits, one point before and one after the axis boundary is included.
+// Non-viewable paths too far away may lead to overflow in scaled coordinates in some backends, e.g. emf.
+func DrawClippedFloatPath(d Drawer, p FloatPath) {
+	if len(p.X) == 0 || len(p.Y) == 0 || len(p.X) != len(p.Y) {
+		return
+	}
+	b := make([]bool, len(p.X))
+	for i, x := range p.X {
+		b[i] = p.CoordinateSystem.Inside(x, p.Y[i])
+	}
+	start, stop := clipRanges(b)
+	pX, pY := p.X, p.Y
+	for i := range start {
+		a, b := start[i], stop[i]
+		p.X, p.Y = pX[a:b], pY[a:b]
+		d.FloatPath(p)
+	}
+	d.FloatPath(p)
+}
+func clipRanges(b []bool) (start, stop []int) { //clip_test.go
+	s := false
+	a := make([]bool, len(b))
+	copy(a, b)
+	for i, x := range b {
+		if x && !s {
+			if i > 0 {
+				a[i-1] = true
+			}
+		} else if s && !x {
+			a[i] = true
+		}
+		s = x
+	}
+	s = false
+	for i, x := range a {
+		if x && !s {
+			start = append(start, i)
+		} else if s && !x {
+			stop = append(stop, i)
+		}
+		s = x
+	}
+	if s {
+		stop = append(stop, len(a))
+	}
+	if len(start) > 0 && start[0] == -1 {
+		start[0] = 0
+	}
+	return start, stop
 }
