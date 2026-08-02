@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/ktye/plot"
+	"github.com/ktye/plot/svg"
 	"github.com/ktye/plot/vg"
 )
 
@@ -27,6 +28,7 @@ const (
 	PNG     = 2
 	EMF     = 3
 	SVG     = 4
+	HTM     = 5
 )
 const use = `|plot [-dtcw:h:o:] [-plt] [0 2 ..]
 ktye/plot/cmd/xrootplot/xrootplot.go
@@ -68,6 +70,9 @@ func main() {
 			out = s
 		} else if suf(s, ".svg") {
 			dst = SVG
+			out = s
+		} else if suf(s, ".html") {
+			dst = HTM
 			out = s
 		} else if pre(s, "-p") {
 			plt = true
@@ -125,6 +130,10 @@ func pp(p plot.Plots) {
 		fatal(ioutil.WriteFile(out, b, 0644))
 	case SVG:
 		b, e := p.Svg(w, h, 0, nil)
+		fatal(e)
+		fatal(ioutil.WriteFile(out, b, 0644))
+	case HTM:
+		b, e := svg.HtmlPlot(p, w, h, 0, nil)
 		fatal(e)
 		fatal(ioutil.WriteFile(out, b, 0644))
 	default:
