@@ -65,6 +65,25 @@ func mergeVertical(p []Plot, order map[[2]int]int, colors []int) (Plot, error) {
 		return Plot{}, fmt.Errorf("merge plots: no input")
 	}
 
+	var L0 []Line
+	filter := func(L []Line) (r []Line, r0 []Line) {
+		for _, l := range L {
+		 	if l.Id < 0 {
+			 	r0 = append(r0, l)
+			} else {
+				r = append(r, l)
+			} 
+		}
+		return r, r0
+	}
+	for i := range p {
+		var l0 []Line
+		p[i].Lines, l0 = filter(p[i].Lines)
+		if i == 0 {
+		 	L0 = l0
+		}
+	}
+
 	// Check for uniformity.
 	typ := p[0].Type
 	xlabel, ylabel, title := p[0].Xlabel, p[0].Ylabel, p[0].Title
@@ -185,6 +204,10 @@ func mergeVertical(p []Plot, order map[[2]int]int, colors []int) (Plot, error) {
 		}
 
 		p[0].Caption = &targetCaption
+	}
+
+	for i := range L0 {
+		lines = append(lines, L0[i])
 	}
 
 	ret := p[0]
