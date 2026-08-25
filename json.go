@@ -3,6 +3,8 @@ package plot
 import (
 	"encoding/json"
 	"fmt"
+	"math"
+	"math/cmplx"
 )
 
 // json encode/decode complex vectors [z,z,..]->[r,i,r,i,..]
@@ -42,6 +44,16 @@ func (c *CaptionColumn) MarshalJSON() ([]byte, error) {
 	type C CaptionColumn
 	var data interface{}
 	data = c.Data
+	if f, o := c.Data.([]float64); o {
+		r := make([]float64, len(f))
+		copy(r, f)
+		for i, x := range r {
+			if math.IsNaN(x) {
+				r[i] = 0
+			}
+		}
+		data = r
+	}
 	if z, o := c.Data.([]complex128); o {
 		data = fz(z)
 	}
@@ -134,7 +146,9 @@ func fz(Z []complex128) []float64 {
 	}
 	r := make([]float64, 2*len(Z))
 	for i, z := range Z {
-		r[2*i], r[2*i+1] = real(z), imag(z)
+		if cmplx.IsNaN(z) == false {
+			r[2*i], r[2*i+1] = real(z), imag(z)
+		}
 	}
 	return r
 }
